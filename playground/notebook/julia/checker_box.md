@@ -50,7 +50,7 @@ function make_conv_net(
                 (kernel_size, kernel_size), 
                 sizes[i] => sizes[i+1], 
                 Flux.leakyrelu; 
-                pad, stride=1
+                pad, stride=1, bias=true,
             )
         )
     end
@@ -61,7 +61,7 @@ function make_conv_net(
             (kernel_size, kernel_size), 
             sizes[end-1] => sizes[end],
             ifelse(use_final_tanh, identity, tanh)
-            ; pad, stride=1
+            ; pad, stride=1, bias=true,
         )
     )
     return Chain(net...)
@@ -97,8 +97,8 @@ function (model::AffineCoupling)(x)
     x_active = (1 .- model.mask) .* x
     # (inW, inH, inB) -> (inW, inH, 1, inB) # by Flux.unsqueeze(*, 3)
     net_out = model.net(Flux.unsqueeze(x_frozen, 3))
-    s = net_out[:,:,1,:] # extract feature from 1st channel
-    t = net_out[:,:,2,:] # extract feature from 2nd channel
+    s = net_out[:, :, 1, :] # extract feature from 1st channel
+    t = net_out[:, :, 2, :] # extract feature from 2nd channel
     fx = @. (1 - model.mask) * t + x_active * exp(s) + x_frozen
     logJ = sum((1 .- model.mask) .* s, dims=1:(ndims(s)-1))
     return fx, logJ
@@ -115,6 +115,8 @@ end
 ```
 
 ```julia
+# example
+
 m = AffineCoupling(Conv((3,3), 1=>2, pad=1), make_checker_mask(lattice_shape, 0))
 x = rand(Float32, lattice_shape...,10);
 ```
@@ -140,7 +142,7 @@ end
 ```
 
 ```julia
-prior = Normal(0, 1)
+prior = Normal{Float32}(0.f0, 1.f0)
 ```
 
 ```julia
@@ -154,4 +156,81 @@ layers = make_phi4_affine_layers(
     kernel_size=kernel_size,
 )
 model = Dict("layers" => layers, "prior" => prior)
+```
+
+```julia
+function apply_flow_to_prior(prior, coupling_layers; batch_size)
+    x = rand(prior, lattice_shape..., batch_size)
+    logq = sum(logpdf(prior, x), dims=(1:ndims(x)-1))
+    for layer in coupling_layers
+        x, logJ = layer(x)
+        logq .-= logJ
+    end
+    return x, logq
+end
+```
+
+```julia
+apply_flow_to_prior(prior, layers; batch_size=10);
+```
+
+```julia
+calc_dkl(logp, logq) = mean(logq - logp)
+
+function compute_ess(logp, logq)
+    logw = logp - logq
+    log_ess = 2*logsumexp(logw, dim=0) - logsumexp(2*logw, dim=0)
+    ess_per_cfg = exp(log_ess) / len(logw)
+    return ess_per_cf
+end
+```
+
+```julia
+d = Dict(1=>-1,2=>-2)
+```
+
+```julia
+for (k, v) in d
+end
+```
+
+```julia
+function print_metrics(history, avg_last_N_epochs)
+    for (key, val) in history
+        avgd = mean(val[-avg_last_N_epochs:end])
+        print("$key, $avgd g")
+    end
+end
+```
+
+```julia
+lr = 0.001f0
+optimizer = ADAM(lr)
+```
+
+```julia
+function loss_fn(x, y)
+    lx, logq = apply_flow_to_prior(prior, layers, batch_size=batch_size)
+    logp = -action(x)
+    loss = calc_dkl(logp, logq)
+end
+```
+
+```julia
+Flux.train!(loss, parameters, data, optimizer)
+```
+
+```julia
+function train_step(model, action, loss_fn, optimizer, metrics)
+    layers, prior = model["layers"], model["prior"]
+    optimizer.zero_grad()
+    x, logq = apply_flow_to_prior(prior, layers, batch_size=batch_size)
+    logp = -action(x)
+    loss = calc_dkl(logp, logq)
+    loss.backward()
+    optimizer.step()
+    #metrics["loss"].append(grab(loss))
+    #metrics["logp"].append(grab(logp))
+    #metrics["logq"].append(grab(logq))
+end
 ```
