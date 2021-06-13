@@ -217,7 +217,7 @@ end
 ```
 
 ```julia
-Flux.train!(loss, parameters, data, optimizer)
+Flux.train!(loss_fn, parameters, data, optimizer)
 ```
 
 ```julia
