@@ -60,29 +60,21 @@ phi4_action = ScalarPhi4Action(m², λ)
 
 ```julia
 function calc_action(sp4a::ScalarPhi4Action, cfgs)
-    action_density = sp4a.m² * cfgs .^ 2 + sp4a.λ * cfgs .^ 4
+    action_density = @. sp4a.m² * cfgs ^ 2 + sp4a.λ * cfgs ^ 4
     Nd = lattice_shape |> length
     for μ ∈ 1:Nd
-        action_density += 2cfgs .^ 2
+        action_density .+= 2cfgs .^ 2
 
         shifts_plus = zeros(Nd+1)
         shifts_plus[μ] = 1 # \vec{n} + \hat{\mu}
-        action_density -= circshift(cfgs, shifts_plus)
+        action_density .-= cfgs .* circshift(cfgs, shifts_plus)
 
         shifts_minus = zeros(Nd+1)
         shifts_minus[μ] = -1 # \vec{n} - \hat{\mu}
-        action_density -= circshift(cfgs, shifts_minus)
+        action_density .-= cfgs .* circshift(cfgs, shifts_minus)
     end
     return sum(action_density, dims=1:Nd)
 end
-```
-
-```julia
-@assert action_density |> size == (L, L, B)
-```
-
-```julia
-φ⁴_action = sum(action_density, dims=(1,2))
 ```
 
 ## Prior Distribution
@@ -103,11 +95,7 @@ end
 ```
 
 ```julia
-x1 = 1
-latexstring("$x1")
-```
-
-```julia
+Nd = lattice_shape |> length
 fig, ax = plt.subplots(4, 4, dpi=125, figsize=(4,4))
 for x1 in 1:Nd
     for y1 in 1:Nd
