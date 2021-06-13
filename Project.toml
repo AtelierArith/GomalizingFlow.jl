@@ -2,6 +2,7 @@
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
+LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
