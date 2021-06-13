@@ -96,10 +96,10 @@ function (model::AffineCoupling)(x)
     x_frozen = model.mask .* x
     x_active = (1 .- model.mask) .* x
     # (inW, inH, inB) -> (inW, inH, 1, inB) # by Flux.unsqueeze(*, 3)
-    net_out = model(Flux.unsqueeze(x_frozen, 3))
+    net_out = model.net(Flux.unsqueeze(x_frozen, 3))
     s = net_out[:,:,1,:] # extract feature from 1st channel
     t = net_out[:,:,2,:] # extract feature from 2nd channel
-    fx = @. (1 - modelmask) * t + x_active * exp(s) + x_frozen
+    fx = @. (1 - model.mask) * t + x_active * exp(s) + x_frozen
     logJ = sum((1 .- model.mask) .* s, dims=1:(ndims(s)-1))
     return fx, logJ
 end
@@ -112,6 +112,11 @@ function reverse(model::AffineCoupling, fx)
     net_out = model(fx_frozen)
     return net_out
 end
+```
+
+```julia
+m = AffineCoupling(Conv((3,3), 1=>2, pad=1), make_checker_mask(lattice_shape, 0))
+x = rand(Float32, lattice_shape...,10);
 ```
 
 ```julia
