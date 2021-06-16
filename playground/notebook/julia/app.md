@@ -235,7 +235,7 @@ function (model::AffineCoupling)(x_pair_loghidden)
     t = @view net_out[:, :, 2, :] # extract feature from 2nd channel
     fx = @. (1 - model.mask) * t + x_active * exp(s) + x_frozen
     logJ = sum((1 .- model.mask) .* s, dims=1:(ndims(s)-1))
-    return (fx, loghidden ./ logJ)
+    return (fx, loghidden .- logJ)
 end
 
 # alias
