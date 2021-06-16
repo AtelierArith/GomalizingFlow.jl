@@ -213,27 +213,12 @@ end
 ```
 
 ```julia
-struct AffineNet
-    net
-end
-
-Flux.@functor AffineNet
-
-(a::AffineNet)(x) = a.net(x)
-
 struct AffineCoupling
-    net::AffineNet
+    net
     mask
 end
 
-Flux.params(afc::AffineCoupling) = Flux.params(afc.net)
-```
-
-```julia
-net = Chain(Dense(1,2), Dense(2,3))
-afc = AffineCoupling(AffineNet(net), make_checker_mask((8,8), 0))
-c= Chain([afc,afc])
-Flux.params(c)
+Flux.trainable(a::AffineCoupling) = (a.net,)
 ```
 
 ```julia
@@ -280,10 +265,10 @@ function make_phi4_affine_layers(;lattice_shape, n_layers, hidden_sizes, kernel_
             use_final_tanh=true
         )
         mask = make_checker_mask(lattice_shape, parity)
-        coupling = AffineCoupling(AffineNet(net) |> device, mask |> device)
+        coupling = AffineCoupling(net, mask)
         push!(layers, coupling)
     end
-    Chain(layers...) |> device
+    Chain(layers...)
 end
 ```
 
@@ -394,6 +379,7 @@ end
 S_eff = -logq
 S = calc_action(phi4_action, x)
 fit_b = mean(S) - mean(S_eff)
+@show fit_b
 print("slope 1 linear regression S = -logr + $fit_b")
 fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
 ax.hist2d(vec(S_eff), vec(S), bins=20, range=[[-800, 800], [200,1800]])
