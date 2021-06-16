@@ -19,6 +19,7 @@ using Distributions
 using Flux
 using LaTeXStrings
 using PyPlot
+using ProgressMeter
 ```
 
 ```julia
@@ -77,6 +78,23 @@ function calc_action(sp4a::ScalarPhi4Action, cfgs)
     end
     return sum(action_density, dims=1:Nd)
     =#
+end
+
+function _calc_action(sp4a::ScalarPhi4Action, cfgs)
+    action_density = @. sp4a.m² * cfgs ^ 2 + sp4a.λ * cfgs ^ 4
+    Nd = lattice_shape |> length
+    for μ ∈ 1:Nd
+        action_density .+= 2cfgs .^ 2
+
+        shifts_plus = zeros(Nd+1)
+        shifts_plus[μ] = 1 # \vec{n} + \hat{\mu}
+        action_density .-= cfgs .* circshift(cfgs, shifts_plus)
+
+        shifts_minus = zeros(Nd+1)
+        shifts_minus[μ] = -1 # \vec{n} - \hat{\mu}
+        action_density .-= cfgs .* circshift(cfgs, shifts_minus)
+    end
+    return sum(action_density, dims=1:Nd)
 end
 ```
 
@@ -146,6 +164,14 @@ make_checker_mask(lattice_shape, 0)
 ```
 
 ```julia
+c = Conv((3,3), 1=>8, bias=true, stride=1)
+for p in Flux.params(c)
+    @show p |> eltype
+    @show p |> size
+end
+```
+
+```julia
 function make_conv_net(
         ; in_channels,out_channels, hidden_sizes, kernel_size, use_final_tanh)
     sizes = vcat(in_channels, hidden_sizes, out_channels)
@@ -178,12 +204,18 @@ end
 ```
 
 ```julia
-struct AffineCoupling
+struct AffineNet
     net
-    mask
 end
 
-Flux.@functor AffineCoupling
+Flux.@functor AffineNet
+
+(a::AffineNet)(x) = a.net(x)
+
+struct AffineCoupling
+    net::AffineNet
+    mask
+end
 ```
 
 ```julia
@@ -206,6 +238,7 @@ function (model::AffineCoupling)(x_pair_loghidden)
     return (fx, loghidden ./ logJ)
 end
 
+# alias
 forward(model::AffineCoupling, x_pair_loghidden) = model(x_pair_loghidden)
 
 function reverse(model::AffineCoupling, fx)
@@ -229,7 +262,7 @@ function make_phi4_affine_layers(;lattice_shape, n_layers, hidden_sizes, kernel_
             use_final_tanh=true
         )
         mask = make_checker_mask(lattice_shape, parity)
-        coupling = AffineCoupling(net, mask)
+        coupling = AffineCoupling(AffineNet(net), mask)
         push!(layers, coupling)
     end
     Chain(layers...)
@@ -275,21 +308,35 @@ n_era = 25
 epochs = 100
 batchsize = 64
 
-base_lr = 0.001
-opt = Flux.Optimise.ADAM(base_lr)
-ps = Flux.params(model)
+base_lr = 0.001f0
+opt = ADAM(base_lr)
+ps = Flux.params(model);
 ```
 
 ```julia
-gs = gradient( () -> begin 
+for era in 1:n_era
+    @showprogress for e in 1:epochs
+    gs = Flux.gradient(ps) do
         x, logq = apply_flow_to_prior(prior, model; batchsize)
         logp = -calc_action(phi4_action, x)
         loss = calc_dkl(logp, logq)
-    end,
-    ps
-    )
+    end
+    Flux.Optimise.update!(opt, ps, gs)
+    end
+end
+```
 
-Flux.Optimise.update!(opt, ps, gs)
+```julia
+x, logq = apply_flow_to_prior(prior, model; batchsize)
+fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
+for i in 1:4
+    for j in 1:4
+        ind = i*4 + j
+        ax[i,j].imshow(tanh(x[:, :, ind]), vmin=-1, vmax=1, cmap=:viridis)
+        ax[i,j].axes.xaxis.set_visible(false)
+        ax[i,j].axes.yaxis.set_visible(false)
+    end
+end
 ```
 
 ```julia
