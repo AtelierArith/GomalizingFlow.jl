@@ -6,6 +6,7 @@ authors = ["SatoshiTerasaki <s.terasaki@atelier-arith.jp>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+torch = "^1.9.0"
 
 [tool.poetry.dev-dependencies]
 numpy = "^1.20.3"
