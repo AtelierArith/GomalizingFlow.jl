@@ -316,13 +316,13 @@ ps = Flux.params(model);
 ```julia
 for era in 1:n_era
     @showprogress for e in 1:epochs
-    gs = Flux.gradient(ps) do
-        x, logq = apply_flow_to_prior(prior, model; batchsize)
-        logp = -calc_action(phi4_action, x)
-        loss = calc_dkl(logp, logq)
-    end
-    Flux.Optimise.update!(opt, ps, gs)
-    end
+        gs = Flux.gradient(ps) do
+            x, logq = apply_flow_to_prior(prior, model; batchsize)
+            logp = -calc_action(phi4_action, x)
+            loss = calc_dkl(logp, logq)
+        end
+        Flux.Optimise.update!(opt, ps, gs)
+        end
 end
 ```
 
@@ -353,4 +353,8 @@ ax.set_ylabel(L"S(z)")
 ax.set_aspect(:equal)
 plt.legend(prop=Dict("size"=> 6))
 plt.show()
+```
+
+```julia
+
 ```
