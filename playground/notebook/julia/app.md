@@ -23,6 +23,19 @@ using ProgressMeter
 ```
 
 ```julia
+using CUDA
+use_cuda = false
+
+if use_cuda && CUDA.functional()
+    device = gpu
+    @info "Training on GPU"
+else
+    device = cpu
+    @info "Training on CPU"
+end
+```
+
+```julia
 L = 8
 ```
 
@@ -44,15 +57,6 @@ prior = Normal{Float32}(0.f0, 1.f0)
 n_layers = 16
 hidden_sizes = [8,8]
 kernel_size = 3
-```
-
-```julia
-function goma(xs)
-    ys = [i for i in 1:length(xs)]
-    sum(xs .+ ys)
-end
-
-gradient(goma, [2,3,4])
 ```
 
 ```julia
@@ -137,6 +141,11 @@ end
 ```
 
 ```julia
+@show calc_action(phi4_action, z)
+@show _calc_actionactionactionaction_actionc_action(phi4_action, z)
+```
+
+```julia
 S_eff = -sum(logpdf(prior, z), dims=1:length(lattice_shape))
 S = calc_action(phi4_action, z)
 fit_b = mean(S) - mean(S_eff)
@@ -195,7 +204,7 @@ function make_conv_net(
         Conv(
             (kernel_size, kernel_size), 
             sizes[end-1] => sizes[end],
-            ifelse(use_final_tanh, identity, tanh)
+            ifelse(use_final_tanh, tanh, identity)
             ; pad, stride=1, bias=true,
         )
     )
@@ -216,6 +225,15 @@ struct AffineCoupling
     net::AffineNet
     mask
 end
+
+Flux.params(afc::AffineCoupling) = Flux.params(afc.net)
+```
+
+```julia
+net = Chain(Dense(1,2), Dense(2,3))
+afc = AffineCoupling(AffineNet(net), make_checker_mask((8,8), 0))
+c= Chain([afc,afc])
+Flux.params(c)
 ```
 
 ```julia
@@ -262,16 +280,16 @@ function make_phi4_affine_layers(;lattice_shape, n_layers, hidden_sizes, kernel_
             use_final_tanh=true
         )
         mask = make_checker_mask(lattice_shape, parity)
-        coupling = AffineCoupling(AffineNet(net), mask)
+        coupling = AffineCoupling(AffineNet(net) |> device, mask |> device)
         push!(layers, coupling)
     end
-    Chain(layers...)
+    Chain(layers...) |> device
 end
 ```
 
 ```julia
 function apply_flow_to_prior(prior, coupling_layers; batchsize)
-    x = rand(prior, lattice_shape..., batchsize)
+    x = rand(prior, lattice_shape..., batchsize) |> device
     logq_ = sum(logpdf(prior, x), dims=(1:ndims(x)-1))
     xout, logq = coupling_layers((x, logq_))
     #=for layer in coupling_layers
@@ -299,7 +317,7 @@ model = make_phi4_affine_layers(
     lattice_shape=lattice_shape, 
     n_layers=n_layers,
     hidden_sizes=hidden_sizes, 
-    kernel_size=kernel_size
+    kernel_size=kernel_size,
 );
 ```
 
@@ -314,6 +332,35 @@ ps = Flux.params(model);
 ```
 
 ```julia
+x, logq = apply_flow_to_prior(prior, model; batchsize)
+fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
+for i in 1:4
+    for j in 1:4
+        ind = i*4 + j
+        ax[i,j].imshow(tanh(x[:, :, ind]), vmin=-1, vmax=1, cmap=:viridis)
+        ax[i,j].axes.xaxis.set_visible(false)
+        ax[i,j].axes.yaxis.set_visible(false)
+    end
+end
+```
+
+```julia
+S_eff = -logq
+S = calc_action(phi4_action, x)
+fit_b = mean(S) - mean(S_eff)
+print("slope 1 linear regression S = -logr + $fit_b")
+fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
+ax.hist2d(vec(S_eff), vec(S), bins=20, range=[[-800, 800], [200,1800]])
+xs = range(-800, stop=800, length=4)
+ax.plot(xs, xs .+ fit_b, ":", color=:w, label="slope 1 fit")
+ax.set_xlabel(L"S_{\mathrm{eff}} \equiv -\log ~ r(z)")
+ax.set_ylabel(L"S(z)")
+ax.set_aspect(:equal)
+plt.legend(prop=Dict("size"=> 6))
+plt.show()
+```
+
+```julia
 for era in 1:n_era
     @showprogress for e in 1:epochs
         gs = Flux.gradient(ps) do
@@ -322,7 +369,11 @@ for era in 1:n_era
             loss = calc_dkl(logp, logq)
         end
         Flux.Optimise.update!(opt, ps, gs)
-        end
+    end
+    x, logq = apply_flow_to_prior(prior, model; batchsize)
+    logp = -calc_action(phi4_action, x)
+    loss = calc_dkl(logp, logq)
+    @show loss
 end
 ```
 
@@ -353,6 +404,10 @@ ax.set_ylabel(L"S(z)")
 ax.set_aspect(:equal)
 plt.legend(prop=Dict("size"=> 6))
 plt.show()
+```
+
+```julia
+
 ```
 
 ```julia
