@@ -359,6 +359,9 @@ for era in 1:n_era
     logp = -calc_action(phi4_action, x)
     loss = calc_dkl(logp, logq)
     @show loss
+    if loss < 0
+        break
+    end
 end
 ```
 
@@ -376,13 +379,19 @@ end
 ```
 
 ```julia
+maximum(S), minimum(S)
+```
+
+```julia
+x, logq = apply_flow_to_prior(prior, model; batchsize)
 S_eff = -logq
 S = calc_action(phi4_action, x)
 fit_b = mean(S) - mean(S_eff)
 @show fit_b
 print("slope 1 linear regression S = -logr + $fit_b")
 fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
-ax.hist2d(vec(S_eff), vec(S), bins=20, range=[[-800, 800], [200,1800]])
+ax.hist2d(vec(S_eff), vec(S), bins=20, range=[[-35, 35], [-5, 50]])
+
 xs = range(-800, stop=800, length=4)
 ax.plot(xs, xs .+ fit_b, ":", color=:w, label="slope 1 fit")
 ax.set_xlabel(L"S_{\mathrm{eff}} \equiv -\log ~ r(z)")
@@ -390,12 +399,4 @@ ax.set_ylabel(L"S(z)")
 ax.set_aspect(:equal)
 plt.legend(prop=Dict("size"=> 6))
 plt.show()
-```
-
-```julia
-
-```
-
-```julia
-
 ```
