@@ -46,21 +46,37 @@ kernel_size = 3
 ```
 
 ```julia
+function goma(xs)
+    ys = [i for i in 1:length(xs)]
+    sum(xs .+ ys)
+end
+
+gradient(goma, [2,3,4])
+```
+
+```julia
 function calc_action(sp4a::ScalarPhi4Action, cfgs)
     action_density = @. sp4a.m² * cfgs ^ 2 + sp4a.λ * cfgs ^ 4
     Nd = lattice_shape |> length
+    term1 = sum(2cfgs .^ 2 for μ in 1:Nd)
+    term2 = sum(cfgs .* circshift(cfgs, Flux.onehot(μ, 1:(Nd+1))) for μ in 1:Nd)
+    term3 = sum(cfgs .* circshift(cfgs, -Flux.onehot(μ, 1:(Nd+1))) for μ in 1:Nd)
+    sum(action_density .+ term1 .- term2 .- term3, dims=1:Nd)
+    #=
     for μ ∈ 1:Nd
         action_density .+= 2cfgs .^ 2
-
-        shifts_plus = zeros(Nd+1)
-        shifts_plus[μ] = 1 # \vec{n} + \hat{\mu}
+        #shifts_plus = zeros(Nd+1)
+        #shifts_plus[μ] = 1 # \vec{n} + \hat{\mu}
+        shifts_plus = Flux.onehot(μ, 1:(Nd+1))
         action_density .-= cfgs .* circshift(cfgs, shifts_plus)
 
-        shifts_minus = zeros(Nd+1)
-        shifts_minus[μ] = -1 # \vec{n} - \hat{\mu}
+        #shifts_minus = zeros(Nd+1)
+        #shifts_minus[μ] = -1 # \vec{n} - \hat{\mu}
+        shifts_minus = -Flux.onehot(μ, 1:(Nd+1))
         action_density .-= cfgs .* circshift(cfgs, shifts_minus)
     end
     return sum(action_density, dims=1:Nd)
+    =#
 end
 ```
 
@@ -171,28 +187,26 @@ Flux.@functor AffineCoupling
 ```
 
 ```julia
-Flux.unsqueeze(rand(10,10,2), 3);
-```
-
-```julia
 #=
 x_torch = (B, nC, inH, inW)
 x_flux = (inW, inH, inC, inB)
 =#
 
-function (model::AffineCoupling)(x)
+function (model::AffineCoupling)(x_pair_loghidden)
+    x = x_pair_loghidden[begin]
+    loghidden = x_pair_loghidden[end]
     x_frozen = model.mask .* x
     x_active = (1 .- model.mask) .* x
     # (inW, inH, inB) -> (inW, inH, 1, inB) # by Flux.unsqueeze(*, 3)
     net_out = model.net(Flux.unsqueeze(x_frozen, 3))
-    s = net_out[:, :, 1, :] # extract feature from 1st channel
-    t = net_out[:, :, 2, :] # extract feature from 2nd channel
+    s = @view net_out[:, :, 1, :] # extract feature from 1st channel
+    t = @view net_out[:, :, 2, :] # extract feature from 2nd channel
     fx = @. (1 - model.mask) * t + x_active * exp(s) + x_frozen
     logJ = sum((1 .- model.mask) .* s, dims=1:(ndims(s)-1))
-    return fx, logJ
+    return (fx, loghidden ./ logJ)
 end
 
-forward(model::AffineCoupling, x) = model(x)
+forward(model::AffineCoupling, x_pair_loghidden) = model(x_pair_loghidden)
 
 function reverse(model::AffineCoupling, fx)
     fx_frozen = model.mask .* fx
@@ -223,25 +237,61 @@ end
 ```
 
 ```julia
-function apply_flow_to_prior(prior, coupling_layers; batch_size)
-    x = rand(prior, lattice_shape..., batch_size)
-    logq = sum(logpdf(prior, x), dims=(1:ndims(x)-1))
-    for layer in coupling_layers
+function apply_flow_to_prior(prior, coupling_layers; batchsize)
+    x = rand(prior, lattice_shape..., batchsize)
+    logq_ = sum(logpdf(prior, x), dims=(1:ndims(x)-1))
+    xout, logq = coupling_layers((x, logq_))
+    #=for layer in coupling_layers
         x, logJ = layer(x)
         logq .-= logJ
     end
-    return x, logq
+    =#
+    return xout, logq
 end
 ```
 
 ```julia
-calc_dkl(logp, logq) = mean(logq - logp)
+calc_dkl(logp, logq) = mean(logq .- logp)
 
 function compute_ess(logp, logq)
     logw = logp - logq
-    # ???
     log_ess = 2*logsumexp(logw, dim=ndims(logw)) - logsumexp(2*logw, dim=ndims(logw))
     ess_per_cfg = exp(log_ess) / len(logw)
     return ess_per_cf
 end
+```
+
+```julia
+model = make_phi4_affine_layers(
+    lattice_shape=lattice_shape, 
+    n_layers=n_layers,
+    hidden_sizes=hidden_sizes, 
+    kernel_size=kernel_size
+);
+```
+
+```julia
+n_era = 25
+epochs = 100
+batchsize = 64
+
+base_lr = 0.001
+opt = Flux.Optimise.ADAM(base_lr)
+ps = Flux.params(model)
+```
+
+```julia
+gs = gradient( () -> begin 
+        x, logq = apply_flow_to_prior(prior, model; batchsize)
+        logp = -calc_action(phi4_action, x)
+        loss = calc_dkl(logp, logq)
+    end,
+    ps
+    )
+
+Flux.Optimise.update!(opt, ps, gs)
+```
+
+```julia
+
 ```
