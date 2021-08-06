@@ -333,13 +333,36 @@ class ScalarPhi4Action:
         """
         cfgs.shape == (batch_size, L, L)
         """
-        action_density = self.M2 * cfgs + self.lam * cfgs ** 4
+        action_density = self.M2 * cfgs ** 2 + self.lam * cfgs ** 4
         dims = range(1, cfgs.ndim)
         for mu in dims:
             action_density += 2 * cfgs ** 2
             action_density -= cfgs * torch.roll(cfgs, -1, mu)
             action_density -= cfgs * torch.roll(cfgs, 1, mu)
         return torch.sum(action_density, dim=tuple(dims))
+    
+print("Actions for example configs:", ScalarPhi4Action(M2=1.0, lam=1.0)(cfgs))
+print("Actions for example configs:", ScalarPhi4Action(M2=-4.0, lam=8)(cfgs).detach().numpy())
+```
+
+```python
+class ScalarPhi4Action:
+    def __init__(self, M2, lam):
+        self.M2 = M2
+        self.lam = lam
+    def __call__(self, cfgs):
+        # potential term
+        action_density = self.M2*cfgs**2 + self.lam*cfgs**4
+        # kinetic term (discrete Laplacian)
+        Nd = len(cfgs.shape)-1
+        dims = range(1,Nd+1)
+        for mu in dims:
+            action_density += 2*cfgs**2
+            action_density -= cfgs*torch.roll(cfgs, -1, mu)
+            action_density -= cfgs*torch.roll(cfgs, 1, mu)
+        return torch.sum(action_density, dim=tuple(dims))
+
+print("Actions for example configs:", ScalarPhi4Action(M2=1.0, lam=1.0)(cfgs))
 ```
 
 ```python
@@ -363,23 +386,6 @@ np.random.seed(1234)
 torch.manual_seed(12345)
 def grab(var):
     return var.detach().cpu().numpy()
-
-
-class SimpleNormal:
-    def __init__(self, loc, var):
-        self.dist = torch.distributions.normal.Normal(
-            torch.flatten(loc), torch.flatten(var)
-        )
-        self.shape = loc.shape
-
-    def log_prob(self, x):
-        logp = self.dist.log_prob(x.reshape(x.shape[0], -1))
-        return torch.sum(logp, dim=1)
-
-    def sample_n(self, batch_size):
-        x = self.dist.sample((batch_size,))
-        return x.reshape(batch_size, *self.shape)
-
 
 prior = SimpleNormal(torch.zeros(lattice_shape), torch.ones(lattice_shape))
 torch_z = prior.sample_n(1)
@@ -472,8 +478,14 @@ assert np.allclose(
         ]
     ),
 )
+
+torch.manual_seed(1)
 torch_z = prior.sample_n(1024)
 z = grab(torch_z)
+print(z[0,0,0])
+print(z[1,4,5])
+print(z[10,3,2])
+
 print(f"z.shape = {z.shape}")
 
 fig, ax = plt.subplots(4, 4, dpi=125, figsize=(4, 4))
@@ -509,7 +521,9 @@ We can also investigate the correlation between the "effective action" defining 
 
 ```python
 S_eff = -grab(prior.log_prob(torch_z))
+print(S_eff)
 S = grab(phi4_action(torch_z))
+print(S)
 fit_b = np.mean(S) - np.mean(S_eff)
 print(f'slope 1 linear regression S = -logr + {fit_b:.4f}')
 fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
@@ -521,4 +535,55 @@ ax.set_ylabel(r'$S(z)$')
 ax.set_aspect('equal')
 plt.legend(prop={'size': 6})
 plt.show()
+```
+
+# Affine coupling layers
+
+次のような変換でも良い. `s`, `t` は後で実装するように，ニューラルネットワークになる.
+\begin{equation}
+    g(\phi_1, \phi_2) = \left(e^{s(\phi_2)} \phi_1 + t(\phi_2),  \phi_2\right),
+\end{equation}
+with inverse given by:
+\begin{equation} g^{-1}(\phi_1', \phi_2') =  \left((\phi_1' - t(\phi_2')) e^{-s(\phi_2')}, \phi_2'\right)  \end{equation}
+
+$\phi$ を $\phi = (\phi_1, \phi_2)$ の分解の仕方は任意性があるが, バイナリーチェッカーボードパターンを作り, 1 を持つ部分が frozen となるように定義する.
+
+
+## チェッカーボックス
+
+```python
+def make_checker_mask(shape, parity):
+    checker = torch.ones(shape, dtype=torch.uint8) - parity
+    checker[::2, ::2] = parity
+    checker[1::2, 1::2] = parity
+    return checker
+
+assert torch.all(make_checker_mask(lattice_shape, 0) == torch.from_numpy(np.array(
+        [
+            [0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0],
+            [0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0],
+            [0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0],
+            [0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0]
+        ]
+        )
+    )
+)
+```
+
+```python
+class AffineCoupling(torch.nn.Module):
+    def __init__(self, net,*,mask_shape, mask_parity):
+        super(AffineCoupling, self).__init__()
+        self.mask = make_checker_mask(mask_shape, mask_parity)
+        self.flip_mask = 1- make_checker_mask(mask_shape, mask_parity)
+
+        self.net = net
+    def forward(self, x):
+        pass
+    def reverse(self, fx):
+        pass
 ```
