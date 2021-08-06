@@ -307,3 +307,218 @@ phi_ex2 = rng.normal(size=lattice_shape).astype(np.float32)
 
 cfgs = torch.from_numpy(np.stack((phi_ex1, phi_ex2), axis=0))
 ```
+
+作用を離散化したものを計算したい.
+
+\begin{equation}
+\begin{split}
+S^E_{\text{cont}}[\phi] &= \int d^2\vec{x} ~ (\partial_\mu \phi(\vec{x}))^2 + m^2 \phi(\vec{x})^2 + \lambda \phi(\vec{x})^4 \\
+\rightarrow S^E_{\text{latt}}(\phi) &= \sum_{\vec{n}} \phi(\vec{n}) \left[ \sum_{\mu \in \{1,2\}} 2\phi(\vec{n}) - \phi(\vec{n}+\hat{\mu}) - \phi(\vec{n}-\hat{\mu}) \right] + m^2 \phi(\vec{n})^2 + \lambda \phi(\vec{n})^4
+\end{split}
+\end{equation}
+
+```python
+Nd = len(cfgs.shape) - 1
+dims = range(1, Nd + 1)
+dims
+```
+
+```python
+class ScalarPhi4Action:
+    def __init__(self, M2, lam):
+        self.M2 = M2
+        self.lam = lam
+
+    def __call__(self, cfgs):
+        """
+        cfgs.shape == (batch_size, L, L)
+        """
+        action_density = self.M2 * cfgs + self.lam * cfgs ** 4
+        dims = range(1, cfgs.ndim)
+        for mu in dims:
+            action_density += 2 * cfgs ** 2
+            action_density -= cfgs * torch.roll(cfgs, -1, mu)
+            action_density -= cfgs * torch.roll(cfgs, 1, mu)
+        return torch.sum(action_density, dim=tuple(dims))
+```
+
+```python
+import numpy as np
+import torch
+```
+
+```python
+M2 = -4.0
+lam = 8.0
+lattice_shape = (8, 8)
+phi4_action = ScalarPhi4Action(M2=M2, lam=lam)
+```
+
+```python
+torch.manual_seed(1234)
+np.random.seed(1234)
+```
+
+```python
+torch.manual_seed(12345)
+def grab(var):
+    return var.detach().cpu().numpy()
+
+
+class SimpleNormal:
+    def __init__(self, loc, var):
+        self.dist = torch.distributions.normal.Normal(
+            torch.flatten(loc), torch.flatten(var)
+        )
+        self.shape = loc.shape
+
+    def log_prob(self, x):
+        logp = self.dist.log_prob(x.reshape(x.shape[0], -1))
+        return torch.sum(logp, dim=1)
+
+    def sample_n(self, batch_size):
+        x = self.dist.sample((batch_size,))
+        return x.reshape(batch_size, *self.shape)
+
+
+prior = SimpleNormal(torch.zeros(lattice_shape), torch.ones(lattice_shape))
+torch_z = prior.sample_n(1)
+assert np.allclose(
+    torch_z.detach().numpy(),
+    np.array(
+        [
+            [
+                [
+                    -1.4798077e00,
+                    4.8730600e-01,
+                    -3.0127938e00,
+                    4.4385520e-01,
+                    3.5975620e-01,
+                    -1.2348130e-02,
+                    2.1852244e-01,
+                    -1.2814684e00,
+                ],
+                [
+                    2.4111958e00,
+                    1.9991280e00,
+                    7.8478569e-01,
+                    -1.0194712e00,
+                    -2.1057579e-01,
+                    6.2683845e-01,
+                    9.3176258e-01,
+                    1.8675473e-01,
+                ],
+                [
+                    9.5892775e-01,
+                    -1.1370966e00,
+                    1.3050791e-03,
+                    1.3174164e00,
+                    -1.0148309e00,
+                    -5.4285949e-01,
+                    4.3074253e-01,
+                    -1.9256700e00,
+                ],
+                [
+                    1.2755769e00,
+                    -1.1315589e00,
+                    8.6800182e-01,
+                    7.0788389e-01,
+                    2.0584559e-01,
+                    -9.3001032e-01,
+                    1.1424503e-01,
+                    -4.4502813e-01,
+                ],
+                [
+                    -8.5305727e-01,
+                    -8.4074384e-01,
+                    -3.9632735e-01,
+                    -2.5913042e-01,
+                    -6.7731214e-01,
+                    7.0912451e-02,
+                    -4.5837721e-01,
+                    1.6847131e00,
+                ],
+                [
+                    1.4235240e-01,
+                    6.4272028e-01,
+                    -7.0122153e-01,
+                    1.0413089e00,
+                    -2.3503485e00,
+                    1.8441176e-01,
+                    6.3359553e-01,
+                    -1.5297261e00,
+                ],
+                [
+                    -1.2016140e00,
+                    6.7755446e-02,
+                    4.5683756e-02,
+                    4.6942052e-01,
+                    7.8615564e-01,
+                    -1.1713554e00,
+                    6.3933975e-01,
+                    6.0147840e-01,
+                ],
+                [
+                    3.8572937e-01,
+                    -4.6499664e-01,
+                    -1.7946686e00,
+                    3.8316032e-01,
+                    -8.0198818e-01,
+                    -9.1925912e-02,
+                    -4.9732769e-01,
+                    -1.4870524e00,
+                ],
+            ]
+        ]
+    ),
+)
+torch_z = prior.sample_n(1024)
+z = grab(torch_z)
+print(f"z.shape = {z.shape}")
+
+fig, ax = plt.subplots(4, 4, dpi=125, figsize=(4, 4))
+for i in range(4):
+    for j in range(4):
+        ind = i * 4 + j
+        ax[i, j].imshow(np.tanh(z[ind]), vmin=-1, vmax=1, cmap="viridis")
+        ax[i, j].axes.xaxis.set_visible(False)
+        ax[i, j].axes.yaxis.set_visible(False)
+plt.show()
+```
+
+```python
+fig, ax = plt.subplots(4,4, figsize=(4,4))
+for x1 in range(2):
+    for y1 in range(2):
+        i1 = x1*2 + y1
+        for x2 in range(2):
+            for y2 in range(2):
+                i2 = x2*2 + y2
+                ax[i1,i2].hist2d(z[:,x1,y1], z[:,x2,y2], range=[[-3,3],[-3,3]], bins=20)
+                ax[i1,i2].set_xticks([])
+                ax[i1,i2].set_yticks([])
+                if i1 == 3:
+                    ax[i1,i2].set_xlabel(rf'$\phi({x2},{y2})$')
+                if i2 == 0:
+                    ax[i1,i2].set_ylabel(rf'$\phi({x1},{y1})$')
+fig.suptitle("Correlations in Various Lattice Sites")
+plt.show()
+```
+
+We can also investigate the correlation between the "effective action" defining the model distribution (here, $-\log{r}(z)$) and the true action ($S(z)$). If the prior distribution was already a good model for the true distribution, all samples should have identical action under the prior and true distributions, up to an overall shift. In other words, these should have linear correlation with slope $1$.
+
+```python
+S_eff = -grab(prior.log_prob(torch_z))
+S = grab(phi4_action(torch_z))
+fit_b = np.mean(S) - np.mean(S_eff)
+print(f'slope 1 linear regression S = -logr + {fit_b:.4f}')
+fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
+ax.hist2d(S_eff, S, bins=20, range=[[-800, 800], [200,1800]])
+xs = np.linspace(-800, 800, num=4, endpoint=True)
+ax.plot(xs, xs + fit_b, ':', color='w', label='slope 1 fit')
+ax.set_xlabel(r'$S_{\mathrm{eff}} \equiv -\log~r(z)$')
+ax.set_ylabel(r'$S(z)$')
+ax.set_aspect('equal')
+plt.legend(prop={'size': 6})
+plt.show()
+```
