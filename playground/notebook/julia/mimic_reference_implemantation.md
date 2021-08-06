@@ -142,7 +142,122 @@ end
 # ScalarPhi4Action
 
 ```julia
+torch = pyimport("torch")
+py"""
+import torch
+class SimpleNormal:
+    def __init__(self, loc, var):
+        self.distribution = torch.distributions.normal.Normal(
+            loc,
+            var,
+        )
+        self.shape = loc.shape
+
+    def log_prob(self, x):
+        logp = self.distribution.log_prob(x)
+        return torch.sum(logp, dim=tuple(range(1, logp.ndim)))
+
+    def sample_n(self, batch_size):
+        x = self.distribution.sample((batch_size,))
+        return x
+"""
+```
+
+```julia
+
+py"""
+import numpy as np
+def create_cfgs(L):
+    rng = np.random.default_rng(2021)
+    lattice_shape=(L, L)
+    phi_ex1 = rng.normal(size=(lattice_shape)).astype(np.float32)
+    phi_ex2 = rng.normal(size=(lattice_shape)).astype(np.float32)
+    cfgs = np.stack((phi_ex1, phi_ex2), axis=0)
+    return cfgs
+"""
+
+L = 8
+m² = -4.0
+λ = 8.0
+const lattice_shape = (L, L)
+```
+
+```julia
 struct ScalarPhi4Action
-    m\^2
+    m²::Float32
+    λ::Float32
+end 
+
+function calc_action(action::ScalarPhi4Action, cfgs)
+    action_density = @. action.m² * cfgs ^ 2 + action.λ * cfgs ^ 4
+    Nd = lattice_shape |> length
+    term1 = sum(2cfgs .^ 2 for μ in 2:Nd+1)
+    term2 = sum(cfgs .* circshift(cfgs, Flux.onehot(μ, 1:(Nd+1))) for μ in 2:(Nd+1))
+    term3 = sum(cfgs .* circshift(cfgs, -Flux.onehot(μ, 1:(Nd+1))) for μ in 2:(Nd+1))
+    dropdims(
+        sum(action_density .+ term1 .- term2 .- term3, dims=2:Nd+1),
+        dims=Tuple(2:(Nd+1))
+    )
 end
+
+function (action::ScalarPhi4Action)(cfgs)
+    calc_action(action, cfgs)
+    #=
+    action_density = @. action.m² * cfgs ^ 2 + action.λ * cfgs ^ 4
+    Nd = lattice_shape |> length
+    for μ ∈ 2:Nd+1
+        action_density .+= 2cfgs .^ 2
+
+        shifts_plus = zeros(Nd+1)
+        shifts_plus[μ] = 1 # \vec{n} + \hat{\mu}
+        action_density .-= cfgs .* circshift(cfgs, shifts_plus)
+
+        shifts_minus = zeros(Nd+1)
+        shifts_minus[μ] = -1 # \vec{n} - \hat{\mu}
+        action_density .-= cfgs .* circshift(cfgs, shifts_minus)
+    end
+    return dropdims(sum(action_density, dims=2:Nd+1), dims=Tuple(2:(Nd+1)))
+    =#
+end
+
+cfgs = py"create_cfgs"(L)
+@assert ScalarPhi4Action(1, 1)(cfgs) ≈ [499.7602, 498.5477]
+phi4_action = ScalarPhi4Action(m², λ)
+@assert phi4_action(cfgs) ≈ [1598.679, 1545.5698]
+```
+
+```julia
+torch.manual_seed(12345)
+
+batch_size = 1024
+
+prior = py"SimpleNormal"(
+    torch.from_numpy(zeros(Float32, lattice_shape)), 
+    torch.from_numpy(ones(Float32, lattice_shape)),
+)
+
+z = prior.sample_n(1).detach().numpy()
+torch.manual_seed(1)
+z = prior.sample_n(1024).detach().numpy()
+@assert z[1,1,1] ≈ -1.5255959
+@assert z[2, 5, 6] ≈ -0.81384623
+@assert z[11, 4, 3] ≈ -0.3155666
+S_eff = -prior.log_prob(torch.from_numpy(z)).detach().numpy()
+@assert S_eff[1:3] ≈ [91.6709, 88.7396, 97.8660]
+@assert S_eff[end-2:end] ≈ [92.81951, 91.93714, 80.611916]
+S = phi4_action(z)
+@assert S[1:3] ≈ [2103.6904, 1269.7277, 1697.3539]
+@assert S[end-2:end] ≈ [1231.3823, 1500.0603, 600.58417]
+
+fit_b = mean(S) - mean(S_eff)
+
+fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
+ax.hist2d(S_eff |> vec, S |> vec, bins=20, range=[[-800, 800], [200,1800]])
+xs = range(-800, 800, length=4)
+ax.plot(xs, xs .+ fit_b, ":", color="w", label="slope 1 fit")
+ax.set_xlabel("\$S_{\\mathrm{eff}} \\equiv -\\log~r(z)\$")
+ax.set_ylabel("S(z)")
+ax.set_aspect("equal")
+plt.legend(prop=Dict("size" => 6))
+plt.show()
 ```
