@@ -222,6 +222,20 @@ assert np.allclose(
 )
 ```
 
+```python
+rng = np.random.default_rng(12345)
+w1 = torch.from_numpy(rng.normal(size=(8, 1)).astype(np.float32))
+w2 = torch.from_numpy(rng.normal(size=(8, 8)).astype(np.float32))
+w3 = torch.from_numpy(rng.normal(size=(1, 8)).astype(np.float32))
+print(w1)
+coupling_layer.scaling[0].weight.data = w1
+coupling_layer.scaling[2].weight.data = w2
+coupling_layer.scaling[4].weight.data = w3
+coupling_layer.scaling[0].bias.data = -torch.ones(8, dtype=torch.float32)
+coupling_layer.scaling[2].bias.data = -torch.ones(8, dtype=torch.float32)
+coupling_layer.scaling[4].bias.data = -torch.ones(1, dtype=torch.float32)
+```
+
 coupling layer の動作確認をしてみる:
 
 ```python
@@ -231,10 +245,11 @@ batch_size = 1024
 # generate sample
 x1 = 2 * torch.from_numpy(rng.random(size=batch_size).astype(np.float32)) - 1
 x2 = 2 * torch.from_numpy(rng.random(size=batch_size).astype(np.float32)) - 1
+print(x1)
 # forward x' = g(x)
 gx1, gx2, logJ = coupling_layer.forward(x1, x2)
-print(gx1)
-print(gx2)
+print(gx1.detach().numpy())
+print(gx2.detach().numpy())
 # reverse g^{-1}(x')
 rev_x1, rev_x2, rev_logJ = coupling_layer.reverse(gx1, gx2)
 print(rev_x1)
@@ -249,6 +264,7 @@ fig, ax = plt.subplots(1, 3, figsize=(10, 3), sharex=True, sharey=True)
 for a in ax:
     a.set_xlim(-1.1, 1.1)
     a.set_ylim(-1.1, 1.1)
+
 ax[0].scatter(x1, x2)
 ax[1].scatter(gx1, gx2)
 ax[2].scatter(rev_x1, rev_x2)

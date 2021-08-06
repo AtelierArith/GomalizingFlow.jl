@@ -40,13 +40,27 @@ ax.set_aspect("equal")
 ```
 
 ```julia
+py"""
+import numpy as np
+def init_simple_coupling_layer_params(seed=12345):
+    rng = np.random.default_rng(seed)
+    w1 = rng.normal(size=(8, 1)).astype(np.float32)
+    w2 = rng.normal(size=(8, 8)).astype(np.float32)
+    w3 = rng.normal(size=(1, 8)).astype(np.float32)
+    b1 = -np.ones(8).astype(np.float32)
+    b2 = -np.ones(8).astype(np.float32)
+    b3 = -np.ones(1).astype(np.float32)
+    return w1, w2, w3, b1, b2, b3
+"""
+
 struct SimpleCouplingLayer
     scaling
     function SimpleCouplingLayer()
+        w1, w2, w3, b1, b2, b3 = py"init_simple_coupling_layer_params"()
         net = Chain(
-            Dense(rand(Normal(1, 2), 8, 1), -ones(8), relu),
-            Dense(rand(Normal(1, 2), 8, 8), -ones(8), relu),
-            Dense(rand(Normal(1, 2), 1, 8), -ones(1), tanh),
+            Dense(w1, b1, relu),
+            Dense(w2, b2, relu),
+            Dense(w3, b3, tanh),
         )
         new(net)
     end
@@ -70,22 +84,43 @@ function reverse(coupling_layer::SimpleCouplingLayer, fx1, fx2)
     return x1, x2, logJ
 end
 
+
 coupling_layer = SimpleCouplingLayer()
 ```
 
 ```julia
-batch_szie = 1024
-x1 = rand(Uniform(-1, 1), batch_size)
-x2 = rand(Uniform(-1, 1), batch_size)
+np = pyimport("numpy")
+```
 
-fx1, fx2, logJ = forward(coupling_layer, x1, x2)
+```julia
+py"""
+def gen_sample(batch_size, seed=12345):
+    rng = np.random.default_rng(seed)
+    x1 = 2 * rng.random(size=batch_size).astype(np.float32) - 1
+    x2 = 2 * rng.random(size=batch_size).astype(np.float32) - 1
+    return x1, x2
+"""
+```
 
-rev_x1, rev_x2, rev_logJ = reverse(coupling_layer, fx1, fx2)
+```julia
+batch_size = 1024
+rng = np.random.default_rng(12345)
+x1 = 2rng.random(size=batch_size, dtype=np.float32) .- 1
+x2 = 2rng.random(size=batch_size, dtype=np.float32) .- 1
+x1, x2 = py"gen_sample"(batch_size)
+gx1, gx2, logJ = forward(coupling_layer, x1, x2)
+@assert gx1[1:3] ≈ [-0.25462535, -0.17111894, 0.27769268]
+@assert gx2[1:3] ≈ [-0.26831156,  0.02142358, -0.92905575]
 
-fig , ax = plt.subplots(1, 3, figsize=(10,4))
+rev_x1, rev_x2, rev_logJ = reverse(coupling_layer, gx1, gx2)
 
+fig, ax = plt.subplots(1, 3, figsize=(10, 3), sharex=true, sharey=true)
+for a in ax
+    a.set_xlim(-1.1, 1.1)
+    a.set_ylim(-1.1, 1.1)
+end
 ax[1].scatter(x1, x2)
-ax[2].scatter(fx1, fx2)
+ax[2].scatter(gx1, gx2)
 ax[3].scatter(rev_x1, rev_x2)
 fig.tight_layout()
 ```
