@@ -225,12 +225,12 @@ assert np.allclose(
 coupling layer の動作確認をしてみる:
 
 ```python
-torch.manual_seed(1234)
-np.random.seed(1234)
+rng = np.random.default_rng(12345)
+
 batch_size = 1024
 # generate sample
-x1 = 2 * torch.from_numpy(np.random.random(size=batch_size).astype(np.float32)) - 1
-x2 = 2 * torch.from_numpy(np.random.random(size=batch_size).astype(np.float32)) - 1
+x1 = 2 * torch.from_numpy(rng.random(size=batch_size).astype(np.float32)) - 1
+x2 = 2 * torch.from_numpy(rng.random(size=batch_size).astype(np.float32)) - 1
 # forward x' = g(x)
 gx1, gx2, logJ = coupling_layer.forward(x1, x2)
 print(gx1)
@@ -277,9 +277,17 @@ def apply_flow_to_prior(r, coupling_layers, *, batch_size):
     for lay in coupling_layers:
         x1, x2, logJ = lay.forward(x1, x2)
         logq = logq - logJ
-    return x, logq # 点 x における `\log(q(x))` の値を計算
+    return x1, x2, logq  # 点 x における `\log(q(x))` の値を計算
 ```
 
 ```python
+rng = np.random.default_rng(2021)
 
+L = 8
+lattice_shape = (L, L)
+
+phi_ex1 = rng.normal(size=lattice_shape).astype(np.float32)
+phi_ex2 = rng.normal(size=lattice_shape).astype(np.float32)
+
+cfgs = torch.from_numpy(np.stack((phi_ex1, phi_ex2), axis=0))
 ```
