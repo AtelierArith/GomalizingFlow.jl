@@ -138,3 +138,11 @@ function apply_flow_to_prior(r, coupling_layers; batch_size)
     return x1, x2, logq
 end
 ```
+
+# ScalarPhi4Action
+
+```julia
+struct ScalarPhi4Action
+    m\^2
+end
+```
