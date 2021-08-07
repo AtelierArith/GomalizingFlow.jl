@@ -604,6 +604,38 @@ class AffineCoupling(torch.nn.Module):
         logJ = torch.sum((1 - self.mask)*(-s), dim=tuple(axes))
         return x, logJ
     
+# Ours
+torch.manual_seed(12345)
+
+class AffineCoupling(torch.nn.Module):
+    def __init__(self, net,*,mask_shape, mask_parity):
+        self.mask_parity = mask_parity
+        super(AffineCoupling, self).__init__()
+        self.mask = make_checker_mask(mask_shape, mask_parity)
+        self.mask_flipped = 1- make_checker_mask(mask_shape, mask_parity)
+
+        self.net = net
+    def forward(self, x): # (B, C, H, W)
+        x_frozen = self.mask * x # \phi_2
+        x_active = self.mask_flipped * x # \phi_1
+        net_out = self.net(x_frozen.unsqueeze(1))
+        s, t = net_out[:, 0], net_out[:, 1]
+        # ((exp(s(phi_)))\phi_1 + t(\phi_2), \phi_2) を一つのデータとして
+        fx = self.mask_flipped * t + x_active * torch.exp(s) + x_frozen
+        axes = range(1, len(s.size()))
+        logJ = torch.sum(self.mask_flipped*(-s), dim=tuple(axes))
+        return x, logJ
+    
+    def reverse(self, fx):
+        fx_frozen = self.mask * fx # phi_2'
+        fx_active = self.mask_flipped * fx # phi_1'
+        net_out = self.net(fx_frozen.unsqueeze(1))
+        s, t = net_out[:, 0], net_out[:, 1]
+        x = (fx_active - self.mask_flipped * t) * torch.exp(-s) + fx_frozen
+        axes = range(1, len(s.size()))
+        logJ = torch.sum(self.mask_flipped * (-s), dim=tuple(axes))
+        return x, logJ
+
 def make_conv_net(*, hidden_sizes, kernel_size, in_channels, out_channels, use_final_tanh):
     sizes = [in_channels] + hidden_sizes + [out_channels]
     #assert packaging.version.parse(torch.__version__) >= packaging.version.parse('1.5.0')
@@ -644,7 +676,6 @@ orig_layers = orig_model["layers"]
 ```
 
 ```python
-"""
 # Ours
 torch.manual_seed(12345)
 
@@ -677,6 +708,36 @@ class AffineCoupling(torch.nn.Module):
         logJ = torch.sum(self.mask_flipped * (-s), dim=tuple(axes))
         return x, logJ
 
+
+#Original Impl
+torch.manual_seed(12345)
+
+class AffineCoupling(torch.nn.Module):
+    def __init__(self, net, *, mask_shape, parity):
+        super().__init__()
+        self.mask = make_checker_mask(mask_shape, parity)
+        self.net = net
+
+    def forward(self, x):
+        x_frozen = self.mask * x      
+        x_active = (1 - self.mask) * x
+        net_out = self.net(x_frozen.unsqueeze(1))
+        s, t = net_out[:,0], net_out[:,1]
+        fx = (1 - self.mask) * t + x_active * torch.exp(s) + x_frozen
+        axes = range(1,len(s.size()))
+        logJ = torch.sum((1 - self.mask) * s, dim=tuple(axes))
+        return fx, logJ
+
+    def reverse(self, fx):
+        fx_frozen = self.mask * fx
+        fx_active = (1 - self.mask) * fx  
+        net_out = self.net(fx_frozen.unsqueeze(1))
+        s, t = net_out[:,0], net_out[:,1]
+        x = (fx_active - (1 - self.mask) * t) * torch.exp(-s) + fx_frozen
+        axes = range(1,len(s.size()))
+        logJ = torch.sum((1 - self.mask)*(-s), dim=tuple(axes))
+        return x, logJ
+        
 import itertools
 
 def pairwise(iterable):
@@ -720,7 +781,6 @@ layers = torch.nn.ModuleList(module_list)
 my_model = {"prior":prior, "layers":layers}
 
 my_layers = my_model["layers"]
-"""
 ```
 
 ```python
@@ -817,7 +877,7 @@ def print_metrics(history, avg_last_N_epochs):
 
 ```python
 torch.manual_seed(1234)
-model = orig_model
+model = my_model
 N_era = 25
 N_epoch = 100
 batch_size = 64
@@ -906,8 +966,4 @@ for i, (ax, logq, logp) in enumerate(zip(axes, logq_hist, logp_hist)):
     ax.set_yticks([])
     ax.set_aspect('equal')
 plt.show()
-```
-
-```python
-
 ```
