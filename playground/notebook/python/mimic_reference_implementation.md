@@ -591,75 +591,6 @@ use_final_tanh = True
 ```
 
 ```python
-#Original Impl
-torch.manual_seed(12345)
-
-class AffineCoupling(torch.nn.Module):
-    def __init__(self, net, *, mask_shape, mask_parity):
-        super().__init__()
-        self.mask = make_checker_mask(mask_shape, mask_parity)
-        self.net = net
-
-    def forward(self, x):
-        x_frozen = self.mask * x      
-        x_active = (1 - self.mask) * x
-        net_out = self.net(x_frozen.unsqueeze(1))
-        s, t = net_out[:,0], net_out[:,1]
-        fx = (1 - self.mask) * t + x_active * torch.exp(s) + x_frozen
-        axes = range(1,len(s.size()))
-        logJ = torch.sum((1 - self.mask) * s, dim=tuple(axes))
-        return fx, logJ
-
-    def reverse(self, fx):
-        fx_frozen = self.mask * fx
-        fx_active = (1 - self.mask) * fx  
-        net_out = self.net(fx_frozen.unsqueeze(1))
-        s, t = net_out[:,0], net_out[:,1]
-        x = (fx_active - (1 - self.mask) * t) * torch.exp(-s) + fx_frozen
-        axes = range(1,len(s.size()))
-        logJ = torch.sum((1 - self.mask)*(-s), dim=tuple(axes))
-        return x, logJ
-
-def make_conv_net(*, hidden_sizes, kernel_size, in_channels, out_channels, use_final_tanh):
-    sizes = [in_channels] + hidden_sizes + [out_channels]
-    #assert packaging.version.parse(torch.__version__) >= packaging.version.parse('1.5.0')
-    assert kernel_size % 2 == 1, 'kernel size must be odd for PyTorch >= 1.5.0'
-    padding_size = (kernel_size // 2)
-    net = []
-    for i in range(len(sizes) - 1):
-        net.append(torch.nn.Conv2d(
-            sizes[i], sizes[i+1], kernel_size, padding=padding_size,
-            stride=1, padding_mode='circular'))
-        if i != len(sizes) - 2:
-            net.append(torch.nn.LeakyReLU())
-        else:
-            if use_final_tanh:
-                net.append(torch.nn.Tanh())
-    return torch.nn.Sequential(*net)
-
-def make_phi4_affine_layers(*, n_layers, lattice_shape, hidden_sizes, kernel_size):
-    layers = []
-    for i in range(n_layers):
-        parity = i % 2
-        net = make_conv_net(
-            in_channels=1, out_channels=2, hidden_sizes=hidden_sizes,
-            kernel_size=kernel_size, use_final_tanh=True)
-        coupling = AffineCoupling(net, mask_shape=lattice_shape, mask_parity=parity)
-        layers.append(coupling)
-    return torch.nn.ModuleList(layers)
-
-n_layers = 16
-hidden_sizes = [8,8]
-kernel_size = 3
-layers = make_phi4_affine_layers(
-    lattice_shape=lattice_shape, n_layers=n_layers, 
-    hidden_sizes=hidden_sizes, kernel_size=kernel_size)
-orig_model = {'layers': layers, 'prior': prior}
-
-orig_layers = orig_model["layers"]
-```
-
-```python
 def apply_affine_flow_to_prior(r, aff_coupling_layers, *, batch_size):
     z = r.sample_n(batch_size)
     logq = r.log_prob(z)
@@ -691,7 +622,7 @@ class MyAffineCoupling(torch.nn.Module):
         fx = self.mask_flipped * t + x_active * torch.exp(s) + x_frozen
         axes = range(1, len(s.size()))
         logJ = torch.sum(self.mask_flipped * s, dim=tuple(axes))
-        return x, logJ
+        return fx, logJ
     
     def reverse(self, fx):
         fx_frozen = self.mask * fx # phi_2'
@@ -731,18 +662,11 @@ for i in range(n_layers):
 prior = SimpleNormal(torch.zeros(lattice_shape), torch.ones(lattice_shape))
 my_layers = torch.nn.ModuleList(module_list)
 
-my_model = {"layers": layers, "prior": prior}
+my_model = {"layers": my_layers, "prior": prior}
 ```
 
 # Train the model
 
-
-### Optimizer
-
-```python
-lr = 0.001
-optimizer = torch.optim.Adam(layers.parameters(), lr=lr)
-```
 
 ### Loss
 
@@ -818,6 +742,10 @@ def print_metrics(history, avg_last_N_epochs):
 ```python
 torch.manual_seed(1234)
 model = my_model
+
+lr = 0.001
+optimizer = torch.optim.Adam(model["layers"].parameters(), lr=lr)
+
 N_era = 25
 N_epoch = 100
 batch_size = 64
@@ -863,7 +791,7 @@ for era in range(N_era):
 ```
 
 ```python
-torch_x, torch_logq = apply_affine_flow_to_prior(prior, layers, batch_size=1024)
+torch_x, torch_logq = apply_affine_flow_to_prior(prior, model["layers"], batch_size=1024)
 x = grab(torch_x)
 
 fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
