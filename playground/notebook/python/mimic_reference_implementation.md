@@ -574,6 +574,22 @@ assert torch.all(make_checker_mask(lattice_shape, 0) == torch.from_numpy(np.arra
 )
 ```
 
+# Constants
+
+```python
+L = 8
+lattice_shape = (L, L)
+M2 = -4.
+lam = 8.
+
+n_layers = 16
+hidden_sizes = [8,8]
+kernel_size = 3
+inC = 1
+outC = 2
+use_final_tanh = True
+```
+
 ```python
 #Original Impl
 torch.manual_seed(12345)
@@ -602,38 +618,6 @@ class AffineCoupling(torch.nn.Module):
         x = (fx_active - (1 - self.mask) * t) * torch.exp(-s) + fx_frozen
         axes = range(1,len(s.size()))
         logJ = torch.sum((1 - self.mask)*(-s), dim=tuple(axes))
-        return x, logJ
-    
-# Ours
-torch.manual_seed(12345)
-
-class AffineCoupling(torch.nn.Module):
-    def __init__(self, net,*,mask_shape, mask_parity):
-        self.mask_parity = mask_parity
-        super(AffineCoupling, self).__init__()
-        self.mask = make_checker_mask(mask_shape, mask_parity)
-        self.mask_flipped = 1- make_checker_mask(mask_shape, mask_parity)
-
-        self.net = net
-    def forward(self, x): # (B, C, H, W)
-        x_frozen = self.mask * x # \phi_2
-        x_active = self.mask_flipped * x # \phi_1
-        net_out = self.net(x_frozen.unsqueeze(1))
-        s, t = net_out[:, 0], net_out[:, 1]
-        # ((exp(s(phi_)))\phi_1 + t(\phi_2), \phi_2) を一つのデータとして
-        fx = self.mask_flipped * t + x_active * torch.exp(s) + x_frozen
-        axes = range(1, len(s.size()))
-        logJ = torch.sum(self.mask_flipped*(-s), dim=tuple(axes))
-        return x, logJ
-    
-    def reverse(self, fx):
-        fx_frozen = self.mask * fx # phi_2'
-        fx_active = self.mask_flipped * fx # phi_1'
-        net_out = self.net(fx_frozen.unsqueeze(1))
-        s, t = net_out[:, 0], net_out[:, 1]
-        x = (fx_active - self.mask_flipped * t) * torch.exp(-s) + fx_frozen
-        axes = range(1, len(s.size()))
-        logJ = torch.sum(self.mask_flipped * (-s), dim=tuple(axes))
         return x, logJ
 
 def make_conv_net(*, hidden_sizes, kernel_size, in_channels, out_channels, use_final_tanh):
@@ -676,15 +660,26 @@ orig_layers = orig_model["layers"]
 ```
 
 ```python
+def apply_affine_flow_to_prior(r, aff_coupling_layers, *, batch_size):
+    z = r.sample_n(batch_size)
+    logq = r.log_prob(z)
+    x = z
+    for lay in aff_coupling_layers:
+        x, logJ = lay.forward(x)
+        logq = logq - logJ
+    return x, logq  # 点 x における `\log(q(x))` の値を計算
+```
+
+```python
 # Ours
 torch.manual_seed(12345)
 
-class AffineCoupling(torch.nn.Module):
+class MyAffineCoupling(torch.nn.Module):
     def __init__(self, net,*,mask_shape, parity):
         self.parity = parity
-        super(AffineCoupling, self).__init__()
+        super(MyAffineCoupling, self).__init__()
         self.mask = make_checker_mask(mask_shape, parity)
-        self.mask_flipped = 1- make_checker_mask(mask_shape, parity)
+        self.mask_flipped = 1- self.mask
 
         self.net = net
     def forward(self, x): # (B, C, H, W)
@@ -695,7 +690,7 @@ class AffineCoupling(torch.nn.Module):
         # ((exp(s(phi_)))\phi_1 + t(\phi_2), \phi_2) を一つのデータとして
         fx = self.mask_flipped * t + x_active * torch.exp(s) + x_frozen
         axes = range(1, len(s.size()))
-        logJ = torch.sum(self.mask_flipped*(-s), dim=tuple(axes))
+        logJ = torch.sum(self.mask_flipped * s, dim=tuple(axes))
         return x, logJ
     
     def reverse(self, fx):
@@ -708,36 +703,6 @@ class AffineCoupling(torch.nn.Module):
         logJ = torch.sum(self.mask_flipped * (-s), dim=tuple(axes))
         return x, logJ
 
-
-#Original Impl
-torch.manual_seed(12345)
-
-class AffineCoupling(torch.nn.Module):
-    def __init__(self, net, *, mask_shape, parity):
-        super().__init__()
-        self.mask = make_checker_mask(mask_shape, parity)
-        self.net = net
-
-    def forward(self, x):
-        x_frozen = self.mask * x      
-        x_active = (1 - self.mask) * x
-        net_out = self.net(x_frozen.unsqueeze(1))
-        s, t = net_out[:,0], net_out[:,1]
-        fx = (1 - self.mask) * t + x_active * torch.exp(s) + x_frozen
-        axes = range(1,len(s.size()))
-        logJ = torch.sum((1 - self.mask) * s, dim=tuple(axes))
-        return fx, logJ
-
-    def reverse(self, fx):
-        fx_frozen = self.mask * fx
-        fx_active = (1 - self.mask) * fx  
-        net_out = self.net(fx_frozen.unsqueeze(1))
-        s, t = net_out[:,0], net_out[:,1]
-        x = (fx_active - (1 - self.mask) * t) * torch.exp(-s) + fx_frozen
-        axes = range(1,len(s.size()))
-        logJ = torch.sum((1 - self.mask)*(-s), dim=tuple(axes))
-        return x, logJ
-        
 import itertools
 
 def pairwise(iterable):
@@ -745,20 +710,6 @@ def pairwise(iterable):
     a, b = itertools.tee(iterable)
     next(b, None)
     return zip(a, b)
-
-L = 8
-lattice_shape = (L, L)
-M2 = -4.
-lam = 8.
-phi4_action = ScalarPhi4Action(M2=M2, lam=lam)
-prior = SimpleNormal(torch.zeros(lattice_shape), torch.ones(lattice_shape))
-
-n_layers = 16
-hidden_sizes = [8,8]
-kernel_size = 3
-inC = 1
-outC = 2
-use_final_tanh = True
 
 module_list = []
 for i in range(n_layers):
@@ -774,24 +725,13 @@ for i in range(n_layers):
     if use_final_tanh:
         net[-1] = torch.nn.Tanh()
     net = torch.nn.Sequential(*net)
-    coupling = AffineCoupling(net, mask_shape=lattice_shape, parity=parity)
+    coupling = MyAffineCoupling(net, mask_shape=lattice_shape, parity=parity)
     module_list.append(coupling)
-layers = torch.nn.ModuleList(module_list)
 
-my_model = {"prior":prior, "layers":layers}
+prior = SimpleNormal(torch.zeros(lattice_shape), torch.ones(lattice_shape))
+my_layers = torch.nn.ModuleList(module_list)
 
-my_layers = my_model["layers"]
-```
-
-```python
-def apply_affine_flow_to_prior(r, aff_coupling_layers, *, batch_size):
-    z = r.sample_n(batch_size)
-    logq = r.log_prob(z)
-    x = z
-    for lay in aff_coupling_layers:
-        x, logJ = lay.forward(x)
-        logq = logq - logJ
-    return x, logq  # 点 x における `\log(q(x))` の値を計算
+my_model = {"layers": layers, "prior": prior}
 ```
 
 # Train the model
