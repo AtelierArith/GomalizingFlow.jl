@@ -575,15 +575,339 @@ assert torch.all(make_checker_mask(lattice_shape, 0) == torch.from_numpy(np.arra
 ```
 
 ```python
+#Original Impl
+torch.manual_seed(12345)
+
 class AffineCoupling(torch.nn.Module):
-    def __init__(self, net,*,mask_shape, mask_parity):
-        super(AffineCoupling, self).__init__()
+    def __init__(self, net, *, mask_shape, mask_parity):
+        super().__init__()
         self.mask = make_checker_mask(mask_shape, mask_parity)
-        self.flip_mask = 1- make_checker_mask(mask_shape, mask_parity)
+        self.net = net
+
+    def forward(self, x):
+        x_frozen = self.mask * x      
+        x_active = (1 - self.mask) * x
+        net_out = self.net(x_frozen.unsqueeze(1))
+        s, t = net_out[:,0], net_out[:,1]
+        fx = (1 - self.mask) * t + x_active * torch.exp(s) + x_frozen
+        axes = range(1,len(s.size()))
+        logJ = torch.sum((1 - self.mask) * s, dim=tuple(axes))
+        return fx, logJ
+
+    def reverse(self, fx):
+        fx_frozen = self.mask * fx
+        fx_active = (1 - self.mask) * fx  
+        net_out = self.net(fx_frozen.unsqueeze(1))
+        s, t = net_out[:,0], net_out[:,1]
+        x = (fx_active - (1 - self.mask) * t) * torch.exp(-s) + fx_frozen
+        axes = range(1,len(s.size()))
+        logJ = torch.sum((1 - self.mask)*(-s), dim=tuple(axes))
+        return x, logJ
+    
+def make_conv_net(*, hidden_sizes, kernel_size, in_channels, out_channels, use_final_tanh):
+    sizes = [in_channels] + hidden_sizes + [out_channels]
+    #assert packaging.version.parse(torch.__version__) >= packaging.version.parse('1.5.0')
+    assert kernel_size % 2 == 1, 'kernel size must be odd for PyTorch >= 1.5.0'
+    padding_size = (kernel_size // 2)
+    net = []
+    for i in range(len(sizes) - 1):
+        net.append(torch.nn.Conv2d(
+            sizes[i], sizes[i+1], kernel_size, padding=padding_size,
+            stride=1, padding_mode='circular'))
+        if i != len(sizes) - 2:
+            net.append(torch.nn.LeakyReLU())
+        else:
+            if use_final_tanh:
+                net.append(torch.nn.Tanh())
+    return torch.nn.Sequential(*net)
+
+def make_phi4_affine_layers(*, n_layers, lattice_shape, hidden_sizes, kernel_size):
+    layers = []
+    for i in range(n_layers):
+        parity = i % 2
+        net = make_conv_net(
+            in_channels=1, out_channels=2, hidden_sizes=hidden_sizes,
+            kernel_size=kernel_size, use_final_tanh=True)
+        coupling = AffineCoupling(net, mask_shape=lattice_shape, mask_parity=parity)
+        layers.append(coupling)
+    return torch.nn.ModuleList(layers)
+
+n_layers = 16
+hidden_sizes = [8,8]
+kernel_size = 3
+layers = make_phi4_affine_layers(
+    lattice_shape=lattice_shape, n_layers=n_layers, 
+    hidden_sizes=hidden_sizes, kernel_size=kernel_size)
+orig_model = {'layers': layers, 'prior': prior}
+
+orig_layers = orig_model["layers"]
+```
+
+```python
+"""
+# Ours
+torch.manual_seed(12345)
+
+class AffineCoupling(torch.nn.Module):
+    def __init__(self, net,*,mask_shape, parity):
+        self.parity = parity
+        super(AffineCoupling, self).__init__()
+        self.mask = make_checker_mask(mask_shape, parity)
+        self.mask_flipped = 1- make_checker_mask(mask_shape, parity)
 
         self.net = net
-    def forward(self, x):
-        pass
+    def forward(self, x): # (B, C, H, W)
+        x_frozen = self.mask * x # \phi_2
+        x_active = self.mask_flipped * x # \phi_1
+        net_out = self.net(x_frozen.unsqueeze(1))
+        s, t = net_out[:, 0], net_out[:, 1]
+        # ((exp(s(phi_)))\phi_1 + t(\phi_2), \phi_2) を一つのデータとして
+        fx = self.mask_flipped * t + x_active * torch.exp(s) + x_frozen
+        axes = range(1, len(s.size()))
+        logJ = torch.sum(self.mask_flipped*(-s), dim=tuple(axes))
+        return x, logJ
+    
     def reverse(self, fx):
-        pass
+        fx_frozen = self.mask * fx # phi_2'
+        fx_active = self.mask_flipped * fx # phi_1'
+        net_out = self.net(fx_frozen.unsqueeze(1))
+        s, t = net_out[:, 0], net_out[:, 1]
+        x = (fx_active - self.mask_flipped * t) * torch.exp(-s) + fx_frozen
+        axes = range(1, len(s.size()))
+        logJ = torch.sum(self.mask_flipped * (-s), dim=tuple(axes))
+        return x, logJ
+
+import itertools
+
+def pairwise(iterable):
+    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
+    a, b = itertools.tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+L = 8
+lattice_shape = (L, L)
+M2 = -4.
+lam = 8.
+phi4_action = ScalarPhi4Action(M2=M2, lam=lam)
+prior = SimpleNormal(torch.zeros(lattice_shape), torch.ones(lattice_shape))
+
+n_layers = 16
+hidden_sizes = [8,8]
+kernel_size = 3
+inC = 1
+outC = 2
+use_final_tanh = True
+
+module_list = []
+for i in range(n_layers):
+    parity = i % 2
+    sizes = [inC, *hidden_sizes, outC]
+    padding = kernel_size // 2
+    net = []
+    for s, s_next in pairwise(sizes):
+        net.append(
+            torch.nn.Conv2d(s, s_next, kernel_size, padding=padding, padding_mode='circular')
+        )
+        net.append(torch.nn.LeakyReLU())
+    if use_final_tanh:
+        net[-1] = torch.nn.Tanh()
+    net = torch.nn.Sequential(*net)
+    coupling = AffineCoupling(net, mask_shape=lattice_shape, parity=parity)
+    module_list.append(coupling)
+layers = torch.nn.ModuleList(module_list)
+
+my_model = {"prior":prior, "layers":layers}
+
+my_layers = my_model["layers"]
+"""
+```
+
+```python
+def apply_affine_flow_to_prior(r, aff_coupling_layers, *, batch_size):
+    z = r.sample_n(batch_size)
+    logq = r.log_prob(z)
+    x = z
+    for lay in aff_coupling_layers:
+        x, logJ = lay.forward(x)
+        logq = logq - logJ
+    return x, logq  # 点 x における `\log(q(x))` の値を計算
+```
+
+# Train the model
+
+
+### Optimizer
+
+```python
+lr = 0.001
+optimizer = torch.optim.Adam(layers.parameters(), lr=lr)
+```
+
+### Loss
+
+```python
+def calc_dkl(logp, logq):
+    return (logq - logp).mean()  # reverse KL, assuming samples from q
+```
+
+### Plot Utils
+
+```python
+from IPython.display import display
+
+def init_live_plot(dpi=125, figsize=(8,4)):
+    fig, ax_ess = plt.subplots(1,1, dpi=dpi, figsize=figsize)
+    plt.xlim(0, N_era*N_epoch)
+    plt.ylim(0, 1)
+    
+    ess_line = plt.plot([0],[0], alpha=0.5) # dummy
+    plt.grid(False)
+    plt.ylabel('ESS')
+    
+    ax_loss = ax_ess.twinx()
+    loss_line = plt.plot([0],[0], alpha=0.5, c='orange') # dummy
+    plt.grid(False)
+    plt.ylabel('Loss')
+    
+    plt.xlabel('Epoch')
+
+    display_id = display(fig, display_id=True)
+
+    return dict(
+        fig=fig, ax_ess=ax_ess, ax_loss=ax_loss,
+        ess_line=ess_line, loss_line=loss_line,
+        display_id=display_id
+    )
+
+def moving_average(x, window=10):
+    if len(x) < window:
+        return np.mean(x, keepdims=True)
+    else:
+        return np.convolve(x, np.ones(window), 'valid') / window
+
+def update_plots(history, fig, ax_ess, ax_loss, ess_line, loss_line, display_id):
+    Y = np.array(history['ess'])
+    Y = moving_average(Y, window=15)
+    ess_line[0].set_ydata(Y)
+    ess_line[0].set_xdata(np.arange(len(Y)))
+    Y = history['loss']
+    Y = moving_average(Y, window=15)
+    loss_line[0].set_ydata(np.array(Y))
+    loss_line[0].set_xdata(np.arange(len(Y)))
+    ax_loss.relim()
+    ax_loss.autoscale_view()
+    fig.canvas.draw()
+    display_id.update(fig) # need to force colab to update plot
+```
+
+```python
+def compute_ess(logp, logq):
+    logw = logp - logq
+    log_ess = 2*torch.logsumexp(logw, dim=0) - torch.logsumexp(2*logw, dim=0)
+    ess_per_cfg = torch.exp(log_ess) / len(logw)
+    return ess_per_cfg
+
+def print_metrics(history, avg_last_N_epochs):
+    print(f'== Era {era} | Epoch {epoch} metrics ==')
+    for key, val in history.items():
+        avgd = np.mean(val[-avg_last_N_epochs:])
+        print(f'\t{key} {avgd:g}')
+```
+
+```python
+torch.manual_seed(1234)
+model = orig_model
+N_era = 25
+N_epoch = 100
+batch_size = 64
+print_freq = N_epoch
+plot_freq = 1
+
+history = {
+    'loss' : [],
+    'logp' : [],
+    'logq' : [],
+    'ess' : []
+}
+
+def train_step(model, action, loss_fn, optimizer, metrics):
+    layers, prior = model['layers'], model['prior']
+    optimizer.zero_grad()
+
+    x, logq = apply_affine_flow_to_prior(prior, layers, batch_size=batch_size)
+    logp = -action(x)
+    loss = calc_dkl(logp, logq)
+    loss.backward()
+
+    optimizer.step()
+
+    metrics['loss'].append(grab(loss))
+    metrics['logp'].append(grab(logp))
+    metrics['logq'].append(grab(logq))
+    metrics['ess'].append(grab( compute_ess(logp, logq) ))
+    
+[plt.close(plt.figure(fignum)) for fignum in plt.get_fignums()] # close all existing figures
+live_plot = init_live_plot()
+
+for era in range(N_era):
+    for epoch in range(N_epoch):
+        train_step(model, phi4_action, calc_dkl, optimizer, history)
+
+        if epoch % print_freq == 0:
+            print_metrics(history, avg_last_N_epochs=print_freq)
+
+        if epoch % plot_freq == 0:
+            update_plots(history, **live_plot)
+
+```
+
+```python
+torch_x, torch_logq = apply_affine_flow_to_prior(prior, layers, batch_size=1024)
+x = grab(torch_x)
+
+fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
+for i in range(4):
+    for j in range(4):
+        ind = i*4 + j
+        ax[i,j].imshow(np.tanh(x[ind]), vmin=-1, vmax=1, cmap='viridis')
+        ax[i,j].axes.xaxis.set_visible(False)
+        ax[i,j].axes.yaxis.set_visible(False)
+plt.show()
+```
+
+```python
+S_eff = -grab(torch_logq)
+S = grab(phi4_action(torch_x))
+fit_b = np.mean(S) - np.mean(S_eff)
+print(f'slope 1 linear regression S = S_eff + {fit_b:.4f}')
+fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
+ax.hist2d(S_eff, S, bins=20, range=[[5, 35], [-5, 25]])
+ax.set_xlabel(r'$S_{\mathrm{eff}} = -\log~q(x)$')
+ax.set_ylabel(r'$S(x)$')
+ax.set_aspect('equal')
+xs = np.linspace(5, 35, num=4, endpoint=True)
+ax.plot(xs, xs + fit_b, ':', color='w', label='slope 1 fit')
+plt.legend(prop={'size': 6})
+plt.show()
+```
+
+```python
+fig, axes = plt.subplots(1, 10, dpi=125, sharey=True, figsize=(10, 1))
+logq_hist = np.array(history['logq']).reshape(N_era, -1)[::N_era//10]
+logp_hist = np.array(history['logp']).reshape(N_era, -1)[::N_era//10]
+for i, (ax, logq, logp) in enumerate(zip(axes, logq_hist, logp_hist)):
+    ax.hist2d(-logq, -logp, bins=20, range=[[5, 35], [-5, 25]])
+    if i == 0:
+        ax.set_ylabel(r'$S(x)$')
+    ax.set_xlabel(r'$S_{\mathrm{eff}}$')
+    ax.set_title(f'Era {i * (N_era//10)}')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_aspect('equal')
+plt.show()
+```
+
+```python
+
 ```
