@@ -625,7 +625,3 @@ ax.set_aspect(:equal)
 plt.legend(prop=Dict("size"=> 6))
 plt.show()
 ```
-
-```julia
-
-```
