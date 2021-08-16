@@ -267,15 +267,6 @@ plt.show()
 ```
 
 ```julia
-function apply_affine_flow_to_prior(prior, affine_coupling_layers; batchsize)
-    x = rand(prior, lattice_shape..., batchsize)
-    logq_ = sum(logpdf(prior, x), dims=(1:ndims(x)-1))
-    xout, logq = affine_coupling_layers((x, logq_))
-    return xout, logq
-end
-```
-
-```julia
 L = 8
 lattice_shape = (L, L)
 M2 = -4.
@@ -418,14 +409,13 @@ end
 
 ```julia
 reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
-```
 
-```julia
-@show z |> size
-S_eff = -sum(logpdf(prior, z), dims=1:length(lattice_shape))
-@show S_eff |> size
-S = calc_action(phi4_action, z |> reversedims)
-@show S |> size
+function apply_affine_flow_to_prior(prior, affine_coupling_layers; batchsize)
+    x = rand(prior, lattice_shape..., batchsize)
+    logq_ = sum(logpdf(prior, x), dims=(1:ndims(x)-1))
+    xout, logq = affine_coupling_layers((x, logq_))
+    return xout, logq
+end
 ```
 
 ```julia
@@ -440,6 +430,40 @@ ax.set_ylabel(L"S(z)")
 ax.set_aspect(:equal)
 plt.legend(prop=Dict("size"=> 6))
 plt.show()
+```
+
+```julia
+py"""
+import torch
+torch.manual_seed(1234)
+class SimpleNormal:
+    def __init__(self, loc, var):
+        self.distribution = torch.distributions.normal.Normal(
+            loc,
+            var,
+        )
+        self.shape = loc.shape
+
+    def log_prob(self, x):
+        logp = self.distribution.log_prob(x)
+        return torch.sum(logp, dim=tuple(range(1, logp.ndim)))
+
+    def sample_n(self, batch_size):
+        x = self.distribution.sample((batch_size,))
+        return x
+
+lattice_shape = (8, 8)
+prior = SimpleNormal(torch.zeros(lattice_shape), torch.ones(lattice_shape))
+
+def apply_affine_flow_to_prior(r, aff_coupling_layers, *, batch_size):
+    z = r.sample_n(batch_size)
+    logq = r.log_prob(z)
+    x = z
+    for lay in aff_coupling_layers:
+        x, logJ = lay.forward(x)
+        logq = logq - logJ
+    return x, logq  # 点 x における `\log(q(x))` の値を計算
+"""
 ```
 
 ```julia
@@ -487,6 +511,8 @@ function create_layer()
 end
 
 layer = create_layer()
+
+
 ps = Flux.params(layer);
 ```
 
@@ -504,6 +530,26 @@ end
 ```
 
 ```julia
+py"""
+import numpy as np
+rng = np.random.default_rng(999)
+
+def sample_dkl(batch_size=64):
+    logp = np.random.random(batch_size)
+    logq = np.random.random(batch_size)
+    return (logp, logq)
+
+def compute_ess(logp, logq):
+    logw = torch.from_numpy(logp) - torch.from_numpy(logq)
+    log_ess = 2*torch.logsumexp(logw, dim=0) - torch.logsumexp(2*logw, dim=0)
+    ess_per_cfg = torch.exp(log_ess) / len(logw)
+    return ess_per_cfg
+
+def calc_dkl(logp, logq):
+    return (logq - logp).mean()  # reverse KL, assuming samples from q
+
+"""
+
 calc_dkl(logp, logq) = mean(logq .- logp)
 
 function compute_ess(logp, logq)
@@ -512,6 +558,10 @@ function compute_ess(logp, logq)
     ess_per_cfg = exp(log_ess) / length(logw)
     return ess_per_cfg
 end
+
+logq, logp = py"sample_dkl"()
+@assert calc_dkl(logp, logq) ≈ py"calc_dkl"(logp, logq)
+@assert compute_ess(logp, logq) ≈ py"compute_ess"(logp, logq).item()
 ```
 
 ```julia
@@ -563,7 +613,9 @@ fit_b = mean(S) - mean(S_eff)
 @show fit_b
 print("slope 1 linear regression S = -logr + $fit_b")
 fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
-ax.hist2d(vec(S_eff), vec(S), bins=20, range=[[5, 35], [-5, 25]])
+ax.hist2d(vec(S_eff), vec(S), bins=20, 
+    #range=[[5, 35], [-5, 25]]
+)
 
 xs = range(-800, stop=800, length=4)
 ax.plot(xs, xs .+ fit_b, ":", color=:w, label="slope 1 fit")
@@ -572,9 +624,8 @@ ax.set_ylabel(L"S(z)")
 ax.set_aspect(:equal)
 plt.legend(prop=Dict("size"=> 6))
 plt.show()
-
 ```
 
 ```julia
-!asdf res
+
 ```
