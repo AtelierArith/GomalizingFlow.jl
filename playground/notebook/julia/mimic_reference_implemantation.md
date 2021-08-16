@@ -467,8 +467,8 @@ def apply_affine_flow_to_prior(r, aff_coupling_layers, *, batch_size):
 ```
 
 ```julia
-n_era = 25
-epochs = 500
+n_era = 75 # 25 by default in original impl
+epochs = 500 # 100 by default in original impl
 batchsize = 64
 
 base_lr = 0.001f0
