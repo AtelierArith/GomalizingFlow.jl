@@ -13,6 +13,8 @@ jupyter:
 ---
 
 ```python
+import math
+
 import torch
 import torch.nn as nn
 from matplotlib import pyplot as plt
@@ -35,9 +37,5 @@ k = 1/(2 * 3 * 3)
 ```
 
 ```python
-np.sqrt(k)
-```
-
-```python
-
+math.sqrt(k)
 ```

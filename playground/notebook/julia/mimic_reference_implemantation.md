@@ -464,8 +464,8 @@ end
 ```
 
 ```julia
-n_era = 75 # 25 by default in original impl
-epochs = 500 # 100 by default in original impl
+n_era = 25
+epochs = 100
 batchsize = 64
 
 base_lr = 0.001f0
@@ -492,13 +492,20 @@ function create_layer()
         padding = kernel_size ÷ 2
         net = []
         for (c, c_next) ∈ pairwise(channels)
-            push!(net, mycircular) # TODO: consider circular
-            push!(net, Conv((3,3), c=>c_next, leakyrelu, pad=0, bias = randn(Float32, c_next)))
+            # https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
+            k = 1/(c * 3 * 3)
+            W = rand(Uniform(-√k, √k), 3, 3, c, c_next)
+            b = rand(Uniform(-√k, √k), c_next) 
+            push!(net, mycircular)
+            push!(net, Conv(W, b, leakyrelu, pad=0))
         end
         if use_final_tanh
             c = channels[end-1]
             c_next = channels[end]
-            net[end] = Conv((3,3), c=>c_next, tanh, pad=0, bias = randn(Float32, c_next))
+            k = 1/(c * 3 * 3)
+            W = rand(Uniform(-√k, √k), 3, 3, c, c_next)
+            b = rand(Uniform(-√k, √k), c_next) 
+            net[end] = Conv(W, b, tanh, pad=0)
         end
         mask = make_checker_mask(lattice_shape, parity)
         coupling = AffineCoupling(Chain(net...), mask)
@@ -508,8 +515,6 @@ function create_layer()
 end
 
 layer = create_layer()
-
-
 ps = Flux.params(layer);
 ```
 
@@ -591,10 +596,10 @@ end
 
 ```julia
 x, logq = apply_affine_flow_to_prior(prior, layer; batchsize)
-fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
+fig, ax = plt.subplots(4, 4, dpi=125, figsize=(4, 4))
 for i in 1:4
     for j in 1:4
-        ind = i*4 + j
+        ind = 4i + j
         ax[i,j].imshow(tanh(x[:, :, ind]), vmin=-1, vmax=1, cmap=:viridis)
         ax[i,j].axes.xaxis.set_visible(false)
         ax[i,j].axes.yaxis.set_visible(false)
