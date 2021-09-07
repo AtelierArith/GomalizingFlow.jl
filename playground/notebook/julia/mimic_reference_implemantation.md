@@ -7,7 +7,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.11.4
   kernelspec:
-    display_name: Julia 1.6.1
+    display_name: Julia 1.6.2
     language: julia
     name: julia-1.6
 ---
@@ -343,31 +343,6 @@ end
 ```
 
 ```julia
-function create_model()
-    module_list = []
-    for i ∈ 0:(n_layers-1)
-        parity = mod(i, 2)
-        channels = [inC, hidden_sizes..., outC]
-        padding = kernel_size ÷ 2
-        net = []
-        for (c, c_next) ∈ pairwise(channels)
-            # TODO: consider circular
-            push!(net, Conv((3,3), c=>c_next, leakyrelu, pad=(1, 1), bias = randn(Float32, c_next)))
-        end
-        if use_final_tanh
-            c = channels[end-1]
-            c_next = channels[end]
-            net[end] = Conv((3,3), c=>c_next, tanh, pad=(1, 1), bias = randn(Float32, c_next))
-        end
-        mask = make_checker_mask(lattice_shape, parity)
-        coupling = AffineCoupling(Chain(net...), mask)
-        push!(module_list,coupling)
-    end
-    Chain(module_list...) |> f32
-end
-```
-
-```julia
 prior = Normal{Float32}(0.f0, 1.f0)
 
 batch_size = 1024
@@ -467,6 +442,28 @@ def apply_affine_flow_to_prior(r, aff_coupling_layers, *, batch_size):
 ```
 
 ```julia
+function mycircular(Y)
+    # calc Z_bottom
+    Y_b_c = Y[begin:begin,:,:,:]
+    Y_b_r = Y[begin:begin,end:end,:,:]
+    Y_b_l = Y[begin:begin,begin:begin,:,:]
+    Z_bottom = cat(Y_b_r, Y_b_c, Y_b_l, dims=2) # calc pad under
+    
+    # calc Z_top
+    Y_e_c = Y[end:end,:,:,:]
+    Y_e_r = Y[end:end,end:end,:,:]
+    Y_e_l = Y[end:end,begin:begin,:,:]
+    Z_top = cat(Y_e_r, Y_e_c, Y_e_l, dims=2)
+    
+    # calc Z_main
+    Y_main_l = Y[:,begin:begin,:,:]
+    Y_main_r = Y[:,end:end,:,:]
+    Z_main = cat(Y_main_r, Y, Y_main_l, dims=2)
+    cat(Z_top, Z_main, Z_bottom, dims=1)
+end
+```
+
+```julia
 n_era = 75 # 25 by default in original impl
 epochs = 500 # 100 by default in original impl
 batchsize = 64
@@ -495,13 +492,13 @@ function create_layer()
         padding = kernel_size ÷ 2
         net = []
         for (c, c_next) ∈ pairwise(channels)
-            # TODO: consider circular
-            push!(net, Conv((3,3), c=>c_next, leakyrelu, pad=(1, 1), bias = randn(Float32, c_next)))
+            push!(net, mycircular) # TODO: consider circular
+            push!(net, Conv((3,3), c=>c_next, leakyrelu, pad=0, bias = randn(Float32, c_next)))
         end
         if use_final_tanh
             c = channels[end-1]
             c_next = channels[end]
-            net[end] = Conv((3,3), c=>c_next, tanh, pad=(1, 1), bias = randn(Float32, c_next))
+            net[end] = Conv((3,3), c=>c_next, tanh, pad=0, bias = randn(Float32, c_next))
         end
         mask = make_checker_mask(lattice_shape, parity)
         coupling = AffineCoupling(Chain(net...), mask)
