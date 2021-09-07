@@ -608,7 +608,7 @@ end
 ```
 
 ```julia
-x, logq = apply_affine_flow_to_prior(prior, layer; batchsize)
+x, logq = apply_affine_flow_to_prior(prior, layer; batchsize=1024)
 S_eff = -logq
 S = calc_action(phi4_action, x |> reversedims)
 fit_b = mean(S) - mean(S_eff)
