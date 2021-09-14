@@ -5,20 +5,23 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.3
+      jupytext_version: 1.12.0
   kernelspec:
-    display_name: Julia 1.6.1
+    display_name: Julia 1.6.2
     language: julia
     name: julia-1.6
 ---
 
-# Metropolis
+# App
 
 ```julia
+using PyCall
+using PyPlot
+using Random
 using Distributions
 using Flux
+
 using LaTeXStrings
-using PyPlot
 using ProgressMeter
 ```
 
@@ -36,58 +39,30 @@ end
 ```
 
 ```julia
-L = 8
-```
-
-```julia
-lattice_shape = (8, 8)
-```
-
-```julia
 struct ScalarPhi4Action
-    m²
-    λ
+    m²::Float32
+    λ::Float32
+end 
+
+function calc_action(action::ScalarPhi4Action, cfgs)
+    action_density = @. action.m² * cfgs ^ 2 + action.λ * cfgs ^ 4
+    Nd = lattice_shape |> length
+    term1 = sum(2cfgs .^ 2 for μ in 2:Nd+1)
+    term2 = sum(cfgs .* circshift(cfgs, Flux.onehot(μ, 1:(Nd+1))) for μ in 2:(Nd+1))
+    term3 = sum(cfgs .* circshift(cfgs, -Flux.onehot(μ, 1:(Nd+1))) for μ in 2:(Nd+1))
+    result = action_density .+ term1 .- term2 .- term3
+    dropdims(
+        sum(result, dims=2:Nd+1),
+        dims=Tuple(2:(Nd+1))
+    )
 end
 
-m² = -4.0f0
-λ = 8.0f0
-phi4_action = ScalarPhi4Action(m², λ)
-prior = Normal{Float32}(0.f0, 1.f0)
-
-n_layers = 16
-hidden_sizes = [8,8]
-kernel_size = 3
-```
-
-```julia
-function calc_action(sp4a::ScalarPhi4Action, cfgs)
-    action_density = @. sp4a.m² * cfgs ^ 2 + sp4a.λ * cfgs ^ 4
-    Nd = lattice_shape |> length
-    term1 = sum(2cfgs .^ 2 for μ in 1:Nd)
-    term2 = sum(cfgs .* circshift(cfgs, Flux.onehot(μ, 1:(Nd+1))) for μ in 1:Nd)
-    term3 = sum(cfgs .* circshift(cfgs, -Flux.onehot(μ, 1:(Nd+1))) for μ in 1:Nd)
-    sum(action_density .+ term1 .- term2 .- term3, dims=1:Nd)
+function (action::ScalarPhi4Action)(cfgs)
+    calc_action(action, cfgs)
     #=
-    for μ ∈ 1:Nd
-        action_density .+= 2cfgs .^ 2
-        #shifts_plus = zeros(Nd+1)
-        #shifts_plus[μ] = 1 # \vec{n} + \hat{\mu}
-        shifts_plus = Flux.onehot(μ, 1:(Nd+1))
-        action_density .-= cfgs .* circshift(cfgs, shifts_plus)
-
-        #shifts_minus = zeros(Nd+1)
-        #shifts_minus[μ] = -1 # \vec{n} - \hat{\mu}
-        shifts_minus = -Flux.onehot(μ, 1:(Nd+1))
-        action_density .-= cfgs .* circshift(cfgs, shifts_minus)
-    end
-    return sum(action_density, dims=1:Nd)
-    =#
-end
-
-function _calc_action(sp4a::ScalarPhi4Action, cfgs)
-    action_density = @. sp4a.m² * cfgs ^ 2 + sp4a.λ * cfgs ^ 4
+    action_density = @. action.m² * cfgs ^ 2 + action.λ * cfgs ^ 4
     Nd = lattice_shape |> length
-    for μ ∈ 1:Nd
+    for μ ∈ 2:Nd+1
         action_density .+= 2cfgs .^ 2
 
         shifts_plus = zeros(Nd+1)
@@ -98,67 +73,9 @@ function _calc_action(sp4a::ScalarPhi4Action, cfgs)
         shifts_minus[μ] = -1 # \vec{n} - \hat{\mu}
         action_density .-= cfgs .* circshift(cfgs, shifts_minus)
     end
-    return sum(action_density, dims=1:Nd)
+    return dropdims(sum(action_density, dims=2:Nd+1), dims=Tuple(2:(Nd+1)))
+    =#
 end
-```
-
-```julia
-batch_size = 1024
-z = rand(prior, (lattice_shape..., batch_size))
-fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
-for i in 1:4
-    for j in 1:4
-        ind = i*4 + j
-        ax[i,j].imshow(tanh(z[:, :, ind]), vmin=-1, vmax=1, cmap="viridis")
-        ax[i,j].axes.xaxis.set_visible(false)
-        ax[i,j].axes.yaxis.set_visible(false)
-    end
-end
-```
-
-```julia
-Nd = lattice_shape |> length
-fig, ax = plt.subplots(4, 4, dpi=125, figsize=(4,4))
-for x1 in 1:Nd
-    for y1 in 1:Nd
-        i1 = (x1-1)*2 + y1
-        for x2 in 1:Nd
-            for y2 in 1:Nd
-                i2 = (x2 -1)* 2 + y2
-                ax[i1, i2].hist2d(z[x1,y1,:], z[x2,y2,:], range=[[-3,3],[-3,3]], bins=20)
-                ax[i1, i2].set_xticks([])
-                ax[i1, i2].set_yticks([])
-                if i1 == 4
-                    ax[i1, i2].set_xlabel(latexstring("\\phi($x2,$y2)"))
-                end
-                if i2 == 1
-                    ax[i1, i2].set_ylabel(latexstring("\\phi($x1,$y1)"))
-                end
-            end
-        end
-    end
-end
-```
-
-```julia
-@show calc_action(phi4_action, z)
-@show _calc_actionactionactionaction_actionc_action(phi4_action, z)
-```
-
-```julia
-S_eff = -sum(logpdf(prior, z), dims=1:length(lattice_shape))
-S = calc_action(phi4_action, z)
-fit_b = mean(S) - mean(S_eff)
-print("slope 1 linear regression S = -logr + $fit_b")
-fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
-ax.hist2d(vec(S_eff), vec(S), bins=20, range=[[-800, 800], [200,1800]])
-xs = range(-800, stop=800, length=4)
-ax.plot(xs, xs .+ fit_b, ":", color=:w, label="slope 1 fit")
-ax.set_xlabel(L"S_{\mathrm{eff}} \equiv -\log ~ r(z)")
-ax.set_ylabel(L"S(z)")
-ax.set_aspect(:equal)
-plt.legend(prop=Dict("size"=> 6))
-plt.show()
 ```
 
 ```julia
@@ -168,47 +85,54 @@ function make_checker_mask(shape, parity)
     checker[(begin+1):2:end, (begin+1):2:end] .= parity
     return checker
 end
-
-make_checker_mask(lattice_shape, 0)
 ```
 
 ```julia
-c = Conv((3,3), 1=>8, bias=true, stride=1)
-for p in Flux.params(c)
-    @show p |> eltype
-    @show p |> size
+function pairwise(iterable)
+    b = deepcopy(iterable)
+    popfirst!(b)
+    a = iterable
+    return zip(a, b)
 end
 ```
 
 ```julia
-function make_conv_net(
-        ; in_channels,out_channels, hidden_sizes, kernel_size, use_final_tanh)
-    sizes = vcat(in_channels, hidden_sizes, out_channels)
-    @assert isodd(kernel_size)
-    pad = kernel_size ÷ 2
-    net = []
-    for i in 1:(length(sizes)-2)
-        push!(
-            net, 
-            Conv(
-                (kernel_size, kernel_size), 
-                sizes[i] => sizes[i+1], 
-                Flux.leakyrelu; 
-                pad, stride=1, bias=true,
-            )
-        )
-    end
-    # define last layer
-    push!(
-        net, 
-        Conv(
-            (kernel_size, kernel_size), 
-            sizes[end-1] => sizes[end],
-            ifelse(use_final_tanh, tanh, identity)
-            ; pad, stride=1, bias=true,
-        )
-    )
-    return Chain(net...)
+function make_checker_mask(shape, parity)
+    checker = ones(Int, shape) .- parity
+    checker[begin:2:end, begin:2:end] .= parity
+    checker[(begin+1):2:end, (begin+1):2:end] .= parity
+    return checker
+end
+```
+
+```julia
+function apply_affine_flow_to_prior(prior, affine_coupling_layers; batchsize)
+    x = rand(prior, lattice_shape..., batchsize)
+    logq_ = sum(logpdf(prior, x), dims=(1:ndims(x)-1))
+    xout, logq = affine_coupling_layers((x, logq_))
+    return xout, logq
+end
+```
+
+```julia
+function mycircular(Y)
+    # calc Z_bottom
+    Y_b_c = Y[begin:begin,:,:,:]
+    Y_b_r = Y[begin:begin,end:end,:,:]
+    Y_b_l = Y[begin:begin,begin:begin,:,:]
+    Z_bottom = cat(Y_b_r, Y_b_c, Y_b_l, dims=2) # calc pad under
+    
+    # calc Z_top
+    Y_e_c = Y[end:end,:,:,:]
+    Y_e_r = Y[end:end,end:end,:,:]
+    Y_e_l = Y[end:end,begin:begin,:,:]
+    Z_top = cat(Y_e_r, Y_e_c, Y_e_l, dims=2)
+    
+    # calc Z_main
+    Y_main_l = Y[:,begin:begin,:,:]
+    Y_main_r = Y[:,end:end,:,:]
+    Z_main = cat(Y_main_r, Y, Y_main_l, dims=2)
+    cat(Z_top, Z_main, Z_bottom, dims=1)
 end
 ```
 
@@ -218,10 +142,8 @@ struct AffineCoupling
     mask
 end
 
-Flux.trainable(a::AffineCoupling) = (a.net,)
-```
+Flux.@functor AffineCoupling (net,)
 
-```julia
 #=
 x_torch = (B, nC, inH, inW)
 x_flux = (inW, inH, inC, inB)
@@ -253,36 +175,71 @@ end
 ```
 
 ```julia
-function make_phi4_affine_layers(;lattice_shape, n_layers, hidden_sizes, kernel_size)
-    layers = []
-    for i in 1:n_layers
-        parity = mod(i - 1, 2)
-        net = make_conv_net(
-            in_channels=1, 
-            out_channels=2, 
-            hidden_sizes=hidden_sizes,
-            kernel_size=kernel_size, 
-            use_final_tanh=true
-        )
+n_era = 25
+epochs = 100
+batchsize = 64
+
+base_lr = 0.001f0
+opt = ADAM(base_lr)
+L = 8
+lattice_shape = (L, L)
+M2 = -4.
+lam = 8.
+phi4_action = ScalarPhi4Action(M2, lam)
+
+n_layers = 16
+hidden_sizes = [8, 8]
+kernel_size = 3
+inC = 1
+outC = 2
+use_final_tanh = true
+
+prior = Normal{Float32}(0.f0, 1.f0)
+
+function create_layer()
+    module_list = []
+    for i ∈ 0:(n_layers-1)
+        parity = mod(i, 2)
+        channels = [inC, hidden_sizes..., outC]
+        padding = kernel_size ÷ 2
+        net = []
+        for (c, c_next) ∈ pairwise(channels)
+            # https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
+            k = 1/(c * 3 * 3)
+            W = rand(Uniform(-√k, √k), 3, 3, c, c_next)
+            b = rand(Uniform(-√k, √k), c_next) 
+            push!(net, mycircular)
+            push!(net, Conv(W, b, leakyrelu, pad=0))
+        end
+        if use_final_tanh
+            c = channels[end-1]
+            c_next = channels[end]
+            k = 1/(c * 3 * 3)
+            W = rand(Uniform(-√k, √k), 3, 3, c, c_next)
+            b = rand(Uniform(-√k, √k), c_next) 
+            net[end] = Conv(W, b, tanh, pad=0)
+        end
         mask = make_checker_mask(lattice_shape, parity)
-        coupling = AffineCoupling(net, mask)
-        push!(layers, coupling)
+        coupling = AffineCoupling(Chain(net...), mask)
+        push!(module_list, coupling)
     end
-    Chain(layers...)
+    Chain(module_list...) |> f32
 end
+
+layer = create_layer()
+ps = Flux.params(layer);
 ```
 
 ```julia
-function apply_flow_to_prior(prior, coupling_layers; batchsize)
-    x = rand(prior, lattice_shape..., batchsize) |> device
-    logq_ = sum(logpdf(prior, x), dims=(1:ndims(x)-1))
-    xout, logq = coupling_layers((x, logq_))
-    #=for layer in coupling_layers
-        x, logJ = layer(x)
-        logq .-= logJ
+x, logq = apply_affine_flow_to_prior(prior, layer; batchsize)
+fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
+for i in 1:4
+    for j in 1:4
+        ind = i*4 + j
+        ax[i,j].imshow(tanh(x[:, :, ind]), vmin=-1, vmax=1, cmap=:viridis)
+        ax[i,j].axes.xaxis.set_visible(false)
+        ax[i,j].axes.yaxis.set_visible(false)
     end
-    =#
-    return xout, logq
 end
 ```
 
@@ -291,86 +248,48 @@ calc_dkl(logp, logq) = mean(logq .- logp)
 
 function compute_ess(logp, logq)
     logw = logp - logq
-    log_ess = 2*logsumexp(logw, dim=ndims(logw)) - logsumexp(2*logw, dim=ndims(logw))
-    ess_per_cfg = exp(log_ess) / len(logw)
-    return ess_per_cf
+    log_ess = 2*logsumexp(logw) - logsumexp(2*logw)
+    ess_per_cfg = exp(log_ess) / length(logw)
+    return ess_per_cfg
 end
-```
 
-```julia
-model = make_phi4_affine_layers(
-    lattice_shape=lattice_shape, 
-    n_layers=n_layers,
-    hidden_sizes=hidden_sizes, 
-    kernel_size=kernel_size,
-);
-```
-
-```julia
-n_era = 25
-epochs = 100
-batchsize = 64
-
-base_lr = 0.001f0
-opt = ADAM(base_lr)
-ps = Flux.params(model);
-```
-
-```julia
-x, logq = apply_flow_to_prior(prior, model; batchsize)
-fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
-for i in 1:4
-    for j in 1:4
-        ind = i*4 + j
-        ax[i,j].imshow(tanh(x[:, :, ind]), vmin=-1, vmax=1, cmap=:viridis)
-        ax[i,j].axes.xaxis.set_visible(false)
-        ax[i,j].axes.yaxis.set_visible(false)
-    end
-end
-```
-
-```julia
-S_eff = -logq
-S = calc_action(phi4_action, x)
-fit_b = mean(S) - mean(S_eff)
-print("slope 1 linear regression S = -logr + $fit_b")
-fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
-ax.hist2d(vec(S_eff), vec(S), bins=20, range=[[-800, 800], [200,1800]])
-xs = range(-800, stop=800, length=4)
-ax.plot(xs, xs .+ fit_b, ":", color=:w, label="slope 1 fit")
-ax.set_xlabel(L"S_{\mathrm{eff}} \equiv -\log ~ r(z)")
-ax.set_ylabel(L"S(z)")
-ax.set_aspect(:equal)
-plt.legend(prop=Dict("size"=> 6))
-plt.show()
+reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
 ```
 
 ```julia
 for era in 1:n_era
     @showprogress for e in 1:epochs
         gs = Flux.gradient(ps) do
-            x, logq = apply_flow_to_prior(prior, model; batchsize)
-            logp = -calc_action(phi4_action, x)
+            x, logq_ = apply_affine_flow_to_prior(prior, layer; batchsize)
+            logq = dropdims(
+                logq_,
+                dims=Tuple(1:(ndims(logq_)-1))
+            )
+            logp = -calc_action(phi4_action, x |> reversedims)
             loss = calc_dkl(logp, logq)
         end
         Flux.Optimise.update!(opt, ps, gs)
     end
-    x, logq = apply_flow_to_prior(prior, model; batchsize)
-    logp = -calc_action(phi4_action, x)
+    x, logq_ = apply_affine_flow_to_prior(prior, layer; batchsize)
+    logq = dropdims(
+        logq_,
+        dims=Tuple(1:(ndims(logq_)-1))
+    )
+
+    logp = -calc_action(phi4_action, x |> reversedims)
     loss = calc_dkl(logp, logq)
     @show loss
-    if loss < 0
-        break
-    end
+    ess = compute_ess(logp, logq)
+    @show ess
 end
 ```
 
 ```julia
-x, logq = apply_flow_to_prior(prior, model; batchsize)
-fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
+x, logq = apply_affine_flow_to_prior(prior, layer; batchsize)
+fig, ax = plt.subplots(4, 4, dpi=125, figsize=(4, 4))
 for i in 1:4
     for j in 1:4
-        ind = i*4 + j
+        ind = 4i + j
         ax[i,j].imshow(tanh(x[:, :, ind]), vmin=-1, vmax=1, cmap=:viridis)
         ax[i,j].axes.xaxis.set_visible(false)
         ax[i,j].axes.yaxis.set_visible(false)
@@ -379,18 +298,16 @@ end
 ```
 
 ```julia
-maximum(S), minimum(S)
-```
-
-```julia
-x, logq = apply_flow_to_prior(prior, model; batchsize)
+x, logq = apply_affine_flow_to_prior(prior, layer; batchsize=1024)
 S_eff = -logq
-S = calc_action(phi4_action, x)
+S = calc_action(phi4_action, x |> reversedims)
 fit_b = mean(S) - mean(S_eff)
 @show fit_b
 print("slope 1 linear regression S = -logr + $fit_b")
 fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
-ax.hist2d(vec(S_eff), vec(S), bins=20, range=[[-35, 35], [-5, 50]])
+ax.hist2d(vec(S_eff), vec(S), bins=20, 
+    #range=[[5, 35], [-5, 25]]
+)
 
 xs = range(-800, stop=800, length=4)
 ax.plot(xs, xs .+ fit_b, ":", color=:w, label="slope 1 fit")
