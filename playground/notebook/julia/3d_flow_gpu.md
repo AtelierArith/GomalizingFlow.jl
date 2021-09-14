@@ -24,6 +24,20 @@ using ProgressMeter
 ```
 
 ```julia
+using CUDA
+CUDA.device!(1)
+use_cuda = true
+
+if use_cuda && CUDA.functional()
+    device = gpu
+    @info "Training on GPU"
+else
+    device = cpu
+    @info "Training on CPU"
+end
+```
+
+```julia
 struct ScalarPhi4Action
     m²::Float32
     λ::Float32
@@ -58,6 +72,15 @@ function make_checker_mask(shape::NTuple{3, Int}, parity)
     checker[begin:2:end, (begin+1):2:end, (begin+1):2:end] .= parity
 
     return checker
+end
+```
+
+```julia
+function pairwise(iterable)
+    b = deepcopy(iterable)
+    popfirst!(b)
+    a = iterable
+    return zip(a, b)
 end
 ```
 
@@ -100,24 +123,6 @@ end
 ```
 
 ```julia
-function apply_affine_flow_to_prior(prior, affine_coupling_layers; batchsize)
-    x = rand(prior, lattice_shape..., batchsize)
-    logq_ = sum(logpdf(prior, x), dims=(1:ndims(x)-1))
-    xout, logq = affine_coupling_layers((x, logq_))
-    return xout, logq
-end
-```
-
-```julia
-function pairwise(iterable)
-    b = copy(iterable)
-    popfirst!(b)
-    a = iterable
-    return zip(a, b)
-end
-```
-
-```julia
 function mycircular(Y)
     # calc Z_bottom
     Y_b_c = Y[begin:begin,:,:,:,:]
@@ -145,30 +150,29 @@ end
 ```
 
 ```julia
-n_era = 25
-epochs = 100
-batchsize = 64
+const n_era = 25
+const epochs = 100
+const batchsize = 64
 
-base_lr = 0.005f0
+base_lr = 0.0075f0
 opt = ADAM(base_lr)
-L = 8
-lattice_shape = (L, L, L)
-M2 = -4.
-lam = 8.
-phi4_action = ScalarPhi4Action(M2, lam)
+const L = 8
+const lattice_shape = (L, L, L)
+const M2 = -4.
+const lam = 8.
+const phi4_action = ScalarPhi4Action(M2, lam)
 
 
-n_layers = 16
-hidden_sizes = [8, 8]
-kernel_size = 3
-inC = 1
-outC = 2
-use_final_tanh = true
+const n_layers = 16
+const hidden_sizes = (8, 8)
+const kernel_size = 3
+const inC = 1
+const outC = 2
+const use_final_tanh = true
 
-prior = Normal{Float32}(0.f0, 1.f0)
+const prior = Normal{Float32}(0.f0, 1.f0)
 
-function create_layer()
-    ksize=(3, 3, 3)
+function create_layer(;ksize)
     module_list = []
     for i ∈ 0:(n_layers-1)
         parity = mod(i, 2)
@@ -190,18 +194,25 @@ function create_layer()
             b = rand(Uniform(-√k, √k), c_next) 
             net[end] = Conv(W, b, tanh, pad=0)
         end
-        mask = make_checker_mask(lattice_shape, parity)
+        mask = make_checker_mask(lattice_shape, parity)|> device
         coupling = AffineCoupling(Chain(net...), mask)
         push!(module_list,coupling)
     end
-    Chain(module_list...) |> f32
+    Chain(module_list...) |> f32 |> device
 end
 
-layer = create_layer()
+layer = create_layer(ksize=(3, 3, 3))
 ps = Flux.params(layer);
 ```
 
 ```julia
+function apply_affine_flow_to_prior(prior, affine_coupling_layers; batchsize)
+    x = rand(prior, lattice_shape..., batchsize)
+    logq_ = sum(logpdf(prior, x), dims=(1:ndims(x)-1)) |> device
+    xout, logq = affine_coupling_layers((x |> device, logq_))
+    return xout, logq
+end
+
 calc_dkl(logp, logq) = mean(logq .- logp)
 
 function compute_ess(logp, logq)
@@ -217,13 +228,16 @@ reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
 ```julia
 for era in 1:n_era
     @showprogress for e in 1:epochs
+        x = rand(prior, lattice_shape..., batchsize)
+        logq_in = sum(logpdf(prior, x), dims=(1:ndims(x)-1)) |> device
+        xin = x |> device
         gs = Flux.gradient(ps) do
-            x, logq_ = apply_affine_flow_to_prior(prior, layer; batchsize)
+            xout, logq_out = layer((xin, logq_in))
             logq = dropdims(
-                logq_,
-                dims=Tuple(1:(ndims(logq_)-1))
+                logq_out,
+                dims=Tuple(1:(ndims(logq_out)-1))
             )
-            logp = -calc_action(phi4_action, x |> reversedims)
+            logp = -calc_action(phi4_action, xout |> reversedims)
             loss = calc_dkl(logp, logq)
         end
         Flux.Optimise.update!(opt, ps, gs)

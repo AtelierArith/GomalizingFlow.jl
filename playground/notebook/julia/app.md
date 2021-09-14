@@ -108,8 +108,8 @@ end
 ```julia
 function apply_affine_flow_to_prior(prior, affine_coupling_layers; batchsize)
     x = rand(prior, lattice_shape..., batchsize)
-    logq_ = sum(logpdf(prior, x), dims=(1:ndims(x)-1))
-    xout, logq = affine_coupling_layers((x, logq_))
+    logq_ = sum(logpdf(prior, x), dims=(1:ndims(x)-1)) |> device
+    xout, logq = affine_coupling_layers((x |> device, logq_))
     return xout, logq
 end
 ```
@@ -219,11 +219,11 @@ function create_layer()
             b = rand(Uniform(-√k, √k), c_next) 
             net[end] = Conv(W, b, tanh, pad=0)
         end
-        mask = make_checker_mask(lattice_shape, parity)
+        mask = make_checker_mask(lattice_shape, parity) |> device
         coupling = AffineCoupling(Chain(net...), mask)
         push!(module_list, coupling)
     end
-    Chain(module_list...) |> f32
+    Chain(module_list...) |> f32 |> device
 end
 
 layer = create_layer()
@@ -232,6 +232,7 @@ ps = Flux.params(layer);
 
 ```julia
 x, logq = apply_affine_flow_to_prior(prior, layer; batchsize)
+x = x |> cpu
 fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
 for i in 1:4
     for j in 1:4
@@ -259,13 +260,16 @@ reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
 ```julia
 for era in 1:n_era
     @showprogress for e in 1:epochs
+        x = rand(prior, lattice_shape..., batchsize)
+        logq_in = sum(logpdf(prior, x), dims=(1:ndims(x)-1)) |> device
+        xin = x |> device
         gs = Flux.gradient(ps) do
-            x, logq_ = apply_affine_flow_to_prior(prior, layer; batchsize)
+            xout, logq_out = layer((xin, logq_in))
             logq = dropdims(
-                logq_,
-                dims=Tuple(1:(ndims(logq_)-1))
+                logq_out,
+                dims=Tuple(1:(ndims(logq_out)-1))
             )
-            logp = -calc_action(phi4_action, x |> reversedims)
+            logp = -calc_action(phi4_action, xout |> reversedims)
             loss = calc_dkl(logp, logq)
         end
         Flux.Optimise.update!(opt, ps, gs)
@@ -286,6 +290,7 @@ end
 
 ```julia
 x, logq = apply_affine_flow_to_prior(prior, layer; batchsize)
+x = x |> cpu
 fig, ax = plt.subplots(4, 4, dpi=125, figsize=(4, 4))
 for i in 1:4
     for j in 1:4
@@ -299,7 +304,8 @@ end
 
 ```julia
 x, logq = apply_affine_flow_to_prior(prior, layer; batchsize=1024)
-S_eff = -logq
+x = cpu(x)
+S_eff = -logq |> cpu
 S = calc_action(phi4_action, x |> reversedims)
 fit_b = mean(S) - mean(S_eff)
 @show fit_b
