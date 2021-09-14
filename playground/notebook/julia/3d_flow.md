@@ -168,15 +168,14 @@ use_final_tanh = true
 prior = Normal{Float32}(0.f0, 1.f0)
 
 function create_layer()
-    ksize=(3,3,3)
+    ksize=(3, 3, 3)
     module_list = []
     for i ∈ 0:(n_layers-1)
         parity = mod(i, 2)
         channels = [inC, hidden_sizes..., outC]
-        padding = kernel_size ÷ 2
         net = []
         for (c, c_next) ∈ pairwise(channels)
-            # https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
+            # https://pytorch.org/docs/stable/generated/torch.nn.Conv3d.html
             k = 1/(c * prod(ksize))
             W = rand(Uniform(-√k, √k), ksize..., c, c_next)
             b = rand(Uniform(-√k, √k), c_next) 
