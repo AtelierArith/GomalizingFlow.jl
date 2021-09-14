@@ -145,7 +145,7 @@ end
 Flux.@functor AffineCoupling (net,)
 
 #=
-x_torch = (B, nC, inH, inW)
+x_torch = (B, inC, inH, inW)
 x_flux = (inW, inH, inC, inB)
 =#
 
