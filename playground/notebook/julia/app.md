@@ -300,7 +300,7 @@ layer = train()
 ```
 
 ```julia
-x, logq = apply_affine_flow_to_prior(prior, layer; batchsize)
+x, logq = apply_affine_flow_to_prior(prior, layer; batchsize=64)
 x = x |> cpu
 fig, ax = plt.subplots(4, 4, dpi=125, figsize=(4, 4))
 for i in 1:4
