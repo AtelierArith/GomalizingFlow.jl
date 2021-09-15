@@ -29,7 +29,6 @@ using ProgressMeter
 
 ```julia
 using CUDA
-use_cuda = true
 
 if use_cuda && CUDA.functional()
     device_id = 1 # 0, 1, 2 ...
