@@ -1,19 +1,18 @@
 version: '3'
 services:
-  jupyter:
+  lab:
     image: lftjl
-    runtime: nvidia
-    container_name: lftjl-jupyter
+    container_name: lftjl-lab
     volumes:
       - ./:/work
     working_dir: /work
     ports:
       - "8888:8888"
-    command: jupyter notebook --notebook-dir /work --ip=0.0.0.0 --allow-root
-  lab:
+    command: jupyter lab --notebook-dir /work --ip=0.0.0.0 --allow-root
+  lab-gpu:
     image: lftjl
     runtime: nvidia
-    container_name: lftjl-lab
+    container_name: lftjl-lab-gpu
     volumes:
       - ./:/work
     working_dir: /work

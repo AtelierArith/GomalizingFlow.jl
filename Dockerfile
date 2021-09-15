@@ -65,19 +65,6 @@ RUN conda install -y -c conda-forge \
 # For Pluto.jl
 RUN pip install git+https://github.com/IllumiDesk/jupyter-pluto-proxy.git
 
-# Install/enable extension for Jupyter Notebook users
-RUN jupyter contrib nbextension install --user && \
-    jupyter nbextensions_configurator enable --user && \
-    # enable extensions what you want
-    jupyter nbextension enable select_keymap/main && \
-    jupyter nbextension enable highlight_selected_word/main && \
-    jupyter nbextension enable toggle_all_line_numbers/main && \
-    jupyter nbextension enable varInspector/main && \
-    jupyter nbextension enable toc2/main && \
-    jupyter nbextension enable equation-numbering/main && \
-    jupyter nbextension enable execute_time/ExecuteTime && \
-    echo Done
-
 # Install/enable extension for JupyterLab users
 RUN jupyter labextension install jupyterlab-topbar-extension && \
     jupyter labextension install jupyterlab-system-monitor && \
@@ -124,7 +111,7 @@ RUN julia -e '\
 '
 
 #RUN conda install -c anaconda cudatoolkit
-RUN conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
+RUN conda install -y matplotlib pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
     conda clean -afy # clean up
     
 
