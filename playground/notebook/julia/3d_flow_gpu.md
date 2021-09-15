@@ -13,6 +13,10 @@ jupyter:
 ---
 
 ```julia
+using Pkg; Pkg.instantiate()
+```
+
+```julia
 using PyCall
 using PyPlot
 using Random

@@ -110,7 +110,7 @@ RUN julia -e '\
     using InteractiveUtils; versioninfo() \
 '
 
-RUN conda install -y matplotlib pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
+RUN conda install -y seaborn matplotlib pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
     conda clean -afy # clean up
 
 # For Jupyter Notebook

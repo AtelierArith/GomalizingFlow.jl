@@ -27,9 +27,11 @@ using ProgressMeter
 
 ```julia
 using CUDA
-use_cuda = false
+use_cuda = true
 
 if use_cuda && CUDA.functional()
+    device_id = 0 # 0, 1, 2 ...
+    CUDA.device!(device_id)
     device = gpu
     @info "Training on GPU"
 else
@@ -175,26 +177,21 @@ end
 ```
 
 ```julia
-n_era = 25
-epochs = 100
-batchsize = 64
 
-base_lr = 0.001f0
-opt = ADAM(base_lr)
-L = 8
-lattice_shape = (L, L)
-M2 = -4.
-lam = 8.
-phi4_action = ScalarPhi4Action(M2, lam)
+const L = 8
+const lattice_shape = (L, L)
+const M2 = -4.
+const lam = 8.
+const phi4_action = ScalarPhi4Action(M2, lam)
 
-n_layers = 16
-hidden_sizes = [8, 8]
-kernel_size = 3
-inC = 1
-outC = 2
-use_final_tanh = true
+const n_layers = 16
+const hidden_sizes = [8, 8]
+const kernel_size = 3
+const inC = 1
+const outC = 2
+const use_final_tanh = true
 
-prior = Normal{Float32}(0.f0, 1.f0)
+const prior = Normal{Float32}(0.f0, 1.f0)
 
 function create_layer()
     module_list = []
@@ -231,7 +228,7 @@ ps = Flux.params(layer);
 ```
 
 ```julia
-x, logq = apply_affine_flow_to_prior(prior, layer; batchsize)
+x, logq = apply_affine_flow_to_prior(prior, layer; batchsize=64)
 x = x |> cpu
 fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
 for i in 1:4
@@ -258,34 +255,46 @@ reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
 ```
 
 ```julia
-for era in 1:n_era
-    @showprogress for e in 1:epochs
-        x = rand(prior, lattice_shape..., batchsize)
-        logq_in = sum(logpdf(prior, x), dims=(1:ndims(x)-1)) |> device
-        xin = x |> device
-        gs = Flux.gradient(ps) do
-            xout, logq_out = layer((xin, logq_in))
-            logq = dropdims(
-                logq_out,
-                dims=Tuple(1:(ndims(logq_out)-1))
-            )
-            logp = -calc_action(phi4_action, xout |> reversedims)
-            loss = calc_dkl(logp, logq)
-        end
-        Flux.Optimise.update!(opt, ps, gs)
-    end
-    x, logq_ = apply_affine_flow_to_prior(prior, layer; batchsize)
-    logq = dropdims(
-        logq_,
-        dims=Tuple(1:(ndims(logq_)-1))
-    )
+function train()
+    batchsize = 64
+    n_era = 25
+    epochs = 100
 
-    logp = -calc_action(phi4_action, x |> reversedims)
-    loss = calc_dkl(logp, logq)
-    @show loss
-    ess = compute_ess(logp, logq)
-    @show ess
+    base_lr = 0.001f0
+    opt = ADAM(base_lr)
+
+    for era in 1:n_era
+        @showprogress for e in 1:epochs
+            x = rand(prior, lattice_shape..., batchsize)
+            logq_in = sum(logpdf(prior, x), dims=(1:ndims(x)-1)) |> device
+            xin = x |> device
+            gs = Flux.gradient(ps) do
+                xout, logq_out = layer((xin, logq_in))
+                logq = dropdims(
+                    logq_out,
+                    dims=Tuple(1:(ndims(logq_out)-1))
+                )
+                logp = -calc_action(phi4_action, xout |> reversedims)
+                loss = calc_dkl(logp, logq)
+            end
+            Flux.Optimise.update!(opt, ps, gs)
+        end
+        x, logq_ = apply_affine_flow_to_prior(prior, layer; batchsize)
+        logq = dropdims(
+            logq_,
+            dims=Tuple(1:(ndims(logq_)-1))
+        )
+
+        logp = -calc_action(phi4_action, x |> reversedims)
+        loss = calc_dkl(logp, logq)
+        @show loss
+        ess = compute_ess(logp, logq)
+        @show ess
+    end
+    layer
 end
+
+layer = train()
 ```
 
 ```julia
