@@ -110,10 +110,8 @@ RUN julia -e '\
     using InteractiveUtils; versioninfo() \
 '
 
-#RUN conda install -c anaconda cudatoolkit
 RUN conda install -y matplotlib pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
     conda clean -afy # clean up
-    
 
 # For Jupyter Notebook
 EXPOSE 8888
