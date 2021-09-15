@@ -28,7 +28,7 @@ using CUDA
 use_cuda = true
 
 if use_cuda && CUDA.functional()
-    devide_id = 1 # 0, 1, 2 ...
+    device_id = 1 # 0, 1, 2 ...
     CUDA.device!(device_id)
     device = gpu
     @info "Training on GPU"
