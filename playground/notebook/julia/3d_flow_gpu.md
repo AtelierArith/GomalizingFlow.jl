@@ -25,11 +25,11 @@ using ProgressMeter
 
 ```julia
 using CUDA
-CUDA.device!(1)
-use_cuda = true
+use_cuda = false
 
 if use_cuda && CUDA.functional()
     device = gpu
+    CUDA.device!(1)
     @info "Training on GPU"
 else
     device = cpu
