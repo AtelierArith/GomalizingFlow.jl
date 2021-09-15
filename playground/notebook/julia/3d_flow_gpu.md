@@ -25,11 +25,12 @@ using ProgressMeter
 
 ```julia
 using CUDA
-use_cuda = false
+use_cuda = true
 
 if use_cuda && CUDA.functional()
+    devide_id = 1 # 0, 1, 2 ...
+    CUDA.device!(device_id)
     device = gpu
-    CUDA.device!(1)
     @info "Training on GPU"
 else
     device = cpu
@@ -220,7 +221,7 @@ reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
 ```
 
 ```julia
-n_era = 25
+n_era = 50
 epochs = 100
 batchsize = 64
 
@@ -267,9 +268,7 @@ fit_b = mean(S) - mean(S_eff)
 @show fit_b
 print("slope 1 linear regression S = -logr + $fit_b")
 fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
-ax.hist2d(vec(S_eff), vec(S), bins=20, 
-    #range=[[5, 35], [-5, 25]]
-)
+ax.hist2d(vec(S_eff), vec(S), bins=20)
 
 xs = range(-800, stop=800, length=4)
 ax.plot(xs, xs .+ fit_b, ":", color=:w, label="slope 1 fit")
