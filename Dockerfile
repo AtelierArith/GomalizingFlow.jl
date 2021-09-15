@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.4.1-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu20.04
 
 ENV JULIA_PATH /usr/local/julia
 ENV PATH $JULIA_PATH/bin:$PATH
@@ -115,10 +115,18 @@ RUN julia -e '\
     Pkg.precompile(); \
     # Download CUDA artifacts \
     using CUDA; \
-    @assert CUDA.functional(true); \
-    @assert CUDA.has_cudnn(); \
+    if CUDA.functional() \
+        # Download artifacts of CUDA/CUDNN
+        @assert CUDA.functional(true); \
+        @assert CUDA.has_cudnn(); \
+    end; \
     using InteractiveUtils; versioninfo() \
 '
+
+#RUN conda install -c anaconda cudatoolkit
+RUN conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
+    conda clean -afy # clean up
+    
 
 # For Jupyter Notebook
 EXPOSE 8888
