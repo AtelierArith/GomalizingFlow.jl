@@ -150,12 +150,6 @@ end
 ```
 
 ```julia
-const n_era = 25
-const epochs = 100
-const batchsize = 64
-
-base_lr = 0.0075f0
-opt = ADAM(base_lr)
 const L = 8
 const lattice_shape = (L, L, L)
 const M2 = -4.
@@ -226,6 +220,14 @@ reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
 ```
 
 ```julia
+n_era = 25
+epochs = 100
+batchsize = 64
+
+base_lr = 0.0015f0
+
+opt = ADAM(base_lr)
+
 for era in 1:n_era
     @showprogress for e in 1:epochs
         x = rand(prior, lattice_shape..., batchsize)
@@ -254,4 +256,26 @@ for era in 1:n_era
     ess = compute_ess(logp, logq)
     @show ess
 end
+```
+
+```julia
+x, logq = apply_affine_flow_to_prior(prior, layer; batchsize=1024)
+x = cpu(x)
+S_eff = -logq |> cpu
+S = calc_action(phi4_action, x |> reversedims)
+fit_b = mean(S) - mean(S_eff)
+@show fit_b
+print("slope 1 linear regression S = -logr + $fit_b")
+fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
+ax.hist2d(vec(S_eff), vec(S), bins=20, 
+    #range=[[5, 35], [-5, 25]]
+)
+
+xs = range(-800, stop=800, length=4)
+ax.plot(xs, xs .+ fit_b, ":", color=:w, label="slope 1 fit")
+ax.set_xlabel(L"S_{\mathrm{eff}} \equiv -\log ~ r(z)")
+ax.set_ylabel(L"S(z)")
+ax.set_aspect(:equal)
+plt.legend(prop=Dict("size"=> 6))
+plt.show()
 ```
