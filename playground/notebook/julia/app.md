@@ -139,9 +139,9 @@ end
 ```
 
 ```julia
-struct AffineCoupling
-    net
-    mask
+struct AffineCoupling{A, B}
+    net::A
+    mask::B
 end
 
 Flux.@functor AffineCoupling (net,)
@@ -222,12 +222,12 @@ function create_layer()
     end
     Chain(module_list...) |> f32 |> device
 end
-
-layer = create_layer()
-ps = Flux.params(layer);
 ```
 
 ```julia
+layer = create_layer()
+ps = Flux.params(layer)
+
 x, logq = apply_affine_flow_to_prior(prior, layer; batchsize=64)
 x = x |> cpu
 fig, ax = plt.subplots(4,4, dpi=125, figsize=(4,4))
@@ -256,6 +256,8 @@ reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
 
 ```julia
 function train()
+    layer = create_layer()
+    ps = Flux.params(layer)
     batchsize = 64
     n_era = 25
     epochs = 100
