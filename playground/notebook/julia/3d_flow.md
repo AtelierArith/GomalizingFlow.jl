@@ -24,9 +24,9 @@ using ProgressMeter
 ```
 
 ```julia
-using CUDA
+using CUDA: CUDA
 
-if use_cuda && CUDA.functional()
+if CUDA.functional()
     device_id = 1 # 0, 1, 2 ...
     CUDA.device!(device_id)
     device = gpu
