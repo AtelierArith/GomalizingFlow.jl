@@ -26,7 +26,7 @@ using ProgressMeter
 ```
 
 ```julia
-make_mcmc_ensambleUDA
+using CUDA
 use_cuda = true
 
 if use_cuda && CUDA.functional()
