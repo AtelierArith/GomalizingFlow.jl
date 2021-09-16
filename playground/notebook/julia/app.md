@@ -26,7 +26,7 @@ using ProgressMeter
 ```
 
 ```julia
-using CUDA
+make_mcmc_ensambleUDA
 use_cuda = true
 
 if use_cuda && CUDA.functional()
@@ -296,7 +296,7 @@ function train()
     layer
 end
 
-layer = train()
+layer = train();
 ```
 
 ```julia
@@ -333,4 +333,57 @@ ax.set_ylabel(L"S(z)")
 ax.set_aspect(:equal)
 plt.legend(prop=Dict("size"=> 6))
 plt.show()
+```
+
+```julia
+function make_mcmc_ensamble(layer, prior, action; batchsize, nsamples)
+    history=(x=Float32[], logq=Float32[], logp=Float32[], accepted=Bool[])
+    @showprogress for _ in 1:nsamples
+        x_device, logq_ = apply_affine_flow_to_prior(prior, layer; batchsize)
+        logq = dropdims(
+            logq_,
+            dims=Tuple(1:(ndims(logq_)-1))
+        ) |> cpu
+        logp = -calc_action(phi4_action, x_device |> reversedims) |> cpu
+        x = x_device |> cpu
+        for b in 1:batchsize
+            new_x = x[b]
+            new_logq = logq[b]
+            new_logp = logp[b]
+            if isempty(history[:logp])
+                accepted = true
+            else
+                last_logp = history[:logp][end]
+                last_logq = history[:logq][end]
+                last_x = history[:x][end]
+                p_accept = exp((new_logp - new_logq) - (last_logp - last_logq))
+                p_accept = min(one(p_accept), p_accept)
+                draw = rand()
+                if draw < p_accept
+                    accepted = true
+                else
+                    accepted = false
+                    new_x = last_x
+                    new_logp = last_logp
+                    new_logq = last_logq
+                end
+            end
+            # update history
+            push!(history[:logp], new_logp)
+            push!(history[:logq], new_logq)
+            push!(history[:x], new_x)
+            push!(history[:accepted], accepted)
+        end
+    end
+    history
+end
+```
+
+```julia
+ensamble_size = 8092
+history = make_mcmc_ensamble(layer, prior, phi4_action; batchsize=64, nsamples=ensamble_size)
+```
+
+```julia
+history[:accepted] |> mean
 ```
