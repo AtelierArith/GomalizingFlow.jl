@@ -103,7 +103,7 @@ RUN julia -e '\
     # Download CUDA artifacts \
     using CUDA; \
     if CUDA.functional() \
-        # Download artifacts of CUDA/CUDNN
+        @info "Download artifacts of CUDA/CUDNN"; \
         @assert CUDA.functional(true); \
         @assert CUDA.has_cudnn(); \
     end; \
