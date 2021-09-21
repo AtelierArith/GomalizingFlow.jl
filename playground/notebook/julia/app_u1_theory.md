@@ -12,13 +12,16 @@ jupyter:
     name: julia-1.6
 ---
 
-# `U(1)`
+# $U(1)$
 
 ```julia
 using PyCall
 using Flux
+using Distributions
 using EllipsisNotation
 ```
+
+# Setup constants
 
 ```julia
 L = 8
@@ -68,9 +71,12 @@ pycfgs = py"sample_cfgs"(L)
 cfgs = pycfgs.numpy()
 @show cfgs |> size # (W, H, Nd, B)
 beta = 1
-u1_action = py"U1GaugeAction"(beta)
-u1_action(pycfgs).numpy()
+py_u1_action = py"U1GaugeAction"(beta)
+py_u1_action(pycfgs).numpy()
 ```
+
+# $U(1)$ action
+
 
 $$
 \theta_{\mu\nu} = \theta_\mu(\vec{n}) + \theta_\nu(\vec{n}+\hat{\mu}) - \theta_\mu(\vec{n}+\hat{\nu}) - \theta_\nu(\vec{n})
@@ -78,11 +84,11 @@ $$
 
 ```julia
 """
-cfgs |> size == (Batch, Nd, H=L, W=L)
+links |> size == (Batch, Nd, H=L, W=L)
 """
-function compute_u1_plaq(cfgs, μ, ν)
-    θ_μ = @view cfgs[:, μ, ..]
-    θ_ν = @view cfgs[:, ν, ..]
+function compute_u1_plaq(links, μ, ν)
+    θ_μ = @view links[:, μ, ..]
+    θ_ν = @view links[:, ν, ..]
     θ_ν_shift = circshift(θ_ν, -Flux.onehot(1+μ, 1:ndims(θ_ν)))
     θ_μ_shift = circshift(θ_μ, -Flux.onehot(1+ν, 1:ndims(θ_μ)))
     θ_μν = θ_μ + θ_ν_shift - θ_μ_shift - θ_ν
@@ -109,16 +115,90 @@ function (u::U1GaugeAction)(cfgs)
     end
     return -u.beta * sum(action_density, dims=(2,3))
 end
-```
 
-```julia
 pycfgs = py"sample_cfgs"(L)
 cfgs = pycfgs.numpy()
 @show cfgs |> size # (B, Nd, H, W)
+@assert compute_u1_plaq(cfgs, 1, 2) ≈ py"compute_u1_plaq"(pycfgs, 0, 1).numpy()
+
 β = 1.
 u1_action = py"U1GaugeAction"(β)
-@assert U1GaugeAction(β)(cfgs) ≈ u1_action(pycfgs).numpy()
+@assert U1GaugeAction(β)(cfgs) ≈ py_u1_action(pycfgs).numpy()
 ```
+
+## gauge transform
+
+```julia
+"""
+links |> size == (B, Nd, H, W)
+α |> size == (B, H, W)
+"""
+function gauge_transform!(links, α)
+    Nd = size(links, 2)
+    for μ in 1:Nd
+        links[:, μ, ..] .= α .+ links[:, μ, ..] .- circshift(α, -Flux.onehot(1+μ, 1:ndims(α)))
+    end
+    return links
+end
+```
+
+```julia
+function random_gauge_transform(cfgs)
+    Nconf = size(cfgs, 1)
+    VolShape = size(cfgs)[3:end]
+    return gauge_transform!(cfgs, 2π*rand(Nconf, VolShape...))
+end
+```
+
+```julia
+β = 1.
+u1_action = U1GaugeAction(β)
+cfgs_transformed = random_gauge_transform(copy(cfgs))
+@assert ~(cfgs_transformed ≈ cfgs)
+@assert u1_action(cfgs) ≈ u1_action(cfgs_transformed)
+```
+
+# topologial charge on lattice
+
+$$
+Q = \frac{1}{2\pi} \sum_{\vec{n}} \mathrm{args}(P_{01}(\vec{n})) \quad Q \in \mathbb{Z}
+$$
+
+```julia
+function topo_charge(cfgs)
+    μ = 1
+    ν = 2
+    P₀₁ = compute_u1_plaq(cfgs, μ, ν)
+    sum(P₀₁, dims=2:ndims(P₀₁)) / 2π
+end
+```
+
+```julia
+topo_charge(2π*rand(2, 2, 8, 8)) # verysmall value
+```
+
+```julia
+using Distributions
+```
+
+```julia
+prior = Uniform(0, 2π)
+batch = 17
+z = rand(prior, (batch, link_shape...));
+```
+
+```julia
+function log_prob(z)
+    logp = logpdf(prior, z)
+    sum(logp, dims=2:ndims(logp))
+end
+```
+
+```julia
+log_prob(z)
+```
+
+# Gauge quivariant coupling layers
 
 ```julia
 
