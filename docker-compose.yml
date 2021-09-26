@@ -9,6 +9,7 @@ services:
     ports:
       - "8888:8888"
     command: jupyter lab --notebook-dir /work --ip=0.0.0.0 --allow-root
+
   lab-gpu:
     image: lftjl
     runtime: nvidia
@@ -19,10 +20,19 @@ services:
     ports:
       - "8888:8888"
     command: jupyter lab --notebook-dir /work --ip=0.0.0.0 --allow-root
+
   julia:
     image: lftjl
-    runtime: nvidia
     container_name: lftjl-julia
+    volumes:
+      - ./:/work
+    working_dir: /work
+    command: julia --project=/work
+
+  julia-gpu:
+    image: lftjl
+    runtime: nvidia
+    container_name: lftjl-julia-gpu
     volumes:
       - ./:/work
     working_dir: /work
