@@ -18,6 +18,7 @@ using PyPlot
 using Random
 using Distributions
 using Flux
+using IterTools
 using EllipsisNotation
 using LaTeXStrings
 using ProgressMeter
@@ -348,7 +349,8 @@ function calc_Gc(cfgs, offsetX)
     Gc = zero(Float32)
     for posY in IterTools.product((1:l for l in lattice_shape)...)
         phi_y = cfgs[posY..., :]
-        phi_y_x = circshift(cfgs, (offsetX..., 0))[posY..., :]
+        shifts = (broadcast(-, offsetX)..., 0)
+        phi_y_x = circshift(cfgs, shifts)[posY..., :]
         mean_phi_y = mean(phi_y)
         mean_phi_y_x = mean(phi_y_x)
         Gc += mean(phi_y .* phi_y_x) - mean_phi_y * mean_phi_y_x
@@ -371,6 +373,6 @@ end
 ```
 
 ```julia
-cfgs = cat(history[:x][512:4000]..., dims=3);
+cfgs = cat(history[:x][512:2000]..., dims=length(lattice_shape)+1);
 plt.plot(1:L, [mfGc(cfgs, t) for t in 1:L])
 ```
