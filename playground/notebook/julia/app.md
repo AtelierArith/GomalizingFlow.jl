@@ -426,7 +426,7 @@ end
 ```
 
 ```julia
-mfGc(cfgs, 1)
+cfgs = cat(history[:x][512:4000]..., dims=3);
 ```
 
 ```julia
