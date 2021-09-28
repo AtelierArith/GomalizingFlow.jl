@@ -15,12 +15,14 @@ jupyter:
 # App
 
 ```julia
+using Random
+
 using PyCall
 using PyPlot
-using Random
 using Distributions
 using Flux
-
+using EllipsisNotation
+using IterTools
 using LaTeXStrings
 using ProgressMeter
 ```
@@ -290,6 +292,7 @@ function train()
         logp = -calc_action(phi4_action, x |> reversedims)
         loss = calc_dkl(logp, logq)
         @show loss
+        @show "loss per site" loss/prod(lattice_shape)
         ess = compute_ess(logp, logq)
         @show ess
     end
@@ -337,8 +340,9 @@ plt.show()
 
 ```julia
 function make_mcmc_ensamble(layer, prior, action; batchsize, nsamples)
-    history=(x=Float32[], logq=Float32[], logp=Float32[], accepted=Bool[])
-    @showprogress for _ in 1:nsamples
+    history=(x=Matrix{Float32}[], logq=Float32[], logp=Float32[], accepted=Bool[])
+    c = 0
+    @showprogress for _ in 1:(nsamples÷batchsize + 1)
         x_device, logq_ = apply_affine_flow_to_prior(prior, layer; batchsize)
         logq = dropdims(
             logq_,
@@ -347,7 +351,7 @@ function make_mcmc_ensamble(layer, prior, action; batchsize, nsamples)
         logp = -calc_action(phi4_action, x_device |> reversedims) |> cpu
         x = x_device |> cpu
         for b in 1:batchsize
-            new_x = x[b]
+            new_x = x[.., b]
             new_logq = logq[b]
             new_logp = logp[b]
             if isempty(history[:logp])
@@ -374,6 +378,10 @@ function make_mcmc_ensamble(layer, prior, action; batchsize, nsamples)
             push!(history[:x], new_x)
             push!(history[:accepted], accepted)
         end
+        c += batchsize
+        if c >= nsamples
+            break
+        end
     end
     history
 end
@@ -381,9 +389,46 @@ end
 
 ```julia
 ensamble_size = 8092
-history = make_mcmc_ensamble(layer, prior, phi4_action; batchsize=64, nsamples=ensamble_size)
+history = make_mcmc_ensamble(layer, prior, phi4_action; batchsize=64, nsamples=ensamble_size);
 ```
 
 ```julia
 history[:accepted] |> mean
+```
+
+# Calc Green function
+
+```julia
+function calc_Gc(cfgs, offsetX)
+    Gc = zero(Float32)
+    for posY in IterTools.product((1:l for l in lattice_shape)...)
+        phi_y = cfgs[posY..., :]
+        phi_y_x = circshift(cfgs, (offsetX..., 0))[posY..., :]
+        mean_phi_y = mean(phi_y)
+        mean_phi_y_x = mean(phi_y_x)
+        Gc += mean(phi_y .* phi_y_x) - mean_phi_y * mean_phi_y_x
+    end
+    Gc /= prod(lattice_shape)
+    return Gc
+end
+```
+
+```julia
+function mfGc(cfgs, t)
+    space_shape = size(cfgs)[end-1]
+    ret = 0
+    for s in IterTools.product((1:l for l in space_shape)...)
+        ret += calc_Gc(cfgs, (s..., t))
+    end
+    ret /= prod(space_shape)
+    return ret
+end
+```
+
+```julia
+mfGc(cfgs, 1)
+```
+
+```julia
+plt.plot(1:L, [mfGc(cfgs, t) for t in 1:L])
 ```
