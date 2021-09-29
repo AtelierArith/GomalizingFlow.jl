@@ -5,9 +5,9 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.12.0
+      jupytext_version: 1.13.0
   kernelspec:
-    display_name: Julia 1.6.2
+    display_name: Julia 1.6.3
     language: julia
     name: julia-1.6
 ---
@@ -374,5 +374,9 @@ end
 
 ```julia
 cfgs = cat(history[:x][512:2000]..., dims=length(lattice_shape)+1);
-plt.plot(1:L, [mfGc(cfgs, t) for t in 1:L])
+```
+
+```julia
+plt.plot(0:L, [mfGc(cfgs, t) for t in 0:L])
+plt.ylim([0,0.03])
 ```
