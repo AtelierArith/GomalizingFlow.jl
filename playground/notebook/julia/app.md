@@ -436,23 +436,6 @@ plt.ylim([0,0.05])
 ```
 
 ```julia
-using BSON: @save, @load
-```
-
-```julia
-cpu_layer = cpu(layer);
-```
-
-```julia
-@save "lattice2D.bson" cpu_layer
-```
-
-```julia
-#@save "history2D.bson" history
-#@load "history2D.bson" history
-```
-
-```julia
 function approx_normalized_autocorr(observed::AbstractVector, τ::Int)
     ō = mean(observed)
     N = length(observed)
@@ -468,6 +451,21 @@ end
 ```
 
 ```julia
+function ρ̂_acc(accepts, τ)
+    N = length(accepts)
+    τ = 10
+    s = 0
+    for j in 1:(N-τ)
+        s += prod(accepts[j + i] for i in 1:τ)
+    end
+    s /= (N - τ)
+    return s
+end
+
+τ_accⁱⁿᵗ = 0.5 + sum(ρ̂_acc(τ) for τ in 1:100)
+```
+
+```julia
 χ₂ = zero(eltype(cfgs))
 
 for pos in IterTools.product((1:l for l in lattice_shape)...)
@@ -478,24 +476,10 @@ end
 ```
 
 ```julia
-Gc_values = green.([cfgs[.., b] for b in 1:size(cfgs,3)], [0,0])
-@show Gc_values
-```
-
-```julia
 E = calc_action(phi4_action, cfgs |> reversedims)
 τᵢₙₜ = 0.5
 for τ in 1:1000
     τᵢₙₜ += ρ̂(E, τ)
 end
-
 τᵢₙₜ
-```
-
-```julia
-lattice_shape = (8, 8)
-X = np.random.random((10000, *lattice_shape))
-binsize=4
-X = X.rehspae(-1, binsize, *lattice_shape)
-X.shape
 ```
