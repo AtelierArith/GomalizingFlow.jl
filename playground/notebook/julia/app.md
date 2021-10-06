@@ -430,9 +430,10 @@ end
 cfgs = cat(history[:x][512:4000]..., dims=length(lattice_shape)+1);
 ```
 
-```julia
+```julia tags=[]
 plt.plot(0:L, [mfGc(cfgs, t) for t in 0:L])
-plt.ylim([0,0.07])
+#plt.ylim([0,0.07])
+plt.yscale("log")
 ```
 
 ```julia

@@ -375,6 +375,7 @@ cfgs = cat(history[:x][512:2000]..., dims=length(lattice_shape)+1);
 
 ```julia
 plt.plot(0:L, [mfGc(cfgs, t) for t in 0:L])
+plt.yscale("log")
 ```
 
 ```julia
@@ -429,6 +430,9 @@ end
 # https://arxiv.org/pdf/hep-lat/0409106.pdf
 
 ```julia
+a = history[:accepted]
+ρ̄(a, t) = auto_corr(a, t)/auto_corr(a, 0)
+
 function auto_corr(a::AbstractVector, t::Int) # \bar{\Gamma}
     t = abs(t)
     ā = mean(a)
