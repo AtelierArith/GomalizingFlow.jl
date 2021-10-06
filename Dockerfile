@@ -58,7 +58,7 @@ RUN conda install -y -c conda-forge \
     nbconvert \
     ipykernel \
     jupyter-resource-usage \
-    jupyterlab_code_formatter autopep8 black \
+    jupyterlab_code_formatter autopep8 black isort \
     && \
     conda clean -afy # clean up
 
