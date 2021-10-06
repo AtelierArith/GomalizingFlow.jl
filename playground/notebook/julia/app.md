@@ -462,7 +462,7 @@ function ρ̂_acc(accepts, τ)
     return s
 end
 
-τ_accⁱⁿᵗ = 0.5 + sum(ρ̂_acc(τ) for τ in 1:100)
+τ_accⁱⁿᵗ = 0.5 + sum(ρ̂_acc(history[:accepted], τ) for τ in 1:100)
 ```
 
 ```julia

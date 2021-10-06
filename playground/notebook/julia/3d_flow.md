@@ -221,7 +221,7 @@ reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
 ```
 
 ```julia
-n_era = 100
+n_era = 300
 epochs = 100
 batchsize = 64
 
@@ -376,4 +376,53 @@ cfgs = cat(history[:x][512:2000]..., dims=length(lattice_shape)+1);
 ```julia
 plt.plot(0:L, [mfGc(cfgs, t) for t in 0:L])
 plt.ylim([0,0.03])
+```
+
+```julia
+function approx_normalized_autocorr(observed::AbstractVector, τ::Int)
+    ō = mean(observed)
+    N = length(observed)
+    s = zero(eltype(observed))
+    for i in 1:(N-τ)
+        s += (observed[i]-ō)*(observed[i+τ]-ō)
+    end
+    s = s/(N-τ)/var(observed)
+    return s
+end
+
+ρ̂(observed, τ) = approx_normalized_autocorr(observed, τ)
+```
+
+```julia
+function ρ̂_acc(accepts, τ)
+    N = length(accepts)
+    τ = 10
+    s = 0
+    for j in 1:(N-τ)
+        s += prod(accepts[j + i] for i in 1:τ)
+    end
+    s /= (N - τ)
+    return s
+end
+
+τ_accⁱⁿᵗ = 0.5 + sum(ρ̂_acc(history[:accepted], τ) for τ in 1:100)
+```
+
+```julia
+χ₂ = zero(eltype(cfgs))
+
+for pos in IterTools.product((1:l for l in lattice_shape)...)
+    χ₂ += green(cfgs, pos)
+end
+
+χ₂
+```
+
+```julia
+E = calc_action(phi4_action, cfgs |> reversedims)
+τᵢₙₜ = 0.5
+for τ in 1:1000
+    τᵢₙₜ += ρ̂(E, τ)
+end
+τᵢₙₜ
 ```
