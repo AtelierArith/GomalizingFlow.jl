@@ -342,7 +342,7 @@ history[:accepted] |> mean
 ```
 
 ```julia
-function calc_Gc(cfgs, offsetX)
+function green(cfgs, offsetX)
     Gc = zero(Float32)
     for posY in IterTools.product((1:l for l in lattice_shape)...)
         phi_y = cfgs[posY..., :]
@@ -362,7 +362,7 @@ function mfGc(cfgs, t)
     space_shape = size(cfgs)[end-1]
     ret = 0
     for s in IterTools.product((1:l for l in space_shape)...)
-        ret += calc_Gc(cfgs, (s..., t))
+        ret += green(cfgs, (s..., t))
     end
     ret /= prod(space_shape)
     return ret
@@ -375,7 +375,6 @@ cfgs = cat(history[:x][512:2000]..., dims=length(lattice_shape)+1);
 
 ```julia
 plt.plot(0:L, [mfGc(cfgs, t) for t in 0:L])
-plt.ylim([0,0.03])
 ```
 
 ```julia
@@ -411,18 +410,56 @@ end
 ```julia
 χ₂ = zero(eltype(cfgs))
 
-for pos in IterTools.product((1:l for l in lattice_shape)...)
+@showprogress for pos in IterTools.product((1:l for l in lattice_shape)...)
     χ₂ += green(cfgs, pos)
 end
 
 χ₂
 ```
 
-```julia
+```julia tags=[]
 E = calc_action(phi4_action, cfgs |> reversedims)
 τᵢₙₜ = 0.5
 for τ in 1:1000
     τᵢₙₜ += ρ̂(E, τ)
 end
 τᵢₙₜ
+```
+
+# https://arxiv.org/pdf/hep-lat/0409106.pdf
+
+```julia
+function auto_corr(a::AbstractVector, t::Int) # \bar{\Gamma}
+    t = abs(t)
+    ā = mean(a)
+    s = zero(eltype(a))
+    N = length(a)
+    for i in 1:(N-t)
+        s += (a[i] - ā) * (a[i+t] - ā)
+    end
+    return s / (N - t)
+end
+
+function δρ²(a, t)
+    Λ = 100
+    s = 0.
+    for k in 1:(t + Λ)
+        s += (ρ̄(a, k + t) + ρ̄(a, k - t) - 2ρ̄(a, k) * ρ̄(a, t))^2
+    end
+    s /= length(a)
+end
+
+W = -1
+
+for t in 1:1000
+    if ρ̄(a, t) ≤ √(δρ²(a, t))
+        W = t
+        break
+    end
+end
+
+a = history[:accepted]
+ρ̄(a, t) = auto_corr(a, t)/auto_corr(a, 0)
+
+τᵢₙₜ = 0.5 + sum(t->ρ̄(a, t), 1:W)
 ```

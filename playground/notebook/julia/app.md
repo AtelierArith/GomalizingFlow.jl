@@ -183,7 +183,7 @@ end
 const L = 8
 const lattice_shape = (L, L)
 const M2 = -4.
-const lam = 8.
+const lam = 6.008 #lam = 8.
 const phi4_action = ScalarPhi4Action(M2, lam)
 
 const n_layers = 16
@@ -432,7 +432,7 @@ cfgs = cat(history[:x][512:4000]..., dims=length(lattice_shape)+1);
 
 ```julia
 plt.plot(0:L, [mfGc(cfgs, t) for t in 0:L])
-plt.ylim([0,0.05])
+plt.ylim([0,0.07])
 ```
 
 ```julia
@@ -482,4 +482,45 @@ for τ in 1:1000
     τᵢₙₜ += ρ̂(E, τ)
 end
 τᵢₙₜ
+```
+
+# https://arxiv.org/pdf/hep-lat/0409106.pdf
+
+```julia
+function auto_corr(a::AbstractVector, t::Int) # \bar{\Gamma}
+    t = abs(t)
+    ā = mean(a)
+    s = zero(eltype(a))
+    N = length(a)
+    for i in 1:(N-t)
+        s += (a[i] - ā) * (a[i+t] - ā)
+    end
+    return s / (N - t)
+end
+
+ρ̄(a, t) = auto_corr(a, t)/auto_corr(a, 0)
+
+a = history[:accepted]
+ρ̄(a, t) = auto_corr(a, t)/auto_corr(a, 0)
+
+function δρ²(a, t)
+    Λ = 100
+    s = 0.
+    for k in 1:(t + Λ)
+        s += (ρ̄(a, k + t) + ρ̄(a, k - t) - 2ρ̄(a, k) * ρ̄(a, t))^2
+    end
+    s /= length(a)
+end
+
+W = -1
+
+for t in 1:1000
+    if ρ̄(a, t) ≤ √(δρ²(a, t))
+        W = t
+        break
+    end
+end
+
+@assert W >= 0
+τᵢₙₜ = 0.5 + sum(t->ρ̄(a, t), 1:W)
 ```
