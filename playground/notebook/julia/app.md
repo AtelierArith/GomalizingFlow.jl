@@ -261,7 +261,7 @@ function train()
     layer = create_layer()
     ps = Flux.params(layer)
     batchsize = 64
-    n_era = 25
+    n_era = 40
     epochs = 100
 
     base_lr = 0.001f0
@@ -399,7 +399,7 @@ history[:accepted] |> mean
 # Calc Green function
 
 ```julia
-function calc_Gc(cfgs, offsetX)
+function green(cfgs, offsetX)
     Gc = zero(Float32)
     for posY in IterTools.product((1:l for l in lattice_shape)...)
         phi_y = cfgs[posY..., :]
@@ -419,7 +419,7 @@ function mfGc(cfgs, t)
     space_shape = size(cfgs)[end-1]
     ret = 0
     for s in IterTools.product((0:l-1 for l in space_shape)...)
-        ret += calc_Gc(cfgs, (s..., t))
+        ret += green(cfgs, (s..., t))
     end
     ret /= prod(space_shape)
     return ret
@@ -433,4 +433,69 @@ cfgs = cat(history[:x][512:4000]..., dims=length(lattice_shape)+1);
 ```julia
 plt.plot(0:L, [mfGc(cfgs, t) for t in 0:L])
 plt.ylim([0,0.05])
+```
+
+```julia
+using BSON: @save, @load
+```
+
+```julia
+cpu_layer = cpu(layer);
+```
+
+```julia
+@save "lattice2D.bson" cpu_layer
+```
+
+```julia
+#@save "history2D.bson" history
+#@load "history2D.bson" history
+```
+
+```julia
+function approx_normalized_autocorr(observed::AbstractVector, τ::Int)
+    ō = mean(observed)
+    N = length(observed)
+    s = zero(eltype(observed))
+    for i in 1:(N-τ)
+        s += (observed[i]-ō)*(observed[i+τ]-ō)
+    end
+    s = s/(N-τ)/var(observed)
+    return s
+end
+
+ρ̂(observed, τ) = approx_normalized_autocorr(observed, τ)
+```
+
+```julia
+χ₂ = zero(eltype(cfgs))
+
+for pos in IterTools.product((1:l for l in lattice_shape)...)
+    χ₂ += green(cfgs, pos)
+end
+
+χ₂
+```
+
+```julia
+Gc_values = green.([cfgs[.., b] for b in 1:size(cfgs,3)], [0,0])
+@show Gc_values
+```
+
+```julia
+E = calc_action(phi4_action, cfgs |> reversedims)
+τᵢₙₜ = 0.5
+for τ in 1:1000
+    τᵢₙₜ += ρ̂(E, τ)
+end
+
+τᵢₙₜ
+```
+
+```julia
+lattice_shape = (8, 8)
+X = np.random.random((10000, *lattice_shape))
+binsize=4
+X = X.rehspae(-1, binsize, *lattice_shape)
+X.shape
 ```

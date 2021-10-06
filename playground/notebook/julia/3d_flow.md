@@ -221,7 +221,7 @@ reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
 ```
 
 ```julia
-n_era = 50
+n_era = 100
 epochs = 100
 batchsize = 64
 
@@ -259,9 +259,6 @@ for era in 1:n_era
     @show "loss per site" loss/prod(lattice_shape)
     ess = compute_ess(logp, logq)
     @show ess
-    if ess > 0.2
-        break
-    end
 end
 ```
 
