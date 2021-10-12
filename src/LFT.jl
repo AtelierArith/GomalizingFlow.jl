@@ -13,6 +13,7 @@ include("actions.jl")
 include("metrics.jl")
 include("parameters.jl")
 include("layers.jl")
+include("mcmc.jl")
 include("utils.jl")
 
 end # module

@@ -8,22 +8,21 @@ using BSON
 using LFT
 using LFT:ScalarPhi4Action
 
-
-function load_hyperparams2D()
+function load_hyperparams3D()
     @info "load hyper parmeters"
-    device_id = 0
+    device_id = 1
     dp = LFT.DeviceParams(device_id)
 
     batchsize = 64
-    epochs = 40
+    epochs = 300
     iterations = 100
-    base_lr = 0.001f0
+    base_lr = 0.0015f0
     opt = "ADAM"
     prior = Normal{Float32}(0.f0, 1.f0)
     tp = LFT.TrainingParams(; batchsize, epochs, iterations, base_lr, opt, prior)
 
     L = 8
-    Nd = 2
+    Nd = 3
     m² = -4.
     λ = 8
     pp = LFT.PhysicalParams(;L, Nd, m², λ)
@@ -39,8 +38,7 @@ function load_hyperparams2D()
     return LFT.HyperParams(dp, tp, pp, mp)
 end
 
-
-function train(hp=load_hyperparams2D())
+function train(hp=load_hyperparams3D())
     device = hp.dp.device
     @info "setup action"
     phi4_action = ScalarPhi4Action(hp.pp.m², hp.pp.λ)
