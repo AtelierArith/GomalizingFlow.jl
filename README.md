@@ -71,6 +71,7 @@ julia --project=@. begin_training.jl path/to/config.toml
 - The `path/to/config.toml` above has a option named `device_id` which accepts an integer >= -1. 
   - If you set `device_id = 0`. Our software is trying to use GPU its Device ID is `0`.
   - Setting `device_id = -1` will train model on CPU
+- Optionally, you can override a Device ID by setting the `--device=<device_id>`
 
 ### examples
 
@@ -78,6 +79,7 @@ for example as for 2D lattice:
 
 ```julia
 julia --project=@. begin_training.jl cfgs/example2d.toml
+julia --project=@. begin_training.jl cfgs/example2d.toml --device=1 # train with GPU 1
 ```
 
 - as for 3D lattice:
