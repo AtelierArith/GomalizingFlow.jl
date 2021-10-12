@@ -1,13 +1,21 @@
 # LFT.jl
 
-# Usage
+# Usage (TL; DR)
+
+```console
+$ # Install Docker
+$ make
+$ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
+```
+
+# Usage (detailed description)
 
 ## Setup environment (without Docker)
 
 - Install jupyter and jupytext
 
 ```console
-$ pip install jupyter jupytext
+$ pip install numpy matplotlib torch jupyter jupytext
 ```
 
 - install dependencies regarding julia
@@ -27,9 +35,9 @@ $ jupyter notebook
 ## Setup environment (with Docker)
 
 
-### Case 1: GPU enabled
+### Case 1: You have a CUDA-Enabled machine
 
-- If you want an environment with CUDA is enabled, please install [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-docker) by reading [this instructions](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
+- If you want a Docker environment with CUDA, please install [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-docker) by reading [this instructions](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
 
 - The following command will initialize jupyterlab
 
@@ -38,13 +46,65 @@ $ make
 $ docker-compose up lab-gpu # GPU
 ```
 
-### Case 2: CPU
+### Case 2: CPU only
 
-- If you're using macOS, you can't use CUDA. Please install [Install Docker Desktop on Mac](https://docs.docker.com/desktop/mac/install/). Then you're good to go.
+- If you're using macOS, for example, you can't use CUDA. Please install [Install Docker Desktop on Mac](https://docs.docker.com/desktop/mac/install/). Then you're good to go.
+- The following command will initialize jupyterlab
 
 ```console
 $ make
 $ docker-compose up lab # CPU
 ```
 
-- The following command will initialize jupyterlab
+
+## Start training (without Docker)
+
+### syntax
+
+In general:
+
+```julia
+julia --project=@. begin_training.jl path/to/config.toml
+```
+
+- The `path/to/config.toml` above has a option named `device_id` which accepts an integer >= -1. 
+  - If you set `device_id = 0`. Our software is trying to use GPU its Device ID is `0`.
+  - Setting `device_id = -1` will train model on CPU
+
+### examples
+
+for example as for 2D lattice:
+
+```julia
+julia --project=@. begin_training.jl cfgs/example2d.toml
+```
+
+- as for 3D lattice:
+
+```julia
+julia --project=@. begin_training.jl cfgs/example3d.toml
+```
+
+After training, `result/<config.toml>/trained_model.bson` is created. You can resotre the file on Julia session something like this:
+
+```julia
+julia> using BSON: @load
+julia> @load "path/to/trained_model.bson" trained_model
+julia> # do something
+```
+
+See https://github.com/JuliaIO/BSON.jl for more information.
+
+## Start training (with Docker)
+
+### Case 1: You have a CUDA-Enabled machine
+
+```julia
+docker-compose run --rm julia-gpu julia begin_training.jl cfgs/example3d.toml
+```
+
+### Case 2: CPU only
+
+```julia
+docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
+```
