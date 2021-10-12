@@ -49,36 +49,21 @@ struct ScalarPhi4Action
 end 
 
 function calc_action(action::ScalarPhi4Action, cfgs)
-    action_density = @. action.m² * cfgs ^ 2 + action.λ * cfgs ^ 4
-    Nd = lattice_shape |> length
-    term1 = sum(2cfgs .^ 2 for μ in 2:Nd+1)
-    term2 = sum(cfgs .* circshift(cfgs, Flux.onehot(μ, 1:(Nd+1))) for μ in 2:(Nd+1))
-    term3 = sum(cfgs .* circshift(cfgs, -Flux.onehot(μ, 1:(Nd+1))) for μ in 2:(Nd+1))
-    result = action_density .+ term1 .- term2 .- term3
+    potential = @. action.m² * cfgs ^ 2 + action.λ * cfgs ^ 4
+    sz = length(size(cfgs))
+    Nd = sz - 1 # exclude last axis
+    k1 = sum(2cfgs .^ 2 for μ in 1:Nd)
+    k2 = sum(cfgs .* circshift(cfgs, -Flux.onehot(μ, 1:sz)) for μ in 1:Nd)
+    k3 = sum(cfgs .* circshift(cfgs, Flux.onehot(μ, 1:sz)) for μ in 1:Nd)
+    action_density = potential .+ k1 .- k2 .- k3
     dropdims(
-        sum(result, dims=2:Nd+1),
-        dims=Tuple(2:(Nd+1))
+        sum(action_density, dims=1:Nd),
+        dims=Tuple(1:Nd)
     )
 end
 
 function (action::ScalarPhi4Action)(cfgs)
     calc_action(action, cfgs)
-    #=
-    action_density = @. action.m² * cfgs ^ 2 + action.λ * cfgs ^ 4
-    Nd = lattice_shape |> length
-    for μ ∈ 2:Nd+1
-        action_density .+= 2cfgs .^ 2
-
-        shifts_plus = zeros(Nd+1)
-        shifts_plus[μ] = 1 # \vec{n} + \hat{\mu}
-        action_density .-= cfgs .* circshift(cfgs, shifts_plus)
-
-        shifts_minus = zeros(Nd+1)
-        shifts_minus[μ] = -1 # \vec{n} - \hat{\mu}
-        action_density .-= cfgs .* circshift(cfgs, shifts_minus)
-    end
-    return dropdims(sum(action_density, dims=2:Nd+1), dims=Tuple(2:(Nd+1)))
-    =#
 end
 ```
 
@@ -278,7 +263,7 @@ function train()
                     logq_out,
                     dims=Tuple(1:(ndims(logq_out)-1))
                 )
-                logp = -calc_action(phi4_action, xout |> reversedims)
+                logp = -calc_action(phi4_action, xout)
                 loss = calc_dkl(logp, logq)
             end
             Flux.Optimise.update!(opt, ps, gs)
@@ -289,7 +274,7 @@ function train()
             dims=Tuple(1:(ndims(logq_)-1))
         )
 
-        logp = -calc_action(phi4_action, x |> reversedims)
+        logp = -calc_action(phi4_action, x)
         loss = calc_dkl(logp, logq)
         @show loss
         @show "loss per site" loss/prod(lattice_shape)
@@ -320,7 +305,7 @@ end
 x, logq = apply_affine_flow_to_prior(prior, layer; batchsize=1024)
 x = cpu(x)
 S_eff = -logq |> cpu
-S = calc_action(phi4_action, x |> reversedims)
+S = calc_action(phi4_action, x)
 fit_b = mean(S) - mean(S_eff)
 @show fit_b
 print("slope 1 linear regression S = -logr + $fit_b")
@@ -348,7 +333,7 @@ function make_mcmc_ensamble(layer, prior, action; batchsize, nsamples)
             logq_,
             dims=Tuple(1:(ndims(logq_)-1))
         ) |> cpu
-        logp = -calc_action(phi4_action, x_device |> reversedims) |> cpu
+        logp = -phi4_action(x_device) |> cpu
         x = x_device |> cpu
         for b in 1:batchsize
             new_x = x[.., b]
@@ -477,7 +462,7 @@ end
 ```
 
 ```julia
-E = calc_action(phi4_action, cfgs |> reversedims)
+E = calc_action(phi4_action, cfgs)
 τᵢₙₜ = 0.5
 for τ in 1:1000
     τᵢₙₜ += ρ̂(E, τ)
