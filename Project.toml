@@ -4,6 +4,7 @@ authors = ["Satoshi Terasaki <s.terasaki@atelier-arith.jp"]
 version = "0.1.0"
 
 [deps]
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -23,6 +24,8 @@ ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
+TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+ToStruct = "43ec2cc1-0e50-5406-a854-b7ff8fdb8dad"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
