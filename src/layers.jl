@@ -33,7 +33,7 @@ function reverse(model::AffineCoupling, fx)
     return net_out
 end
 
-function create_layer(hp::HyperParams)
+function create_model(hp::HyperParams)
     # device configurations
     device = hp.dp.device    
     # physical configurations
@@ -75,10 +75,10 @@ function create_layer(hp::HyperParams)
         push!(module_list, coupling)
     end
     Chain(module_list...) |> f32 |> device
-    layer = Chain(module_list...) |> f32 |> device
-    ps = Flux.params(layer)
+    model = Chain(module_list...) |> f32 |> device
+    ps = Flux.params(model)
     for i in 0:(n_layers - 1)
-        delete!(ps, layer[i + 1].mask)
+        delete!(ps, model[i + 1].mask)
     end
-    return layer, ps
+    return model, ps
 end
