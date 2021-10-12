@@ -22,3 +22,9 @@ ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
