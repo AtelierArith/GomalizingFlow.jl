@@ -26,6 +26,7 @@ using LFT
 ```julia
 Nd = 2
 model_path = joinpath(dirname(dirname(pathof(LFT))), "result" , "example2d", "trained_model.bson")
+config_path = joinpath(dirname(dirname(pathof(LFT))), "result" , "example2d", "config.toml")
 ```
 
 ```julia
@@ -33,7 +34,7 @@ BSON.@load model_path trained_model
 ```
 
 ```julia
-hp = load_hyperparams3D();
+hp = LFT.load_hyperparams(config_path);
 ```
 
 ```julia
