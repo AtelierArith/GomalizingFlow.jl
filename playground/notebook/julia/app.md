@@ -131,7 +131,7 @@ struct AffineCoupling{A, B}
     mask::B
 end
 
-Flux.@functor AffineCoupling (net,)
+Flux.@functor AffineCoupling
 
 #=
 x_torch = (B, inC, inH, inW)
@@ -203,17 +203,21 @@ function create_layer()
             b = rand(Uniform(-√k, √k), c_next) 
             net[end] = Conv(W, b, tanh, pad=0)
         end
-        mask = make_checker_mask(lattice_shape, parity) |> device
+        mask = make_checker_mask(lattice_shape, parity)
         coupling = AffineCoupling(Chain(net...), mask)
         push!(module_list, coupling)
     end
-    Chain(module_list...) |> f32 |> device
+    layer = Chain(module_list...) |> f32 |> device
+    ps = Flux.params(layer)
+    for i in 0:(n_layers-1)
+        delete!(ps, layer[i+1].mask)
+    end
+    return layer, ps
 end
 ```
 
 ```julia
-layer = create_layer()
-ps = Flux.params(layer)
+layer, ps = create_layer()
 
 x, logq = apply_affine_flow_to_prior(prior, layer; batchsize=64)
 x = x |> cpu
@@ -243,8 +247,7 @@ reversedims(inp::AbstractArray{<:Any, N}) where {N} = permutedims(inp, N:-1:1)
 
 ```julia
 function train()
-    layer = create_layer()
-    ps = Flux.params(layer)
+    layer, ps = create_layer()
     batchsize = 64
     n_era = 40
     epochs = 100
