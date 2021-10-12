@@ -1,3 +1,5 @@
 Manifest.toml
 **/.ipynb_checkpoints
 *.ipynb
+# path to result (by default)
+result
