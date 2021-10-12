@@ -1,7 +1,7 @@
 
 struct DeviceParams
     device_id::Int
-    device
+    device::Function # expected Flux.cpu or Flux.gpu
     function DeviceParams(device_id)
         if device_id >= 0 && CUDA.functional()
             CUDA.device!(device_id)
@@ -22,21 +22,20 @@ end
 @with_kw struct PhysicalParams
     L::Int
     Nd::Int
-    m²::Float32
-    λ::Float32
+    M2::Float64
+    lam::Float64
 end
 
 function Base.getproperty(pp::PhysicalParams, s::Symbol)
-    if s == :lattice_shape
-        return ntuple(_ -> pp.L, pp.Nd)
-    else
-        return getfield(pp, s)
-    end
+    s == :lattice_shape && return ntuple(_ -> pp.L, pp.Nd)
+    s == :m² && return getfield(pp, :M2)
+    s == :λ && return getfield(pp, :lam)
+    return getfield(pp, s)
 end
 
 @with_kw struct ModelParams
     n_layers::Int = 16
-    hidden_sizes::Tuple = (8, 8)
+    hidden_sizes::Vector{Int} = [8, 8]
     kernel_size::Int = 3
     inC::Int = 1
     outC::Int = 2
@@ -47,9 +46,10 @@ end
     batchsize::Int = 64
     epochs::Int = 40
     iterations::Int = 100
-    base_lr::Float32 = 0.001f0
+    base_lr::Float64 = 0.001
     opt::String = "ADAM"
-    prior = Normal{Float32}(0.f0, 1.f0)
+    prior::String = "Normal{Float32}(0.f0, 1.f0)"
+    result::String = "trained"
 end
 
 struct HyperParams
@@ -57,4 +57,14 @@ struct HyperParams
     tp::TrainingParams
     pp::PhysicalParams
     mp::ModelParams
+    path::String
+end
+
+function load_hyperparams(path::AbstractString)::HyperParams
+    toml = TOML.parsefile(path)
+    dp = DeviceParams(toml["device_id"])
+    tp = ToStruct.tostruct(TrainingParams, toml["training"])
+    pp = ToStruct.tostruct(PhysicalParams, toml["physical"])
+    mp = ToStruct.tostruct(ModelParams, toml["model"])
+    return HyperParams(dp, tp, pp, mp, path)
 end
