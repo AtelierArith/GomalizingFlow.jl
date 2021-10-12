@@ -25,22 +25,15 @@ using LFT
 
 ```julia
 Nd = 2
+model_path = joinpath(dirname(dirname(pathof(LFT))), "result" , "example2d", "trained_model.bson")
 ```
 
 ```julia
-include(joinpath(dirname(pathof(LFT)), "train$(Nd)D.jl"))
+BSON.@load model_path trained_model
 ```
 
 ```julia
-#train()
-```
-
-```julia
-BSON.@load "trained_model.bson" trained_model
-```
-
-```julia
-hp = load_hyperparams2D();
+hp = load_hyperparams3D();
 ```
 
 ```julia

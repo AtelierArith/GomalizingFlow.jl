@@ -1,9 +1,10 @@
 # LFT.jl
 
-# Usage (TL; DR)
+# Usage (今北産業, TL; DR)
+
 
 ```console
-$ # Install Docker
+$ # Install Docker and GNU Make command:
 $ make
 $ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
 ```
