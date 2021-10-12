@@ -93,7 +93,8 @@ RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension &
 
 ENV JULIA_PROJECT=/work
 USER root
-COPY ./Project.toml $JULIA_PROJECT/Project.toml
+COPY Project.toml /work/
+COPY ./src /work/src
 RUN chown -R ${NB_UID} /work/Project.toml
 USER ${NB_USER}
 
