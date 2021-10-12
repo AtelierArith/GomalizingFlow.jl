@@ -82,10 +82,3 @@ function create_layer(hp::HyperParams)
     end
     return layer, ps
 end
-
-function apply_affine_flow_to_prior(prior, affine_coupling_layers; batchsize)
-    x = rand(prior, lattice_shape..., batchsize)
-    logq_ = sum(logpdf(prior, x), dims=(1:ndims(x) - 1)) |> device
-    xout, logq = affine_coupling_layers((x |> device, logq_))
-    return xout, logq
-end
