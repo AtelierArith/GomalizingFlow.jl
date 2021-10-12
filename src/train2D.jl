@@ -68,6 +68,7 @@ function load_hyperparams3D()
 end
 
 function train()
+    @info "load hyper parmeters"
     hp = load_hyperparams2D()
     device = hp.dp.device
     @info "setup action"
@@ -85,7 +86,7 @@ function train()
     opt = eval(Meta.parse("$(hp.tp.opt)($(hp.tp.base_lr))"))
     @info opt
 
-    @info "epoch loop"
+    @info "start training"
     for _ in 1:epochs
         @showprogress for _ in 1:iterations
             z = rand(prior, lattice_shape..., batchsize)
@@ -119,7 +120,8 @@ function train()
         ess = LFT.compute_ess(logp, logq)
         @show ess
     end
-
+    @info "finished training"
     trained_model = model |> cpu
+    @info "save model"
     BSON.@save "model.bson" trained_model
 end
