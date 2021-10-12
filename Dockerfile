@@ -42,7 +42,7 @@ RUN chown -R ${NB_UID} /work/
 USER ${NB_USER}
 
 # Install basic packages on default environment
-RUN julia -e 'using Pkg; Pkg.add(["PyCall", "IJulia", "Pluto", "PlutoUI"]); Pkg.precompile()'
+RUN julia -e 'using Pkg; Pkg.add(["PyCall", "IJulia", "Pluto", "PlutoUI", "Revise"]); Pkg.precompile()'
 
 ENV PATH $PATH:${HOME}/.julia/conda/3/bin
 
