@@ -3,7 +3,7 @@
 # device_id = 0 # <--- train with GPU its Device ID is 0
 # device_id = 1 # <--- train with GPU its Device ID is 1
 
-device_id = -1
+device_id = 0
 
 
 # setup TrainingParams
