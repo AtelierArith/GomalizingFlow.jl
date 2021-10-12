@@ -12,4 +12,6 @@ build:
 
 clean:
 	rm -f Manifest.toml
+	rm -f playground/notebook/julia/*.ipynb
+	rm -f playground/notebook/python/*.ipynb
 	docker-compose down
