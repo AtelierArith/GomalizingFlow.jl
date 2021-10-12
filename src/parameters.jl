@@ -60,9 +60,15 @@ struct HyperParams
     path::String
 end
 
-function load_hyperparams(path::AbstractString)::HyperParams
+function load_hyperparams(path::AbstractString; override_device_id::Union{Nothing, Int}=nothing)::HyperParams
     toml = TOML.parsefile(path)
-    dp = DeviceParams(toml["device_id"])
+    if !isnothing(override_device_id)
+        @info "override device id $(override_device_id)"
+        device_id = override_device_id
+    else
+        device_id = toml["device_id"]
+    end
+    dp = DeviceParams(device_id)
     tp = ToStruct.tostruct(TrainingParams, toml["training"])
     pp = ToStruct.tostruct(PhysicalParams, toml["physical"])
     mp = ToStruct.tostruct(ModelParams, toml["model"])
