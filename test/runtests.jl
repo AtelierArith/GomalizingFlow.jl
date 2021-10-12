@@ -37,7 +37,7 @@ end
 
 function create_hp_example3d()
     @info "load hyper parmeters"
-    device_id = 1
+    device_id = 0
     dp = LFT.DeviceParams(device_id)
 
     batchsize = 64
@@ -81,7 +81,9 @@ end
     path = "../cfgs/example2d.toml"
     ref_hp = create_hp_example2d()
     tar_hp = LFT.load_hyperparams(path)
-    @test tar_hp.tp == ref_hp.tp
+    for f in fieldnames(typeof(ref_hp.tp))
+        @test getfield(tar_hp.tp, f) == getfield(ref_hp.tp, f)
+    end
     @test tar_hp.pp == ref_hp.pp
     for f in fieldnames(typeof(ref_hp.mp))
         @test getfield(tar_hp.mp, f) == getfield(ref_hp.mp, f)
@@ -93,7 +95,9 @@ end
     path = "../cfgs/example3d.toml"
     ref_hp = create_hp_example3d()
     tar_hp = LFT.load_hyperparams(path)
-    @test tar_hp.tp == ref_hp.tp
+    for f in fieldnames(typeof(ref_hp.tp))
+        @test getfield(tar_hp.tp, f) == getfield(ref_hp.tp, f)
+    end
     @test tar_hp.pp == ref_hp.pp
     for f in fieldnames(typeof(ref_hp.mp))
         @test getfield(tar_hp.mp, f) == getfield(ref_hp.mp, f)
