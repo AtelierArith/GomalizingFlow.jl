@@ -125,6 +125,63 @@ end
     @test tar ≈ ref
 end
 
+@testset "make_checker_mask" begin
+    @test LFT.make_checker_mask((8, 8), 0) == [
+        0  1  0  1  0  1  0  1
+1  0  1  0  1  0  1  0
+        0  1  0  1  0  1  0  1
+        1  0  1  0  1  0  1  0
+        0  1  0  1  0  1  0  1
+        1  0  1  0  1  0  1  0
+        0  1  0  1  0  1  0  1
+        1  0  1  0  1  0  1  0
+    ]
+    @test LFT.make_checker_mask((8, 8), 1) == [
+        1  0  1  0  1  0  1  0
+        0  1  0  1  0  1  0  1
+        1  0  1  0  1  0  1  0
+        0  1  0  1  0  1  0  1
+        1  0  1  0  1  0  1  0
+        0  1  0  1  0  1  0  1
+        1  0  1  0  1  0  1  0
+        0  1  0  1  0  1  0  1
+    ]
+
+    a1 = [
+        0  1  0
+        1  0  1
+        0  1  0
+    ]
+    a2 = [
+        1  0  1
+        0  1  0
+        1  0  1
+        ]
+    a3 = [
+        0  1  0
+        1  0  1
+        0  1  0
+        ]
+    @test LFT.make_checker_mask((3, 3, 3), 0) == cat(a1, a2, a3, dims=3)
+
+    a1 = [
+    1  0  1
+    0  1  0
+    1  0  1
+    ]
+    a2 = [
+        0  1  0
+        1  0  1
+        0  1  0
+        ]
+    a3 = [
+        1  0  1
+        0  1  0
+        1  0  1
+        ]
+    @test LFT.make_checker_mask((3, 3, 3), 1) == cat(a1, a2, a3, dims=3)
+end
+
 @testset "model" begin
     hp = LFT.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
     model1 = LFT.create_model(hp)
@@ -134,12 +191,12 @@ end
         for j in 1:length(model1[i].net)
             if model1[i].net[j] isa Conv
                 @test model1[i].net[j].weight == model2[i].net[j].weight
-                @test model1[i].net[j].bias == model2[i].net[j].bias
+    @test model1[i].net[j].bias == model2[i].net[j].bias
             end
         end
     end
                 end
-
+    
 @testset "training" begin
     hp = LFT.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
     LFT.train(hp)
@@ -147,7 +204,7 @@ end
         BSON.@load joinpath(@__DIR__, "result/config", "trained_model.bson") trained_model
     BSON.@load joinpath(@__DIR__, "result/config", "history.bson") history
         return trained_model, history
-    end
+        end
     function loadref()
         BSON.@load joinpath(@__DIR__, "assets", "trained_model.bson") trained_model
         BSON.@load joinpath(@__DIR__, "assets", "history.bson") history
