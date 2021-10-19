@@ -5,6 +5,7 @@ using BSON
 using Flux
 using Parameters
 using Distributions
+using ImageFiltering
 
 using LFT
 
@@ -111,6 +112,19 @@ path = "../cfgs/example3d.toml"
     # @test tar_hp.mp == ref_hp.mp <--- fails... why?!
 end
 
+@testset "circular" begin
+    # used for 2D Lattice
+    x = rand(4, 4, 4, 4)
+    tar = LFT.mycircular(x)
+    ref = ImageFiltering.padarray(x, Pad(:circular, 1, 1, 0, 0)).parent
+    @test tar ≈ ref
+    # used for 3D Lattice
+    x = rand(4, 4, 4, 4, 4)
+    tar = LFT.mycircular(x)
+    ref = ImageFiltering.padarray(x, Pad(:circular, 1, 1, 1, 0, 0)).parent
+    @test tar ≈ ref
+end
+
 @testset "model" begin
     hp = LFT.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
     model1 = LFT.create_model(hp)
@@ -124,14 +138,14 @@ end
             end
         end
     end
-end
+                end
 
 @testset "training" begin
     hp = LFT.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
     LFT.train(hp)
     function loadtar()
         BSON.@load joinpath(@__DIR__, "result/config", "trained_model.bson") trained_model
-        BSON.@load joinpath(@__DIR__, "result/config", "history.bson") history
+    BSON.@load joinpath(@__DIR__, "result/config", "history.bson") history
         return trained_model, history
     end
     function loadref()
@@ -147,7 +161,7 @@ end
         for j in 1:length(model1[i].net)
             if model1[i].net[j] isa Conv
                 @test model1[i].net[j].weight == model2[i].net[j].weight
-                @test model1[i].net[j].bias == model2[i].net[j].bias
+            @test model1[i].net[j].bias == model2[i].net[j].bias
             end
         end
     end
@@ -156,9 +170,10 @@ end
     end
 end
 
-        @testset "retraining" begin
+    @testset "retraining" begin
     path = joinpath(@__DIR__, "assets", "config.toml")
     pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
     hp = LFT.load_hyperparams(path; pretrained)
     LFT.train(hp)
 end
+
