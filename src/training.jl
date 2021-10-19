@@ -22,6 +22,7 @@ function train(hp)
     mkpath(result_dir)
     cp(hp.path, joinpath(result_dir, "config.toml"), force=true)
 
+    Random.seed!(tp.seed)
     @info "start training"
     for _ in 1:epochs
         @showprogress for _ in 1:iterations
@@ -39,8 +40,7 @@ function train(hp)
             end
             Flux.Optimise.update!(opt, ps, gs)
         end
-        
-        z = rand(prior, lattice_shape..., batchsize)
+
         logq_device = sum(logpdf(prior, z), dims=(1:ndims(z) - 1)) |> device
         z_device = z |> device
         x, logq_ = model((z_device, logq_device))

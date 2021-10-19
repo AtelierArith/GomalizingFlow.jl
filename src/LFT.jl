@@ -1,5 +1,6 @@
 module LFT
 
+using Random
 using TOML
 
 using CUDA

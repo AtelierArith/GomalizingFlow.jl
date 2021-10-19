@@ -1,4 +1,5 @@
-function make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device=cpu)
+function make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device=cpu, seed=2009)
+    Random.seed!(seed)
     Nd = length(lattice_shape)
     history = (x = Array{Float32,Nd}[], logq = Float32[], logp = Float32[], accepted = Bool[])
     c = 0
@@ -14,7 +15,7 @@ function make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsam
         # back to cpu
         logp = -action(x_device) |> cpu
         x = x_device |> cpu
-        
+
         for b in 1:batchsize
             new_x = x[.., b]
             new_logq = logq[b]

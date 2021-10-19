@@ -34,6 +34,7 @@ function Base.getproperty(pp::PhysicalParams, s::Symbol)
 end
 
 @with_kw struct ModelParams
+    seed::Int = 2021
     n_layers::Int = 16
     hidden_sizes::Vector{Int} = [8, 8]
     kernel_size::Int = 3
@@ -43,6 +44,7 @@ end
 end
 
 @with_kw struct TrainingParams
+    seed::Int = 12345
     batchsize::Int = 64
     epochs::Int = 40
     iterations::Int = 100
@@ -60,7 +62,7 @@ struct HyperParams
     path::String
 end
 
-function load_hyperparams(path::AbstractString; override_device_id::Union{Nothing, Int}=nothing)::HyperParams
+function load_hyperparams(path::AbstractString; override_device_id::Union{Nothing,Int}=nothing)::HyperParams
     toml = TOML.parsefile(path)
     if !isnothing(override_device_id)
         @info "override device id $(override_device_id)"
