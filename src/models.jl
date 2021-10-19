@@ -22,13 +22,6 @@ end
 # alias
 forward(model::AffineCoupling, x_pair_loghidden) = model(x_pair_loghidden)
 
-function reverse(model::AffineCoupling, fx)
-    fx_frozen = model.mask .* fx
-    fx_active = (1 .- model.mask) .* fx
-    net_out = model(fx_frozen)
-    return net_out
-end
-
 function create_model(hp::HyperParams)
     # device configurations
     device = hp.dp.device
