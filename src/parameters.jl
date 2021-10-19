@@ -6,12 +6,12 @@ struct DeviceParams
         if device_id >= 0 && CUDA.functional()
             CUDA.device!(device_id)
             device = gpu
-            @info "Training on GPU with device_id=$(device_id)"
+            @info "Set device: GPU with device_id=$(device_id)"
         else
             if device_id > 0
                 @warn "You've set device_id = $device_id, but CUDA.functional() is $(CUDA.functional())"
             end
-            @info "Training on CPU"
+            @info "Set device: CPU"
             device_id = -1
             device = cpu
         end
