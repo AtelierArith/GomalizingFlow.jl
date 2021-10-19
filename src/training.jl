@@ -2,7 +2,7 @@
 function train(hp)
     device = hp.dp.device
     @info "setup action"
-    phi4_action = ScalarPhi4Action(hp.pp.m², hp.pp.λ)
+    action = ScalarPhi4Action(hp.pp.m², hp.pp.λ)
     @info "setup model"
     model, ps = create_model(hp)
 
@@ -35,7 +35,7 @@ function train(hp)
                     logq_,
                     dims=Tuple(1:(ndims(logq_) - 1))
                 )
-                logp = -phi4_action(x)
+                logp = -action(x)
                 loss = calc_dkl(logp, logq)
             end
             Flux.Optimise.update!(opt, ps, gs)
@@ -49,7 +49,7 @@ function train(hp)
             dims=Tuple(1:(ndims(logq_) - 1))
         )
 
-        logp = -phi4_action(x)
+        logp = -action(x)
         loss = calc_dkl(logp, logq)
         @show loss
         println("loss per site", loss / prod(lattice_shape))
