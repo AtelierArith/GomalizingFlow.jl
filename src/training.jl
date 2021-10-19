@@ -60,4 +60,8 @@ function train(hp)
     trained_model = model |> cpu
     @info "save model"
     BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
+    @info "make mcmc ensamble"
+    nsamples = 8196
+    history = make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device=cpu, seed=2009)
+    BSON.@save joinpath(result_dir, "history.bson") history
 end
