@@ -27,6 +27,7 @@ ToStruct = "43ec2cc1-0e50-5406-a854-b7ff8fdb8dad"
 [extras]
 ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 
 [targets]
-test = ["Test", "ImageFiltering"]
+test = ["Test", "ImageFiltering", "PyCall"]
