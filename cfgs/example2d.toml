@@ -19,6 +19,7 @@ device_id = -1
 #    end
 # end
 [training]
+seed = 12345
 batchsize = 64
 epochs = 40
 iterations = 100
@@ -42,6 +43,7 @@ lam = 8.0 # λ
 # setup ModelParams
 #
 [model]
+seed = 2021
 n_layers = 16
 hidden_sizes = [8, 8]
 kernel_size = 3

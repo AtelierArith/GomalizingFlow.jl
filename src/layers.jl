@@ -5,10 +5,6 @@ end
 
 Flux.@functor AffineCoupling
 
-#= 
-x_torch = (B, nC, inH, inW)
-x_flux = (inW, inH, inC, inB) =#
-
 function (model::AffineCoupling)(x_pair_loghidden)
     x = x_pair_loghidden[begin]
     loghidden = x_pair_loghidden[end]
@@ -35,10 +31,12 @@ end
 
 function create_model(hp::HyperParams)
     # device configurations
-    device = hp.dp.device    
+    device = hp.dp.device
     # physical configurations
     lattice_shape = hp.pp.lattice_shape
     # network configurations
+    seed = mp.seed
+    Random.seed!(seed)
     n_layers = hp.mp.n_layers
     hidden_sizes = hp.mp.hidden_sizes
     kernel_size = hp.mp.kernel_size
