@@ -27,7 +27,7 @@ function train(hp)
     for _ in 1:epochs
         @showprogress for _ in 1:iterations
             z = rand(prior, lattice_shape..., batchsize)
-            logq_device = sum(logpdf(prior, z), dims=(1:ndims(z) - 1)) |> device
+            logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
             z_device = z |> device
             gs = Flux.gradient(ps) do
                 x, logq_ = model((z_device, logq_device))
@@ -41,7 +41,7 @@ function train(hp)
             Flux.Optimise.update!(opt, ps, gs)
         end
 
-        logq_device = sum(logpdf(prior, z), dims=(1:ndims(z) - 1)) |> device
+        logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
         z_device = z |> device
         x, logq_ = model((z_device, logq_device))
         logq = dropdims(
