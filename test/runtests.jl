@@ -128,7 +128,7 @@ end
 @testset "make_checker_mask" begin
     @test LFT.make_checker_mask((8, 8), 0) == [
         0  1  0  1  0  1  0  1
-1  0  1  0  1  0  1  0
+        1  0  1  0  1  0  1  0
         0  1  0  1  0  1  0  1
         1  0  1  0  1  0  1  0
         0  1  0  1  0  1  0  1
