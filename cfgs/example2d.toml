@@ -26,6 +26,7 @@ iterations = 100
 base_lr = 0.001
 opt = "ADAM"
 prior = "Normal{Float32}(0.f0, 1.f0)"
+pretrained = ""
 result = "result"
 
 # setup PhysicalParams
