@@ -4,7 +4,15 @@ function train(hp)
     @info "setup action"
     action = ScalarPhi4Action(hp.pp.m², hp.pp.λ)
     @info "setup model"
-    model, ps = create_model(hp)
+    if isempty(hp.tp.pretrained)
+        model = create_model(hp)
+    else
+        @info "load model from $(hp.tp.pretrained)"
+        BSON.@load hp.tp.pretrained trained_model
+        model = trained_model
+    end
+    Flux.trainmode!(model)
+    ps = get_training_params(model)
 
     lattice_shape = hp.pp.lattice_shape
     prior = eval(Meta.parse(hp.tp.prior))
