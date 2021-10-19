@@ -15,6 +15,9 @@ function parse_commandline()
         "--device"
             help = "override Device ID"
             default = nothing
+        "--pretrained"
+            help = "load /path/to/trained_model.bson and train with the model"
+            default = nothing
     end
 
     return parse_args(s)
@@ -23,10 +26,14 @@ end
 if abspath(PROGRAM_FILE) == @__FILE__
     args = parse_commandline()
     path = args["config"]
-    override_device_id = nothing
+    device_id = nothing
     if !isnothing(args["device"])
-        override_device_id = parse(Int, args["device"])
+        device_id = parse(Int, args["device"])
     end
-    hp = LFT.load_hyperparams(path; override_device_id)
+    pretrained = nothing
+    if !isnothing(args["pretrained"])
+        pretrained = parse(Int, args["pretrained"])
+    end
+    hp = LFT.load_hyperparams(path; device_id, pretrained)
     LFT.train(hp)
 end

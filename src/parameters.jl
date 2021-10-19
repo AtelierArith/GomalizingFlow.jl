@@ -6,12 +6,12 @@ struct DeviceParams
         if device_id >= 0 && CUDA.functional()
             CUDA.device!(device_id)
             device = gpu
-            @info "Training on GPU with device_id=$(device_id)"
+            @info "Set device: GPU with device_id=$(device_id)"
         else
             if device_id > 0
                 @warn "You've set device_id = $device_id, but CUDA.functional() is $(CUDA.functional())"
             end
-            @info "Training on CPU"
+            @info "Set device: CPU"
             device_id = -1
             device = cpu
         end
@@ -51,6 +51,7 @@ end
     base_lr::Float64 = 0.001
     opt::String = "ADAM"
     prior::String = "Normal{Float32}(0.f0, 1.f0)"
+    pretrained::String = ""
     result::String = "result"
 end
 
@@ -62,14 +63,23 @@ struct HyperParams
     path::String
 end
 
-function load_hyperparams(path::AbstractString; override_device_id::Union{Nothing,Int}=nothing)::HyperParams
+function load_hyperparams(
+        path::AbstractString; 
+        device_id::Union{Nothing,Int}=nothing,
+        pretrained::Union{Nothing,String}=nothing,
+    )::HyperParams
     toml = TOML.parsefile(path)
-    if !isnothing(override_device_id)
-        @info "override device id $(override_device_id)"
-        device_id = override_device_id
+    if !isnothing(device_id)
+        @info "override device id $(device_id)"
     else
         device_id = toml["device_id"]
     end
+
+    if !isnothing(pretrained)
+        @info "restore model from $(pretrained)"
+        toml["training"]["pretrained"] = pretrained
+    end
+
     dp = DeviceParams(device_id)
     tp = ToStruct.tostruct(TrainingParams, toml["training"])
     pp = ToStruct.tostruct(PhysicalParams, toml["physical"])

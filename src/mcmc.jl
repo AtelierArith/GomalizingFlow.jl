@@ -5,7 +5,7 @@ function make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsam
     c = 0
     for _ in 1:(nsamples ÷ batchsize + 1)
         z = rand(prior, lattice_shape..., batchsize)
-        logq_device = sum(logpdf(prior, z), dims=(1:ndims(z) - 1)) |> device
+        logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
         z_device = z |> device
         x_device, logq_ = model((z_device, logq_device))
         logq = dropdims(

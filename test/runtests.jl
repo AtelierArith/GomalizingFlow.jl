@@ -1,8 +1,12 @@
-
-using LFT
+using Test
 using TOML
 
-using Test
+using BSON
+using Flux
+using Parameters
+using Distributions
+
+using LFT
 
 function create_hp_example2d()
     @info "load hyper parmeters"
@@ -105,4 +109,56 @@ path = "../cfgs/example3d.toml"
         @test getfield(tar_hp.mp, f) == getfield(ref_hp.mp, f)
     end
     # @test tar_hp.mp == ref_hp.mp <--- fails... why?!
+end
+
+@testset "model" begin
+    hp = LFT.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
+    model1 = LFT.create_model(hp)
+    model2 = LFT.create_model(hp)
+    for i in 1:length(model1)
+        @test model1[i].mask == model2[i].mask
+        for j in 1:length(model1[i].net)
+            if model1[i].net[j] isa Conv
+                @test model1[i].net[j].weight == model2[i].net[j].weight
+                @test model1[i].net[j].bias == model2[i].net[j].bias
+            end
+        end
+    end
+end
+
+@testset "training" begin
+    hp = LFT.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
+    LFT.train(hp)
+    function loadtar()
+        BSON.@load joinpath(@__DIR__, "result/config", "trained_model.bson") trained_model
+        BSON.@load joinpath(@__DIR__, "result/config", "history.bson") history
+        return trained_model, history
+    end
+    function loadref()
+        BSON.@load joinpath(@__DIR__, "assets", "trained_model.bson") trained_model
+        BSON.@load joinpath(@__DIR__, "assets", "history.bson") history
+        return trained_model, history
+    end
+
+    model1, history1 = loadtar()
+    model2, history2 = loadref()
+    for i in 1:length(model1)
+        @test model1[i].mask == model2[i].mask
+        for j in 1:length(model1[i].net)
+            if model1[i].net[j] isa Conv
+                @test model1[i].net[j].weight == model2[i].net[j].weight
+                @test model1[i].net[j].bias == model2[i].net[j].bias
+            end
+        end
+    end
+    for k in keys(history1)
+        @test history1[k] ≈ history2[k]
+    end
+end
+
+        @testset "retraining" begin
+    path = joinpath(@__DIR__, "assets", "config.toml")
+    pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
+    hp = LFT.load_hyperparams(path; pretrained)
+    LFT.train(hp)
 end

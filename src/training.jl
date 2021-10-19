@@ -4,7 +4,15 @@ function train(hp)
     @info "setup action"
     action = ScalarPhi4Action(hp.pp.m², hp.pp.λ)
     @info "setup model"
-    model, ps = create_model(hp)
+    if isempty(hp.tp.pretrained)
+        model = create_model(hp)
+    else
+        @info "load model from $(hp.tp.pretrained)"
+        BSON.@load hp.tp.pretrained trained_model
+        model = trained_model
+    end
+    Flux.trainmode!(model)
+    ps = get_training_params(model)
 
     lattice_shape = hp.pp.lattice_shape
     prior = eval(Meta.parse(hp.tp.prior))
@@ -22,12 +30,12 @@ function train(hp)
     mkpath(result_dir)
     cp(hp.path, joinpath(result_dir, "config.toml"), force=true)
 
-    Random.seed!(tp.seed)
+    Random.seed!(hp.tp.seed)
     @info "start training"
     for _ in 1:epochs
         @showprogress for _ in 1:iterations
             z = rand(prior, lattice_shape..., batchsize)
-            logq_device = sum(logpdf(prior, z), dims=(1:ndims(z) - 1)) |> device
+            logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
             z_device = z |> device
             gs = Flux.gradient(ps) do
                 x, logq_ = model((z_device, logq_device))
@@ -41,7 +49,8 @@ function train(hp)
             Flux.Optimise.update!(opt, ps, gs)
         end
 
-        logq_device = sum(logpdf(prior, z), dims=(1:ndims(z) - 1)) |> device
+        z = rand(prior, lattice_shape..., batchsize)
+        logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
         z_device = z |> device
         x, logq_ = model((z_device, logq_device))
         logq = dropdims(
@@ -62,6 +71,6 @@ function train(hp)
     BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
     @info "make mcmc ensamble"
     nsamples = 8196
-    history = make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device=cpu, seed=2009)
+    history = make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device=cpu)
     BSON.@save joinpath(result_dir, "history.bson") history
 end

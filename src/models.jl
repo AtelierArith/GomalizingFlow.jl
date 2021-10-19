@@ -28,7 +28,7 @@ function create_model(hp::HyperParams)
     # physical configurations
     lattice_shape = hp.pp.lattice_shape
     # network configurations
-    seed = mp.seed
+    seed = hp.mp.seed
     Random.seed!(seed)
     n_layers = hp.mp.n_layers
     hidden_sizes = hp.mp.hidden_sizes
@@ -49,7 +49,7 @@ function create_model(hp::HyperParams)
             # https://pytorch.org/docs/stable/generated/torch.nn.Conv3d.html
             k = 1 / (c * prod(kernel_size))
             W = rand(Uniform(-√k, √k), kernel_size..., c, c_next)
-            b = rand(Uniform(-√k, √k), c_next) 
+            b = rand(Uniform(-√k, √k), c_next)
             push!(net, mycircular)
             push!(net, Conv(W, b, leakyrelu, pad=0))
         end
@@ -58,18 +58,21 @@ function create_model(hp::HyperParams)
             c_next = channels[end]
             k = 1 / (c * prod(kernel_size))
             W = rand(Uniform(-√k, √k), kernel_size..., c, c_next)
-            b = rand(Uniform(-√k, √k), c_next) 
+            b = rand(Uniform(-√k, √k), c_next)
             net[end] = Conv(W, b, tanh, pad=0)
         end
         mask = make_checker_mask(lattice_shape, parity)
         coupling = AffineCoupling(Chain(net...), mask)
         push!(module_list, coupling)
     end
-    Chain(module_list...) |> f32 |> device
     model = Chain(module_list...) |> f32 |> device
+    return model
+end
+
+function get_training_params(model)
     ps = Flux.params(model)
-    for i in 0:(n_layers - 1)
-        delete!(ps, model[i + 1].mask)
+    for i in 1:length(model)
+        delete!(ps, model[i].mask)
     end
-    return model, ps
+    return ps
 end
