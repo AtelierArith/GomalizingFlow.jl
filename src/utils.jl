@@ -24,8 +24,6 @@ function make_checker_mask(L::Int, parity)
     return checker
 end
 
-L = 3
-make_checker_mask((L, L, L), 1)
 
 """
 Differential padarray for 2D
