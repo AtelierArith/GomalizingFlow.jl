@@ -13,6 +13,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     && \
     apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* # clean up
 
+RUN pip3 install matplotlib numpy torch==1.9.1
+
 ENV JULIA_PROJECT=/work
 COPY Project.toml /work/
 COPY ./src /work/src
@@ -23,5 +25,3 @@ RUN julia -e '\
     Pkg.precompile(); \
     using InteractiveUtils; versioninfo() \
 '
-
-RUN pip install -y matplotlib numpy torch
