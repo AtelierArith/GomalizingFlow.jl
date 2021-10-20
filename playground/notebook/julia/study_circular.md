@@ -1,30 +1,22 @@
-reversedims(inp::AbstractArray{<:Any,N}) where {N} = permutedims(inp, N:-1:1)
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .md
+      format_name: markdown
+      format_version: '1.3'
+      jupytext_version: 1.12.0
+  kernelspec:
+    display_name: Julia 1.6.3
+    language: julia
+    name: julia-1.6
+---
 
-function pairwise(iterable)
-    b = deepcopy(iterable)
-    popfirst!(b)
-    a = iterable
-    return zip(a, b)
-end
+```julia
+using ImageFiltering
+```
 
-function make_checker_mask(
-    shape::NTuple{N,Int}, parity::Int
-) where N
-    N == 1 && (return make_checker_mask(shape[begin], parity))
-    seq = map(1:last(shape)) do i
-        p = ifelse(isodd(i), parity, -parity + 1)
-        baseline = make_checker_mask(shape[begin:end - 1], p)
-    end
-    return cat(seq..., dims=N)
-end
-
-function make_checker_mask(L::Int, parity)
-    checker = ones(Int, L) .- parity
-    checker[begin:2:end] .= parity
-    return checker
-end
-
-
+```julia
 """
 Differential padarray for 2D
 """
@@ -75,7 +67,9 @@ function mycircular(Y::AbstractArray{<:Real,3 + 2})
     Z_end = Z_[:,:, end:end,:,:]
     cat(Z_end, Z_, Z_begin, dims=3)
 end
+```
 
+```julia
 """
 Differential padarray for 4D
 """
@@ -108,3 +102,11 @@ function mycircular(Y::AbstractArray{<:Real,4 + 2})
     Z_end = Z_[:,:,:,end:end,:,:]
     return cat(Z_end, Z_, Z_begin, dims=4)
 end
+```
+
+```julia
+x = rand(4,4,4,4,4,4)
+tar = mycircular(x)
+ref = ImageFiltering.padarray(x, Pad(:circular, 1, 1, 1, 1, 0, 0)).parent
+tar ≈ ref
+```
