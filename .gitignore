@@ -4,3 +4,4 @@ Manifest.toml
 # path to result (by default)
 result
 __pycache__
+*.bson
