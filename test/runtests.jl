@@ -125,6 +125,11 @@ include("pyinterface.jl")
     tar = LFT.mycircular(x)
     ref = ImageFiltering.padarray(x, Pad(:circular, 1, 1, 1, 0, 0)).parent
     @test tar ≈ ref
+
+    x = rand(4, 4, 4, 4, 4, 4)
+    tar = LFT.mycircular(x)
+    ref = ImageFiltering.padarray(x, Pad(:circular, 1, 1, 1, 1, 0, 0)).parent
+    tar ≈ ref
 end
 
 @testset "make_checker_mask" begin
@@ -229,7 +234,7 @@ end
     end
 end
 
-@testset "retraining" begin
+    @testset "retraining" begin
     path = joinpath(@__DIR__, "assets", "config.toml")
     pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
     hp = LFT.load_hyperparams(path; pretrained)
