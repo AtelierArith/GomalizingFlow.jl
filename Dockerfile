@@ -91,6 +91,9 @@ RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension &
     echo '{"codeCellConfig": {"lineNumbers": true}}' \
     >> ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension/tracker.jupyterlab-settings
 
+RUN conda install -y seaborn matplotlib pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
+    conda clean -afy # clean up
+
 ENV JULIA_PROJECT=/work
 USER root
 COPY Project.toml /work/
@@ -110,9 +113,6 @@ RUN julia -e '\
     end; \
     using InteractiveUtils; versioninfo() \
 '
-
-RUN conda install -y seaborn matplotlib pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
-    conda clean -afy # clean up
 
 # For Jupyter Notebook
 EXPOSE 8888
