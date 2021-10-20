@@ -6,6 +6,9 @@ on:
     tags: '*'
   pull_request:
     paths:
+      - ".github/workflows/**"
+      - "src"
+      - "test"
       - "!README.md"
       - "!playground/**"
 jobs:
