@@ -6,6 +6,9 @@ on:
     tags: '*'
   pull_request:
     paths:
+      - ".github/workflows/**"
+      - "src"
+      - "test"
       - "!README.md"
       - "!playground/**"
 jobs:
@@ -16,15 +19,20 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.0'
           - '1.6'
-          - 'nightly'
         os:
           - ubuntu-latest
         arch:
           - x64
     steps:
       - uses: actions/checkout@v2
+      - name: Install python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Install dependencies for Python
+        run:
+          pip install matplotlib numpy torch
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
