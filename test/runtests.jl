@@ -112,6 +112,8 @@ path = "../cfgs/example3d.toml"
     # @test tar_hp.mp == ref_hp.mp <--- fails... why?!
 end
 
+include("pyinterface.jl")
+
 @testset "circular" begin
     # used for 2D Lattice
     x = rand(4, 4, 4, 4)
@@ -227,7 +229,7 @@ end
     end
 end
 
-    @testset "retraining" begin
+@testset "retraining" begin
     path = joinpath(@__DIR__, "assets", "config.toml")
     pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
     hp = LFT.load_hyperparams(path; pretrained)
