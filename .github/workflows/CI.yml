@@ -29,10 +29,10 @@ jobs:
       - name: Install python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
+          python-version: '3.9'
       - name: Install dependencies for Python
         run:
-          pip install matplotlib numpy torch
+          pip install matplotlib numpy==1.20.3 torch==1.9.1
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
