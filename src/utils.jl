@@ -7,9 +7,7 @@ function pairwise(iterable)
     return zip(a, b)
 end
 
-function make_checker_mask(
-    shape::NTuple{N,Int}, parity::Int
-) where N
+function make_checker_mask(shape::NTuple{N,Int}, parity::Int) where N
     N == 1 && (return make_checker_mask(shape[begin], parity))
     seq = map(1:last(shape)) do i
         p = ifelse(isodd(i), parity, -parity + 1)
@@ -102,7 +100,7 @@ function mycircular(Y::AbstractArray{<:Real,4 + 2})
     Z_3rd_begin = Z_3rd[:,:, begin:begin,:,:,:]
     Z_3rd_end = Z_3rd[:,:, end:end,:,:,:]
     Z_ = cat(Z_3rd_end, Z_3rd, Z_3rd_begin, dims=3)
-    
+
     # pad along 4th axis
     Z_begin = Z_[:,:,:,begin:begin,:,:]
     Z_end = Z_[:,:,:,end:end,:,:]

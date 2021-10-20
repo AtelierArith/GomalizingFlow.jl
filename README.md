@@ -78,14 +78,14 @@ julia --project=@. begin_training.jl path/to/config.toml
 for example as for 2D lattice:
 
 ```julia
-julia --project=@. begin_training.jl cfgs/example2d.toml
-julia --project=@. begin_training.jl cfgs/example2d.toml --device=1 # train with GPU 1
+$ julia --project=@. begin_training.jl cfgs/example2d.toml
+$ julia --project=@. begin_training.jl cfgs/example2d.toml --device=1 # train with GPU 1
 ```
 
 - as for 3D lattice:
 
 ```julia
-julia --project=@. begin_training.jl cfgs/example3d.toml
+$ julia --project=@. begin_training.jl cfgs/example3d.toml
 ```
 
 After training, `result/<config.toml>/trained_model.bson` is created. You can resotre the file on Julia session something like this:
@@ -103,11 +103,19 @@ See https://github.com/JuliaIO/BSON.jl for more information.
 ### Case 1: You have a CUDA-Enabled machine
 
 ```julia
-docker-compose run --rm julia-gpu julia begin_training.jl cfgs/example3d.toml
+$ docker-compose run --rm julia-gpu julia begin_training.jl cfgs/example3d.toml
 ```
 
 ### Case 2: CPU only
 
 ```julia
-docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
+$ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
+```
+
+#### M1 mac users
+
+```console
+$ docker build -t lftjl -f docker/Dockerfile.m1 .
+$ docker run --rm -it -v $PWD:/work -w /work lftjl julia --project=/work -e 'using Pkg; Pkg.instantiate()'
+$ docker run --rm -it -v $PWD:/work -w /work lftjl julia begin_training.jl cfgs/example2d.toml
 ```
