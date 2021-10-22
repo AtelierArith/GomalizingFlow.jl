@@ -17,7 +17,7 @@ function parse_commandline()
             default = nothing
         "--result"
             help = "path/to/result/dir"
-            default = nothing
+            default = result
         "--pretrained"
             help = "load /path/to/trained_model.bson and train with the model"
             default = nothing
@@ -37,10 +37,7 @@ function main()
     if !isnothing(args["pretrained"])
         pretrained = abspath(args["pretrained"])
     end
-    result = nothing
-    if !isnothing(args["result"])
-        result = abspath(args["result"])
-    end
+    result = abspath(args["result"])
     hp = LFT.load_hyperparams(path; device_id, pretrained, result)
     LFT.train(hp)
 end

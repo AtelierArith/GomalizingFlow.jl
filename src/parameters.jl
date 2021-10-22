@@ -52,7 +52,6 @@ end
     opt::String = "ADAM"
     prior::String = "Normal{Float32}(0.f0, 1.f0)"
     pretrained::String = ""
-    result::String = "result"
 end
 
 struct HyperParams
@@ -60,14 +59,14 @@ struct HyperParams
     tp::TrainingParams
     pp::PhysicalParams
     mp::ModelParams
-    configpath::String
+    result_dir::String
 end
 
 function load_hyperparams(
         configpath::AbstractString;
         device_id::Union{Nothing,Int}=nothing,
         pretrained::Union{Nothing,String}=nothing,
-        result::Union{Nothing,String}=nothing,
+        result::AbstractString="result",
     )::HyperParams
     config = TOML.parsefile(configpath)
     if !isnothing(device_id)
@@ -81,15 +80,12 @@ function load_hyperparams(
         config["training"]["pretrained"] = pretrained
     end
 
-    if !isnothing(result)
-        config["training"]["result"] = result
-    end
-
     dp = DeviceParams(device_id)
     tp = ToStruct.tostruct(TrainingParams, config["training"])
     pp = ToStruct.tostruct(PhysicalParams, config["physical"])
     mp = ToStruct.tostruct(ModelParams, config["model"])
-    return HyperParams(dp, tp, pp, mp, configpath)
+    result_dir = abspath(joinpath(result, splitext(basename(configpath))[begin]))
+    return HyperParams(dp, tp, pp, mp, result_dir)
 end
 
 function hp2toml(hp::HyperParams, fname::AbstractString)

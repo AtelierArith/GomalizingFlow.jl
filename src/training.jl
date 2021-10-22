@@ -25,7 +25,7 @@ function train(hp)
     @info "set random seed: $(seed)"
     Random.seed!(seed)
 
-    result_dir = abspath(joinpath(hp.tp.result, splitext(basename(hp.configpath))[begin]))
+    result_dir = hp.result_dir
     @info "create result dir: $(result_dir)"
     mkpath(result_dir)
     @info "dump hyperparams: $(joinpath(result_dir, "config.toml"))"
