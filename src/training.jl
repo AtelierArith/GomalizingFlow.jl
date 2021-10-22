@@ -1,36 +1,34 @@
-
 function train(hp)
     device = hp.dp.device
     @info "setup action"
-    action = ScalarPhi4Action(hp.pp.m², hp.pp.λ)
+    @unpack m², λ, lattice_shape = hp.pp
+    action = ScalarPhi4Action(m², λ)
+
+    @unpack pretrained, batchsize, epochs, iterations, seed = hp.tp
     @info "setup model"
-    if isempty(hp.tp.pretrained)
+    if isempty(pretrained)
         model = create_model(hp)
     else
-        @info "load model from $(hp.tp.pretrained)"
-        BSON.@load hp.tp.pretrained trained_model
+        @info "load model from $(pretrained)"
+        BSON.@load pretrained trained_model
         model = trained_model
     end
     Flux.trainmode!(model)
     ps = get_training_params(model)
 
-    lattice_shape = hp.pp.lattice_shape
     prior = eval(Meta.parse(hp.tp.prior))
     @show prior
 
-    batchsize = hp.tp.batchsize
-    epochs = hp.tp.epochs
-    iterations = hp.tp.iterations
     @info "setup optimiser"
     opt = eval(Meta.parse("$(hp.tp.opt)($(hp.tp.base_lr))"))
     @info opt
 
-    result_dir = joinpath(hp.tp.result, splitext(basename(hp.path))[begin])
+    result_dir = joinpath(hp.tp.result, splitext(basename(hp.configpath))[begin])
     @info "create result dir $(result_dir)"
     mkpath(result_dir)
-    cp(hp.path, joinpath(result_dir, "config.toml"), force=true)
+    cp(hp.configpath, joinpath(result_dir, "config.toml"), force=true)
 
-    Random.seed!(hp.tp.seed)
+    Random.seed!(seed)
     @info "start training"
     for _ in 1:epochs
         @showprogress for _ in 1:iterations
