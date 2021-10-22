@@ -27,7 +27,6 @@ base_lr = 0.0015
 opt = "ADAM"
 prior = "Normal{Float32}(0.f0, 1.f0)"
 pretrained = ""
-result = "result"
 
 # setup PhysicalParams
 #
