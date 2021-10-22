@@ -110,7 +110,7 @@ path = "../cfgs/example3d.toml"
     end
 end
 
-# include("pyinterface.jl")
+include("pyinterface.jl")
 
 @testset "circular" begin
     # used for 2D Lattice
