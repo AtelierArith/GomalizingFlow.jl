@@ -67,6 +67,7 @@ function load_hyperparams(
         configpath::AbstractString;
         device_id::Union{Nothing,Int}=nothing,
         pretrained::Union{Nothing,String}=nothing,
+        result::Union{Nothing,String}=nothing,
     )::HyperParams
     config = TOML.parsefile(configpath)
     if !isnothing(device_id)
@@ -80,6 +81,10 @@ function load_hyperparams(
         config["training"]["pretrained"] = pretrained
     end
 
+    if !isnothing(result)
+        config["training"]["result"] = result
+    end
+
     dp = DeviceParams(device_id)
     tp = ToStruct.tostruct(TrainingParams, config["training"])
     pp = ToStruct.tostruct(PhysicalParams, config["physical"])
@@ -88,10 +93,10 @@ function load_hyperparams(
 end
 
 function hp2toml(hp::HyperParams, fname::AbstractString)
-    data = OrderedDict{String, Any}("device_id" => hp.dp.device_id)
+    data = OrderedDict{String,Any}("device_id" => hp.dp.device_id)
     for (sym, itemname) in [(:mp, "model"), (:pp, "physical"), (:tp, "training")]
         obj = getfield(hp, sym)
-        v = OrderedDict(key=>getfield(obj, key) for key ∈ fieldnames(obj |> typeof))
+        v = OrderedDict(key => getfield(obj, key) for key ∈ fieldnames(obj |> typeof))
         data[itemname] = v
     end
     open(fname, "w") do io

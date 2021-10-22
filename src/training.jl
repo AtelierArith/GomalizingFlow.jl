@@ -22,8 +22,15 @@ function train(hp)
     @info "setup optimiser"
     opt = eval(Meta.parse("$(hp.tp.opt)($(hp.tp.base_lr))"))
     @info opt
-    @info "set random seed $(seed)"
+    @info "set random seed: $(seed)"
     Random.seed!(seed)
+
+    result_dir = abspath(joinpath(hp.tp.result, splitext(basename(hp.configpath))[begin]))
+    @info "create result dir: $(result_dir)"
+    mkpath(result_dir)
+    @info "dump hyperparams: $(joinpath(result_dir, "config.toml"))"
+    LFT.hp2toml(hp, joinpath(result_dir, "config.toml"))
+
     @info "start training"
     for _ in 1:epochs
         @showprogress for _ in 1:iterations
@@ -59,5 +66,11 @@ function train(hp)
         @show ess
     end
     @info "finished training"
-    return model |> cpu
+    trained_model = model |> cpu
+    @info "save model"
+    LFT.BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
+    @info "make mcmc ensamble"
+    nsamples = 8196
+    history = make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device=cpu)
+    LFT.BSON.@save joinpath(result_dir, "history.bson") history
 end

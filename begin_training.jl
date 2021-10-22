@@ -15,9 +15,9 @@ function parse_commandline()
         "--device"
             help = "override Device ID"
             default = nothing
-        "--result_root"
+        "--result"
             help = "path/to/result/dir"
-            default = "result"
+            default = nothing
         "--pretrained"
             help = "load /path/to/trained_model.bson and train with the model"
             default = nothing
@@ -26,7 +26,7 @@ function parse_commandline()
     return parse_args(s)
 end
 
-if abspath(PROGRAM_FILE) == @__FILE__
+function main()
     args = parse_commandline()
     path = args["config"]
     device_id = nothing
@@ -35,22 +35,16 @@ if abspath(PROGRAM_FILE) == @__FILE__
     end
     pretrained = nothing
     if !isnothing(args["pretrained"])
-        pretrained = parse(args["pretrained"])
+        pretrained = abspath(args["pretrained"])
     end
-    result_root = abspath(args["result_root"])
-    hp = LFT.load_hyperparams(path; device_id, pretrained)
-    result_dir = joinpath(result_root, splitext(basename(hp.configpath))[begin])
-    @info "create result dir $(result_dir)"
-    mkpath(result_dir)
-    @info "dump"
-    LFT.hp2toml(hp, joinpath(result_dir, "config.toml"))
+    result = nothing
+    if !isnothing(args["result"])
+        result = abspath(args["result"])
+    end
+    hp = LFT.load_hyperparams(path; device_id, pretrained, result)
+    LFT.train(hp)
+end
 
-    trained_model = LFT.train(hp)
-    
-    @info "save model"
-    LFT.BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
-    @info "make mcmc ensamble"
-    nsamples = 8196
-    history = make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device=cpu)
-    LFT.BSON.@save joinpath(result_dir, "history.bson") history
+if abspath(PROGRAM_FILE) == @__FILE__
+    main()
 end
