@@ -60,7 +60,7 @@ struct HyperParams
     tp::TrainingParams
     pp::PhysicalParams
     mp::ModelParams
-    config::String
+    configpath::String
 end
 
 function load_hyperparams(
