@@ -17,7 +17,7 @@ function parse_commandline()
             default = nothing
         "--result"
             help = "path/to/result/dir"
-            default = result
+            default = "result"
         "--pretrained"
             help = "load /path/to/trained_model.bson and train with the model"
             default = nothing
