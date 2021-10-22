@@ -95,7 +95,6 @@ end
     for f in fieldnames(typeof(ref_hp.mp))
         @test getfield(tar_hp.mp, f) == getfield(ref_hp.mp, f)
     end
-    # @test tar_hp.mp == ref_hp.mp # <--- fails... why?!
 end
 
 @testset "example3d.toml" begin
@@ -109,7 +108,6 @@ path = "../cfgs/example3d.toml"
     for f in fieldnames(typeof(ref_hp.mp))
         @test getfield(tar_hp.mp, f) == getfield(ref_hp.mp, f)
     end
-    # @test tar_hp.mp == ref_hp.mp <--- fails... why?!
 end
 
 # include("pyinterface.jl")
@@ -163,12 +161,12 @@ end
         1  0  1
         0  1  0
         1  0  1
-        ]
+    ]
     a3 = [
         0  1  0
         1  0  1
         0  1  0
-        ]
+    ]
     @test LFT.make_checker_mask((3, 3, 3), 0) == cat(a1, a2, a3, dims=3)
 
     a1 = [
@@ -214,6 +212,7 @@ end
         BSON.@load joinpath(@__DIR__, "result/config", "history.bson") history
         return config, trained_model, history
     end
+
     function loadref()
         config = TOML.parsefile(joinpath(@__DIR__, "assets", "config.toml"))
         BSON.@load joinpath(@__DIR__, "assets", "trained_model.bson") trained_model
@@ -223,6 +222,13 @@ end
 
     config1, model1, history1 = loadtar()
     config2, model2, history2 = loadref()
+
+    delete!(config1["training"], "result")
+    delete!(config2["training"], "result")
+
+    for (k, v) in config1
+        @test config1[k] == config2[k]
+    end
 
     for i in 1:length(model1)
         @test model1[i].mask == model2[i].mask
@@ -236,13 +242,11 @@ end
     for k in keys(history1)
         @test history1[k] ≈ history2[k]
     end
-
-
 end
 
-    @testset "retraining" begin
+@testset "retraining" begin
     configpath = joinpath(@__DIR__, "assets", "config.toml")
-            pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
+    pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
     hp = LFT.load_hyperparams(configpath; pretrained)
-    LFT.train(hp)
+                LFT.train(hp)
 end
