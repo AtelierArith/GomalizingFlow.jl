@@ -68,21 +68,33 @@ function load_hyperparams(
         device_id::Union{Nothing,Int}=nothing,
         pretrained::Union{Nothing,String}=nothing,
     )::HyperParams
-    toml = TOML.parsefile(configpath)
+    config = TOML.parsefile(configpath)
     if !isnothing(device_id)
         @info "override device id $(device_id)"
     else
-        device_id = toml["device_id"]
+        device_id = config["device_id"]
     end
 
     if !isnothing(pretrained)
         @info "restore model from $(pretrained)"
-        toml["training"]["pretrained"] = pretrained
+        config["training"]["pretrained"] = pretrained
     end
 
     dp = DeviceParams(device_id)
-    tp = ToStruct.tostruct(TrainingParams, toml["training"])
-    pp = ToStruct.tostruct(PhysicalParams, toml["physical"])
-    mp = ToStruct.tostruct(ModelParams, toml["model"])
+    tp = ToStruct.tostruct(TrainingParams, config["training"])
+    pp = ToStruct.tostruct(PhysicalParams, config["physical"])
+    mp = ToStruct.tostruct(ModelParams, config["model"])
     return HyperParams(dp, tp, pp, mp, configpath)
+end
+
+function hp2toml(hp::HyperParams, fname::AbstractString)
+    data = OrderedDict{String, Any}("device_id" => hp.dp.device_id)
+    for (sym, itemname) in [(:mp, "model"), (:pp, "physical"), (:tp, "training")]
+        obj = getfield(hp, sym)
+        v = OrderedDict(key=>getfield(obj, key) for key ∈ fieldnames(obj |> typeof))
+        data[itemname] = v
+    end
+    open(fname, "w") do io
+        TOML.print(io, data)
+    end
 end
