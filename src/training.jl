@@ -9,8 +9,8 @@ function train(hp)
     if isempty(pretrained)
         model = create_model(hp)
     else
-        @info "load model from $(pretrained)"
-        BSON.@load pretrained trained_model
+        @info "load model from $(abspath((pretrained)))"
+        BSON.@load abspath(pretrained) trained_model
         model = trained_model
     end
     Flux.trainmode!(model)
@@ -22,12 +22,7 @@ function train(hp)
     @info "setup optimiser"
     opt = eval(Meta.parse("$(hp.tp.opt)($(hp.tp.base_lr))"))
     @info opt
-
-    result_dir = joinpath(hp.tp.result, splitext(basename(hp.configpath))[begin])
-    @info "create result dir $(result_dir)"
-    mkpath(result_dir)
-    cp(hp.configpath, joinpath(result_dir, "config.toml"), force=true)
-
+    @info "set random seed $(seed)"
     Random.seed!(seed)
     @info "start training"
     for _ in 1:epochs
@@ -64,11 +59,5 @@ function train(hp)
         @show ess
     end
     @info "finished training"
-    trained_model = model |> cpu
-    @info "save model"
-    BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
-    @info "make mcmc ensamble"
-    nsamples = 8196
-    history = make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device=cpu)
-    BSON.@save joinpath(result_dir, "history.bson") history
+    return model |> cpu
 end
