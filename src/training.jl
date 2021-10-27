@@ -72,5 +72,6 @@ function train(hp)
     @info "make mcmc ensamble"
     nsamples = 8196
     history = make_mcmc_ensamble(trained_model, prior, action, lattice_shape; batchsize, nsamples, device=cpu)
+    @info "save history to $(joinpath(result_dir, "history.bson"))"
     LFT.BSON.@save joinpath(result_dir, "history.bson") history
 end
