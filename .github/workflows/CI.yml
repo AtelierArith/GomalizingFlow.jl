@@ -9,6 +9,7 @@ on:
       - ".github/workflows/**"
       - "src"
       - "test"
+      - "Project.toml"
       - "!README.md"
       - "!playground/**"
 jobs:
