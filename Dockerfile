@@ -94,6 +94,9 @@ RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension &
 RUN conda install -y seaborn matplotlib pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
     conda clean -afy # clean up
 
+# Install extras
+RUN julia -e 'using Pkg; Pkg.add("ImageFiltering")'
+
 ENV JULIA_PROJECT=/work
 USER root
 COPY Project.toml /work/
