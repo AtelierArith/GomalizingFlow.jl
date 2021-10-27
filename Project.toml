@@ -30,4 +30,4 @@ ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "ImageFiltering", "PyCall"]
+test = ["Test", "ImageFiltering"]
