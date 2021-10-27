@@ -195,10 +195,10 @@ end
         @test model1[i].mask == model2[i].mask
         for j in 1:length(model1[i].net)
             if model1[i].net[j] isa Conv
-                @test model1[i].net[j].weight == model2[i].net[j].weight
-                @test model1[i].net[j].bias == model2[i].net[j].bias
+                @test model1[i].net[j].weight ≈ model2[i].net[j].weight
+                @test model1[i].net[j].bias ≈ model2[i].net[j].bias
             end
-        end
+    end
     end
 end
 
@@ -234,8 +234,8 @@ end
         @test model1[i].mask == model2[i].mask
         for j in 1:length(model1[i].net)
             if model1[i].net[j] isa Conv
-                @test model1[i].net[j].weight == model2[i].net[j].weight
-                @test model1[i].net[j].bias == model2[i].net[j].bias
+                @test model1[i].net[j].weight ≈ model2[i].net[j].weight
+                @test model1[i].net[j].bias ≈ model2[i].net[j].bias
             end
         end
     end
@@ -245,8 +245,10 @@ end
 end
 
 @testset "retraining" begin
-    configpath = joinpath(@__DIR__, "assets", "config.toml")
+        configpath = joinpath(@__DIR__, "assets", "config.toml")
     pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
     hp = LFT.load_hyperparams(configpath; pretrained)
-                LFT.train(hp)
+    LFT.train(hp)
+    # notify retraining has been done
+    @test true
 end
