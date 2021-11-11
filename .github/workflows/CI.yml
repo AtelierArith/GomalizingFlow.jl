@@ -50,3 +50,12 @@ jobs:
             ${{ runner.os }}-
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+      - name: upload result to release page
+        uses: ncipollo/release-action@v1
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          allowUpdates: true
+          omitBodyDuringUpdate: true
+          tag: result/latest
+          artifacts: Manifest.toml
+          token: ${{ secrets.GITHUB_TOKEN }}
