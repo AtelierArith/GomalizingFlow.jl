@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
 
 ENV JULIA_PATH /usr/local/julia
 ENV PATH $JULIA_PATH/bin:$PATH
@@ -91,7 +91,7 @@ RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension &
     echo '{"codeCellConfig": {"lineNumbers": true}}' \
     >> ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension/tracker.jupyterlab-settings
 
-RUN conda install -y seaborn matplotlib pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
+RUN conda install -y seaborn matplotlib pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch -c nvidia && \
     conda clean -afy # clean up
 
 # Install extras
