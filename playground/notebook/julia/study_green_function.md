@@ -7,7 +7,7 @@ jupyter:
       format_version: '1.3'
       jupytext_version: 1.13.0
   kernelspec:
-    display_name: Julia 1.6.3
+    display_name: julia 1.6.3
     language: julia
     name: julia-1.6
 ---
@@ -82,6 +82,19 @@ function green2(cfgs, offsetX::NTuple{3,Int}, lattice_shape::NTuple{3, Int})
 end
 ```
 
+```julia
+function green3(cfgs, offsetX, lattice_shape)
+    shifts = (broadcast(-, offsetX)..., 0)
+    batch_dim = ndims(cfgs)
+    cfgs_offset = circshift(cfgs, shifts)
+    m_corr = mean(cfgs .* cfgs_offset, dims=batch_dim)
+    m = mean(cfgs, dims=batch_dim)
+    m_offset = mean(cfgs_offset, dims=batch_dim)
+    Gc = sum(m_corr .- m .* m_offset)/prod(lattice_shape)
+    return Gc 
+end
+```
+
 momentum-space representation
 
 $$
@@ -105,9 +118,11 @@ $$
 momentum free Green function
 """
 function mfGc(cfgs, t, lattice_shape)
-    space_shape = size(cfgs)[end-1]
+    space_shape = size(cfgs)[begin:length(lattice_shape)-1]
+    @show space_shape
     ret = 0
     for s in IterTools.product((1:l for l in space_shape)...)
+        @show (s..., t)
         ret += green(cfgs, (s..., t), lattice_shape)
     end
     ret /= prod(space_shape)
@@ -126,6 +141,11 @@ cfgs = rand(Float32, L, L, L, 2000);
 ```
 
 ```julia
+args = (cfgs, (2,3,4), lattice_shape)
+@assert green(args...) ≈ green1(args...) ≈ green2(args...) ≈ green3(args...)
+```
+
+```julia
 @time green(cfgs, (1,1,4), lattice_shape)
 ```
 
@@ -138,25 +158,5 @@ cfgs = rand(Float32, L, L, L, 2000);
 ```
 
 ```julia
-@time begin 
-    dest = similar(cfgs)
-    for s in IterTools.product((1:l for l in lattice_shape)...)
-        circshift!(dest, cfgs, (1,1,1,1))
-    end
-end
-```
-
-```julia
-using Base.Threads
-```
-
-```julia
-acc = Atomic{Float64}(0)
-@threads for i in 1:1000
-    Threads.atomic_add!(acc, 1.)
-end
-```
-
-```julia
-acc.value
+@time green3(cfgs, (1,1,4), lattice_shape)
 ```
