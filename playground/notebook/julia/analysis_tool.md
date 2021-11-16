@@ -5,9 +5,9 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.12.0
+      jupytext_version: 1.13.0
   kernelspec:
-    display_name: Julia 1.6.3
+    display_name: julia 1.6.3
     language: julia
     name: julia-1.6
 ---
@@ -18,11 +18,26 @@ jupyter:
 using BSON
 using PyPlot
 using Distributions
+using ProgressMeter
 using IterTools
 using Flux
-using Interact
 
 using LFT
+```
+
+```julia
+using Base.Threads
+if nthreads() == 1
+    msg = """
+    We recommend using more than nthreads > 1 to calculate the Green function 
+    Please run the following command on your terminal (not here)
+    \$ julia --threads auto -e 'using Base.Threads, IJulia; installkernel("julia-\$(nthreads())-threads", env=Dict("JULIA_NUM_THREADS"=>"\$(nthreads())"))'
+    Then use the kernel named julia-<numthreads>-threads $VERSION where <numthreads> depends on your environment
+    """
+    @warn msg
+else
+    @info "using $(nthreads())-threads"
+end
 ```
 
 ```julia
@@ -86,33 +101,34 @@ end
 ```julia
 function green(cfgs, offsetX, lattice_shape)
     Gc = zero(Float32)
+    shifts = (broadcast(-, offsetX)..., 0)
+    dest = similar(cfgs)
     for posY in IterTools.product((1:l for l in lattice_shape)...)
-        phi_y = cfgs[posY..., :]
-        shifts = (broadcast(-, offsetX)..., 0)
-        phi_y_x = circshift(cfgs, shifts)[posY..., :]
+        phi_y = @view cfgs[CartesianIndex(posY), :]
+        circshift!(dest, cfgs, shifts)
+        phi_y_x = @view dest[CartesianIndex(posY), :]
         mean_phi_y = mean(phi_y)
         mean_phi_y_x = mean(phi_y_x)
         Gc += mean(phi_y .* phi_y_x) - mean_phi_y * mean_phi_y_x
     end
     Gc /= prod(lattice_shape)
-    return Gc
+    return Gc 
 end
 ```
 
 ```julia
 function mfGc(cfgs, t, lattice_shape)
     space_shape = size(cfgs)[end-1]
-    ret = 0
-    for s in IterTools.product((1:l for l in space_shape)...)
-        ret += green(cfgs, (s..., t), lattice_shape)
+    acc = Atomic{Float32}(0)
+    @threads for s in IterTools.product((1:l for l in space_shape)...) |> collect
+        Threads.atomic_add!(acc, green(cfgs, (s..., t), lattice_shape))
     end
-    ret /= prod(space_shape)
-    return ret
+    return acc.value /= prod(space_shape)
 end
 ```
 
 ```julia
-r = results[1] # modify here
+r = results[5] # modify here
 @show r
 ```
 
@@ -124,14 +140,18 @@ plt.show()
 ```julia
 _, history = restore(r);
 accepted_ratio =  mean(history[:accepted])
-println(100accepted_ratio, "%")
+println("accepted_ratio=", 100accepted_ratio, "%")
 
 function drawgreen(r)
     hp = LFT.load_hyperparams(joinpath(r, "config.toml"))
     _, history = restore(r);
     lattice_shape = hp.pp.lattice_shape
     cfgs = cat(history[:x][512:2000]..., dims=length(lattice_shape)+1)
-    plt.plot(0:hp.pp.L, [mfGc(cfgs, t, lattice_shape) for t in 0:hp.pp.L])
+    y_values = []
+    @showprogress for t in 0:hp.pp.L
+        push!(y_values, mfGc(cfgs, t, lattice_shape))
+    end
+    plt.plot(0:hp.pp.L, y_values)
     plt.yscale("log")
 end
 

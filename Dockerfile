@@ -124,4 +124,5 @@ EXPOSE 8000
 # For Pluto Server
 EXPOSE 9999
 
+RUN julia --threads auto -e 'using Base.Threads, IJulia; installkernel("julia", env=Dict("JULIA_NUM_THREADS"=>"$(nthreads())"))'
 CMD ["julia"]
