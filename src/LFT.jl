@@ -8,7 +8,7 @@ using Distributions
 using Flux
 using EllipsisNotation
 using Parameters
-using ProgressMeter:@showprogress
+using ProgressMeter: @showprogress
 using DataStructures: OrderedDict
 using ToStruct
 using BSON
