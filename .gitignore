@@ -3,5 +3,6 @@ Manifest.toml
 *.ipynb
 # path to result (by default)
 result
+result.zip
 __pycache__
 *.bson
