@@ -33,7 +33,7 @@ jobs:
           python-version: '3.9'
       - name: Install dependencies for Python
         run:
-          pip install matplotlib numpy==1.20.3 torch==1.9.1
+          pip install matplotlib numpy==1.20.3 torch==1.10.0
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
