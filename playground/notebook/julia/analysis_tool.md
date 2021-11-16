@@ -15,6 +15,8 @@ jupyter:
 # Analysis Tool
 
 ```julia
+using Printf
+
 using BSON
 using PyPlot
 using Distributions
@@ -100,25 +102,22 @@ end
 
 ```julia
 function green(cfgs, offsetX, lattice_shape)
-    Gc = zero(Float32)
     shifts = (broadcast(-, offsetX)..., 0)
-    dest = similar(cfgs)
-    for posY in IterTools.product((1:l for l in lattice_shape)...)
-        phi_y = @view cfgs[CartesianIndex(posY), :]
-        circshift!(dest, cfgs, shifts)
-        phi_y_x = @view dest[CartesianIndex(posY), :]
-        mean_phi_y = mean(phi_y)
-        mean_phi_y_x = mean(phi_y_x)
-        Gc += mean(phi_y .* phi_y_x) - mean_phi_y * mean_phi_y_x
-    end
-    Gc /= prod(lattice_shape)
+    batch_dim = ndims(cfgs)
+    cfgs_offset = circshift(cfgs, shifts)
+    m_corr = mean(cfgs .* cfgs_offset, dims=batch_dim)
+    m = mean(cfgs, dims=batch_dim)
+    m_offset = mean(cfgs_offset, dims=batch_dim)
+    V = prod(lattice_shape)
+    Gc = sum(m_corr .- m .* m_offset)/V
     return Gc 
 end
 ```
 
 ```julia
 function mfGc(cfgs, t, lattice_shape)
-    space_shape = size(cfgs)[end-1]
+    maxT = lattice_shape[end]
+    space_shape = size(cfgs)[begin:length(lattice_shape)-1]
     acc = Atomic{Float32}(0)
     @threads for s in IterTools.product((1:l for l in space_shape)...) |> collect
         Threads.atomic_add!(acc, green(cfgs, (s..., t), lattice_shape))
@@ -128,7 +127,11 @@ end
 ```
 
 ```julia
-r = results[5] # modify here
+results
+```
+
+```julia
+r = results[1] # modify here
 @show r
 ```
 
@@ -140,7 +143,7 @@ plt.show()
 ```julia
 _, history = restore(r);
 accepted_ratio =  mean(history[:accepted])
-println("accepted_ratio=", 100accepted_ratio, "%")
+Printf.@printf "accepted_ratio= %.2f [percent]" 100accepted_ratio
 
 function drawgreen(r)
     hp = LFT.load_hyperparams(joinpath(r, "config.toml"))
@@ -149,7 +152,8 @@ function drawgreen(r)
     cfgs = cat(history[:x][512:2000]..., dims=length(lattice_shape)+1)
     y_values = []
     @showprogress for t in 0:hp.pp.L
-        push!(y_values, mfGc(cfgs, t, lattice_shape))
+        y = mfGc(cfgs, t, lattice_shape)
+        push!(y_values, y)
     end
     plt.plot(0:hp.pp.L, y_values)
     plt.yscale("log")
