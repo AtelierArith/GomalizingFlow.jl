@@ -91,7 +91,7 @@ RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension &
     echo '{"codeCellConfig": {"lineNumbers": true}}' \
     >> ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension/tracker.jupyterlab-settings
 
-RUN conda install -y seaborn matplotlib pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
+RUN conda install -y seaborn matplotlib pytorch=1.9 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
     conda clean -afy # clean up
 
 # Install extras
