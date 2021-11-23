@@ -66,6 +66,8 @@ function train(hp)
         loss = calc_dkl(logp, logq)
         @show loss
         println("loss per site", loss / prod(lattice_shape))
+        @show mean(logp)
+        @show mean(logq)
         ess = compute_ess(logp, logq)
         @show ess
     end
