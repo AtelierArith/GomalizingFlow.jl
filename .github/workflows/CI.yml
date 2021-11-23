@@ -7,8 +7,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/**"
-      - "src"
-      - "test"
+      - "src/**"
+      - "test/**"
       - "Project.toml"
       - "!README.md"
       - "!playground/**"
