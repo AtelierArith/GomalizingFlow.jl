@@ -84,6 +84,9 @@ function load_hyperparams(
     dp = DeviceParams(device_id)
     tp = ToStruct.tostruct(TrainingParams, config["training"])
     pp = ToStruct.tostruct(PhysicalParams, config["physical"])
+    if !("use_bn" in keys(config["model"]))
+        config["model"]["use_bn"] = false
+    end
     mp = ToStruct.tostruct(ModelParams, config["model"])
     result_dir = abspath(joinpath(result, splitext(basename(configpath))[begin]))
     return HyperParams(dp, tp, pp, mp, result_dir)
