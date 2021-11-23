@@ -33,6 +33,7 @@ function create_model(hp::HyperParams)
     n_layers = hp.mp.n_layers
     hidden_sizes = hp.mp.hidden_sizes
     kernel_size = hp.mp.kernel_size
+    use_bn = hp.mp.use_bn
     if kernel_size isa Int
         kernel_size = ntuple(_ -> kernel_size, hp.pp.Nd)
     end
@@ -51,7 +52,11 @@ function create_model(hp::HyperParams)
             W = rand(Uniform(-√k, √k), kernel_size..., c, c_next)
             b = rand(Uniform(-√k, √k), c_next)
             push!(net, mycircular)
-            push!(net, Conv(W, b, leakyrelu, pad=0))
+            if use_bn
+                push!(net, Chain(Conv(W, b, pad=0), BatchNorm(c_next, leakyrelu)))
+            else
+                push!(net, Conv(W, b, pad=0, leakyrelu))
+            end
         end
         if use_final_tanh
             c = channels[end - 1]
@@ -59,7 +64,11 @@ function create_model(hp::HyperParams)
             k = 1 / (c * prod(kernel_size))
             W = rand(Uniform(-√k, √k), kernel_size..., c, c_next)
             b = rand(Uniform(-√k, √k), c_next)
-            net[end] = Conv(W, b, tanh, pad=0)
+            if use_bn
+                net[end] = Chain(Conv(W, b, pad=0), BatchNorm(c_next, tanh))
+            else
+                net[end] = Conv(W, b, tanh, pad=0)
+            end
         end
         mask = make_checker_mask(lattice_shape, parity)
         coupling = AffineCoupling(Chain(net...), mask)
