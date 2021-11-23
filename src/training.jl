@@ -33,6 +33,8 @@ function train(hp)
 
     @info "start training"
     for _ in 1:epochs
+        # switch to trainmode
+        Flux.trainmode!(model)
         @showprogress for _ in 1:iterations
             z = rand(prior, lattice_shape..., batchsize)
             logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
@@ -49,6 +51,8 @@ function train(hp)
             Flux.Optimise.update!(opt, ps, gs)
         end
 
+        # switch to testmode
+        Flux.testmode!(model)
         z = rand(prior, lattice_shape..., batchsize)
         logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
         z_device = z |> device
