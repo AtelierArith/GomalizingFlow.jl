@@ -128,6 +128,9 @@ end
 
 ```julia
 results
+for (i, r) in enumerate(results)
+    println(i, r)
+end
 ```
 
 ```julia
@@ -142,14 +145,14 @@ plt.show()
 
 ```julia
 _, history = restore(r);
-accepted_ratio =  mean(history[:accepted])
+accepted_ratio =  mean(history[:accepted][4000:7000])
 Printf.@printf "accepted_ratio= %.2f [percent]" 100accepted_ratio
 
 function drawgreen(r)
     hp = LFT.load_hyperparams(joinpath(r, "config.toml"))
     _, history = restore(r);
     lattice_shape = hp.pp.lattice_shape
-    cfgs = cat(history[:x][512:2000]..., dims=length(lattice_shape)+1)
+    cfgs = cat(history[:x][4000:7000]..., dims=length(lattice_shape)+1)
     y_values = []
     @showprogress for t in 0:hp.pp.L
         y = mfGc(cfgs, t, lattice_shape)
