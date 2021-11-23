@@ -12,6 +12,15 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     && \
     apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* # clean up
 
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    htop \
+    nano \
+    openssh-server \
+    tig \
+    tree \
+    && \
+    apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* # clean up
+
 # Install NodeJS
 RUN apt-get update && \
     curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
@@ -110,12 +119,12 @@ RUN julia -e '\
     # Download CUDA artifacts \
     using CUDA; \
     if CUDA.functional() \
-        @info "Download artifacts of CUDA/CUDNN"; \
-        @assert CUDA.functional(true); \
-        @assert CUDA.has_cudnn(); \
+    @info "Download artifacts of CUDA/CUDNN"; \
+    @assert CUDA.functional(true); \
+    @assert CUDA.has_cudnn(); \
     end; \
     using InteractiveUtils; versioninfo() \
-'
+    '
 
 # For Jupyter Notebook
 EXPOSE 8888

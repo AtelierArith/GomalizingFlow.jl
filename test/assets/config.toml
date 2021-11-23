@@ -51,3 +51,4 @@ kernel_size = 3
 inC = 1
 outC = 2
 use_final_tanh = true
+use_bn = false
