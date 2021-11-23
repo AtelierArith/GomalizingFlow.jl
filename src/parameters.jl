@@ -41,6 +41,7 @@ end
     inC::Int = 1
     outC::Int = 2
     use_final_tanh::Bool = true
+    use_bn::Bool = false
 end
 
 @with_kw struct TrainingParams
