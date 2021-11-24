@@ -5,7 +5,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.0
+      jupytext_version: 1.13.1
   kernelspec:
     display_name: julia 1.6.3
     language: julia
@@ -127,14 +127,13 @@ end
 ```
 
 ```julia
-results
 for (i, r) in enumerate(results)
-    println(i, r)
+    println(i, " ", r)
 end
 ```
 
 ```julia
-r = results[1] # modify here
+r = results[12] # modify here
 @show r
 ```
 
@@ -159,8 +158,59 @@ function drawgreen(r)
         push!(y_values, y)
     end
     plt.plot(0:hp.pp.L, y_values)
-    plt.yscale("log")
+    #plt.yscale("log")
 end
 
 drawgreen(r)
+```
+
+```julia
+function approx_normalized_autocorr(observed::AbstractVector, τ::Int)
+    ō = mean(observed)
+    N = length(observed)
+    s = zero(eltype(observed))
+    for i in 1:(N-τ)
+        s += (observed[i]-ō)*(observed[i+τ]-ō)
+    end
+    s = s/(N-τ)/var(observed)
+    return s
+end
+
+ρ̂(observed, τ) = approx_normalized_autocorr(observed, τ)
+```
+
+```julia
+a = history[:accepted][2000:end]
+ρ̄(a, t) = auto_corr(a, t)/auto_corr(a, 0)
+
+function auto_corr(a::AbstractVector, t::Int) # \bar{\Gamma}
+    t = abs(t)
+    ā = mean(a)
+    s = zero(eltype(a))
+    N = length(a)
+    for i in 1:(N-t)
+        s += (a[i] - ā) * (a[i+t] - ā)
+    end
+    return s / (N - t)
+end
+
+function δρ²(a, t)
+    Λ = 100
+    s = 0.
+    for k in 1:(t + Λ)
+        s += (ρ̄(a, k + t) + ρ̄(a, k - t) - 2ρ̄(a, k) * ρ̄(a, t))^2
+    end
+    s /= length(a)
+end
+
+W = -1
+
+for t in 1:1000
+    if ρ̄(a, t) ≤ √(δρ²(a, t))
+        W = t
+        break
+    end
+end
+
+τᵢₙₜ = 0.5 + sum(t->ρ̄(a, t), 1:W)
 ```
