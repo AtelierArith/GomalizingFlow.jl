@@ -100,6 +100,10 @@ RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension &
     echo '{"codeCellConfig": {"lineNumbers": true}}' >> \
     ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension/tracker.jupyterlab-settings
 
+RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/shortcuts-extension && \
+    echo '{"shortcuts": [{"command": "runmenu:restart-and-run-all", "keys": ["Alt R"], "selector": "[data-jp-code-runner]"}]}' >> \
+    ${HOME}/.jupyter/lab/user-settings/@jupyterlab/shortcuts-extension/shortcuts.jupyterlab-settings
+
 RUN conda install -y seaborn matplotlib pytorch=1.9 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
     conda clean -afy # clean up
 
