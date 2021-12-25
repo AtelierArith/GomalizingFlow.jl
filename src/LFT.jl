@@ -1,6 +1,7 @@
 module LFT
 
 using Random
+using Printf
 using TOML
 
 using CUDA
@@ -12,6 +13,7 @@ using ProgressMeter: @showprogress
 using DataStructures: OrderedDict
 using ToStruct
 using BSON
+using CSV, DataFrames
 
 include("utils.jl")
 include("actions.jl")
