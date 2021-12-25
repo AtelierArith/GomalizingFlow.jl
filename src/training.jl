@@ -44,6 +44,7 @@ function train(hp)
 
     @info "start training"
     for epoch in 1:epochs
+        @info "epoch=$epoch"
         # switch to trainmode
         Flux.trainmode!(model)
         @showprogress for _ in 1:iterations

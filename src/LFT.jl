@@ -15,6 +15,7 @@ using ToStruct
 using BSON
 using CSV, DataFrames
 
+include("Watcher.jl")
 include("utils.jl")
 include("actions.jl")
 include("metrics.jl")
