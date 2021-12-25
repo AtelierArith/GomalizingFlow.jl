@@ -23,6 +23,7 @@ function serve(dir, item::Symbol, title = "Evaluation")
                 width = 60
             )
             display(p)
+            println()
         catch
             @warn "something happened"
         end
