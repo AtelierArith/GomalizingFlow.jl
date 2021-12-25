@@ -24,9 +24,9 @@ function create_hp_example2d()
 
     L = 8
     Nd = 2
-    M2 = -4.
+    M2 = -4.0
     lam = 8
-    pp = LFT.PhysicalParams(;L, Nd, M2, lam)
+    pp = LFT.PhysicalParams(; L, Nd, M2, lam)
 
     n_layers = 16
     hidden_sizes = [8, 8]
@@ -34,7 +34,7 @@ function create_hp_example2d()
     inC = 1
     outC = 2
     use_final_tanh = true
-    mp = LFT.ModelParams(;n_layers, hidden_sizes, kernel_size, inC, outC, use_final_tanh)
+    mp = LFT.ModelParams(; n_layers, hidden_sizes, kernel_size, inC, outC, use_final_tanh)
 
     return LFT.HyperParams(dp, tp, pp, mp, "config.toml")
 end
@@ -56,9 +56,9 @@ function create_hp_example3d()
 
     L = 8
     Nd = 3
-    M2 = -4.
+    M2 = -4.0
     lam = 8
-    pp = LFT.PhysicalParams(;L, Nd, M2, lam)
+    pp = LFT.PhysicalParams(; L, Nd, M2, lam)
 
     seed = 2021
     n_layers = 16
@@ -67,7 +67,7 @@ function create_hp_example3d()
     inC = 1
     outC = 2
     use_final_tanh = true
-    mp = LFT.ModelParams(;seed, n_layers, hidden_sizes, kernel_size, inC, outC, use_final_tanh)
+    mp = LFT.ModelParams(; seed, n_layers, hidden_sizes, kernel_size, inC, outC, use_final_tanh)
 
     return LFT.HyperParams(dp, tp, pp, mp, "config.toml")
 end
@@ -75,9 +75,9 @@ end
 @testset "PhysicalParams property" begin
     L = 8
     Nd = 2
-    M2 = -4.
+    M2 = -4.0
     lam = 8
-    pp = LFT.PhysicalParams(;L, Nd, M2, lam)
+    pp = LFT.PhysicalParams(; L, Nd, M2, lam)
     @test pp.L == L
     @test pp.lattice_shape == (L, L)
     @test pp.m² == pp.M2
@@ -98,7 +98,7 @@ end
 end
 
 @testset "example3d.toml" begin
-path = "../cfgs/example3d.toml"
+    path = "../cfgs/example3d.toml"
     ref_hp = create_hp_example3d()
     tar_hp = LFT.load_hyperparams(path)
     for f in fieldnames(typeof(ref_hp.tp))
@@ -132,59 +132,59 @@ end
 
 @testset "make_checker_mask" begin
     @test LFT.make_checker_mask((8, 8), 0) == [
-        0  1  0  1  0  1  0  1
-        1  0  1  0  1  0  1  0
-        0  1  0  1  0  1  0  1
-        1  0  1  0  1  0  1  0
-        0  1  0  1  0  1  0  1
-        1  0  1  0  1  0  1  0
-        0  1  0  1  0  1  0  1
-        1  0  1  0  1  0  1  0
+        0 1 0 1 0 1 0 1
+        1 0 1 0 1 0 1 0
+        0 1 0 1 0 1 0 1
+        1 0 1 0 1 0 1 0
+        0 1 0 1 0 1 0 1
+        1 0 1 0 1 0 1 0
+        0 1 0 1 0 1 0 1
+        1 0 1 0 1 0 1 0
     ]
     @test LFT.make_checker_mask((8, 8), 1) == [
-        1  0  1  0  1  0  1  0
-        0  1  0  1  0  1  0  1
-        1  0  1  0  1  0  1  0
-        0  1  0  1  0  1  0  1
-        1  0  1  0  1  0  1  0
-        0  1  0  1  0  1  0  1
-        1  0  1  0  1  0  1  0
-        0  1  0  1  0  1  0  1
+        1 0 1 0 1 0 1 0
+        0 1 0 1 0 1 0 1
+        1 0 1 0 1 0 1 0
+        0 1 0 1 0 1 0 1
+        1 0 1 0 1 0 1 0
+        0 1 0 1 0 1 0 1
+        1 0 1 0 1 0 1 0
+        0 1 0 1 0 1 0 1
     ]
 
     a1 = [
-        0  1  0
-        1  0  1
-        0  1  0
+        0 1 0
+        1 0 1
+        0 1 0
     ]
     a2 = [
-        1  0  1
-        0  1  0
-        1  0  1
+        1 0 1
+        0 1 0
+        1 0 1
     ]
     a3 = [
-        0  1  0
-        1  0  1
-        0  1  0
+        0 1 0
+        1 0 1
+        0 1 0
     ]
-    @test LFT.make_checker_mask((3, 3, 3), 0) == cat(a1, a2, a3, dims=3)
+    @test LFT.make_checker_mask((3, 3, 3), 0) == cat(a1, a2, a3, dims = 3)
 
     a1 = [
-    1  0  1
-    0  1  0
-    1  0  1
+        1 0 1
+        0 1 0
+        1 0 1
     ]
     a2 = [
-        0  1  0
-        1  0  1
-        0  1  0
-        ]
+        0 1 0
+        1 0 1
+        0 1 0
+    ]
     a3 = [
-        1  0  1
-        0  1  0
-        1  0  1
-        ]
-    @test LFT.make_checker_mask((3, 3, 3), 1) == cat(a1, a2, a3, dims=3)
+        1 0 1
+        0 1 0
+        1 0 1
+    ]
+    @test LFT.make_checker_mask((3, 3, 3), 1) == cat(a1, a2, a3, dims = 3)
 end
 
 @testset "model" begin
@@ -198,7 +198,29 @@ end
                 @test model1[i].net[j].weight ≈ model2[i].net[j].weight
                 @test model1[i].net[j].bias ≈ model2[i].net[j].bias
             end
+        end
     end
+end
+
+@testset "mcmc" begin
+    hp = LFT.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
+
+    device = hp.dp.device
+    @info "setup action"
+    @unpack m², λ, lattice_shape = hp.pp
+    action = LFT.ScalarPhi4Action(m², λ)
+
+    @unpack batchsize, epochs, iterations, seed = hp.tp
+    prior = eval(Meta.parse(hp.tp.prior))
+    @info "setup model"
+    model = LFT.create_model(hp)
+    # switch to testmode
+    Flux.testmode!(model)
+    nsamples = 8196
+    history1 = LFT.make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device = cpu)
+    history2 = LFT.make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device = cpu)
+    for k in keys(history1)
+        @test history1[k] ≈ history2[k]
     end
 end
 
@@ -245,7 +267,7 @@ end
 end
 
 @testset "retraining" begin
-        configpath = joinpath(@__DIR__, "assets", "config.toml")
+    configpath = joinpath(@__DIR__, "assets", "config.toml")
     pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
     hp = LFT.load_hyperparams(configpath; pretrained)
     LFT.train(hp)
