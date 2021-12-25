@@ -30,20 +30,30 @@ function train(hp)
     mkpath(result_dir)
     @info "dump hyperparams: $(joinpath(result_dir, "config.toml"))"
     LFT.hp2toml(hp, joinpath(result_dir, "config.toml"))
+    best_epoch = 1
+    T = prior |> rand |> eltype
+    best_ess = T |> zero
+    evaluations = DataFrame(
+        :epoch => Int[],
+        :loss => T[],
+        :ess => T[],
+        :best_ess => T[],
+        :best_epoch => Int[],
+    )
 
     @info "start training"
-    for _ in 1:epochs
+    for epoch in 1:epochs
         # switch to trainmode
         Flux.trainmode!(model)
         @showprogress for _ in 1:iterations
             z = rand(prior, lattice_shape..., batchsize)
-            logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
+            logq_device = sum(logpdf.(prior, z), dims = (1:ndims(z)-1)) |> device
             z_device = z |> device
             gs = Flux.gradient(ps) do
                 x, logq_ = model((z_device, logq_device))
                 logq = dropdims(
                     logq_,
-                    dims=Tuple(1:(ndims(logq_) - 1))
+                    dims = Tuple(1:(ndims(logq_)-1))
                 )
                 logp = -action(x)
                 loss = calc_dkl(logp, logq)
@@ -54,12 +64,12 @@ function train(hp)
         # switch to testmode
         Flux.testmode!(model)
         z = rand(prior, lattice_shape..., batchsize)
-        logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
+        logq_device = sum(logpdf.(prior, z), dims = (1:ndims(z)-1)) |> device
         z_device = z |> device
         x, logq_ = model((z_device, logq_device))
         logq = dropdims(
             logq_,
-            dims=Tuple(1:(ndims(logq_) - 1))
+            dims = Tuple(1:(ndims(logq_)-1))
         )
 
         logp = -action(x)
@@ -70,6 +80,28 @@ function train(hp)
         @show mean(logq)
         ess = compute_ess(logp, logq)
         @show ess
+
+        # save best checkpoint
+        if ess >= best_ess
+            @info "Found best ess"
+            @show epoch
+            best_ess = ess
+            best_epoch = epoch
+            # save model
+            trained_model_best_ess = model |> cpu
+            LFT.BSON.@save joinpath(result_dir, "trained_model_best_ess.bson") trained_model_best_ess
+            # save mcmc history
+            @info "make mcmc ensamble"
+            nsamples = 8196
+            history_best_ess = make_mcmc_ensamble(trained_model_best_ess, prior, action, lattice_shape; batchsize, nsamples, device = cpu)
+            @info "save history_best_ess to $(joinpath(result_dir, "history_best_ess.bson"))"
+            LFT.BSON.@save joinpath(result_dir, "history_best_ess.bson") history_best_ess
+            Printf.@printf "accepted_ratio= %.2f [percent]" 100mean(history_best_ess.accepted)
+        end
+
+        push!(evaluations, Dict(pairs((; epoch, loss, ess, best_epoch, best_ess))))
+
+        CSV.write(joinpath(result_dir, "evaluations.csv"), evaluations)
     end
     @info "finished training"
     trained_model = model |> cpu
@@ -77,7 +109,7 @@ function train(hp)
     LFT.BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
     @info "make mcmc ensamble"
     nsamples = 8196
-    history = make_mcmc_ensamble(trained_model, prior, action, lattice_shape; batchsize, nsamples, device=cpu)
+    history = make_mcmc_ensamble(trained_model, prior, action, lattice_shape; batchsize, nsamples, device = cpu)
     @info "save history to $(joinpath(result_dir, "history.bson"))"
     LFT.BSON.@save joinpath(result_dir, "history.bson") history
     @info "Done"
