@@ -17,6 +17,8 @@ function train(hp)
     ps = get_training_params(model)
 
     prior = eval(Meta.parse(hp.tp.prior))
+    T = prior |> rand |> eltype
+    @show T
     @show prior
 
     @info "setup optimiser"
@@ -31,7 +33,6 @@ function train(hp)
     @info "dump hyperparams: $(joinpath(result_dir, "config.toml"))"
     LFT.hp2toml(hp, joinpath(result_dir, "config.toml"))
     best_epoch = 1
-    T = prior |> rand |> eltype
     best_ess = T |> zero
     evaluations = DataFrame(
         :epoch => Int[],
@@ -102,6 +103,7 @@ function train(hp)
         push!(evaluations, Dict(pairs((; epoch, loss, ess, best_epoch, best_ess))))
 
         CSV.write(joinpath(result_dir, "evaluations.csv"), evaluations)
+
     end
     @info "finished training"
     trained_model = model |> cpu
