@@ -72,7 +72,10 @@ RUN conda install -y -c conda-forge \
     conda clean -afy # clean up
 
 # For Pluto.jl
-RUN pip install git+https://github.com/IllumiDesk/jupyter-pluto-proxy.git
+RUN pip install \
+    webio_jupyter_extension \
+    webio-jupyterlab-provider \
+    git+https://github.com/IllumiDesk/jupyter-pluto-proxy.git
 
 # Install/enable extension for JupyterLab users
 RUN jupyter labextension install jupyterlab-topbar-extension && \
@@ -97,7 +100,7 @@ RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/apputils-extension &
     ${HOME}/.jupyter/lab/user-settings/@jupyterlab/apputils-extension/themes.jupyterlab-settings
 
 RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension && \
-    echo '{"codeCellConfig": {"lineNumbers": true}}' >> \
+    echo '{"codeCellConfig": {"lineNumbers": true, "fontFamily": "JuliaMono"}}' \
     ${HOME}/.jupyter/lab/user-settings/@jupyterlab/notebook-extension/tracker.jupyterlab-settings
 
 RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/shortcuts-extension && \
@@ -108,7 +111,7 @@ RUN conda install -y seaborn matplotlib pytorch=1.9 torchvision torchaudio cudat
     conda clean -afy # clean up
 
 # Install extras
-RUN julia -e 'using Pkg; Pkg.add("ImageFiltering")'
+RUN julia -e 'using Pkg; Pkg.add(["ImageFiltering", "WebIO", "Interact"])'
 
 ENV JULIA_PROJECT=/work
 USER root
