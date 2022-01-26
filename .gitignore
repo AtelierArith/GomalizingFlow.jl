@@ -6,3 +6,4 @@ result
 result.zip
 __pycache__
 *.bson
+.DS_Store
