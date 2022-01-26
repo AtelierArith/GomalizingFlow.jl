@@ -13,6 +13,10 @@ jupyter:
 ---
 
 ```julia
+] instantiate
+```
+
+```julia
 using LinearAlgebra
 
 using BSON
@@ -25,12 +29,14 @@ using Plots
 ```
 
 ```julia
+model_name = "example2d_16x16"
 result_dir = joinpath(pkgdir(LFT), "result")
-BSON.@load joinpath(result_dir, "example2d", "trained_model_best_ess.bson") trained_model_best_ess
+model_dir = joinpath(result_dir, model_name)
+BSON.@load joinpath(model_dir, "trained_model_best_ess.bson") trained_model_best_ess
 ```
 
 ```julia
-hp = LFT.load_hyperparams(joinpath(result_dir, "example2d", "config.toml"));
+hp = LFT.load_hyperparams(joinpath(model_dir, "config.toml"));
 ```
 
 ```julia
@@ -48,10 +54,6 @@ model = trained_model_best_ess |> device;
 ```
 
 ```julia
-z = rand(prior, lattice_shape..., batchsize)
-```
-
-```julia
 function infer(model, z_, idx=length(model))
     z = Flux.unsqueeze(z_, ndims(z_) + 1)
     z_device = z |> device
@@ -63,21 +65,25 @@ end
 ```
 
 ```julia
-p1 = heatmap(rand(10, 10))
-p2 = heatmap(rand(10, 10))
-plot(p1, p2, layout=(1, 2), size=(1000, 400))
-```
-
-```julia
-d = MvNormal(Float32[4, 4], Float32[1/10 0;0 1/10])
+d = MvNormal(Float32[4, 4], Float32[1/5 0;0 1/5])
 f(x, y) = pdf(d, [x, y])
 x = 0:0.1f0:8
 y = 0:0.1f0:8
 im = f.(x', y)
-p1 = heatmap(im, clim=(0, 0.2))
+p1 = heatmap(im)
 z = imresize(im, lattice_shape)
-p2 = heatmap(z, clim=(0, 0.2))
+p2 = heatmap(z)
 plot(p1, p2, layout=(1, 2), size=(800,300))
+```
+
+```julia
+z = zeros(Float32, 16, 16)
+z[8,8]=100
+z[8,9]=100
+z[9,8]=100
+z[9,9]=100
+
+heatmap(z)
 ```
 
 ```julia
@@ -88,6 +94,7 @@ anim = @animate for idx in 1:length(model)
     else
         activation = identity
     end
+    x = x[begin:2:end, begin:2:end]
 
     heatmap(activation.(x), clim=(-1, 1), title="idx=$idx")
 end
