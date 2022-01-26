@@ -5,11 +5,11 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.1
+      jupytext_version: 1.13.5
   kernelspec:
-    display_name: julia 1.6.3
+    display_name: Julia 1.7.1
     language: julia
-    name: julia-1.6
+    name: julia-1.7
 ---
 
 # Analysis Tool
@@ -56,14 +56,15 @@ end
 ```julia
 function restore(r)
     BSON.@load joinpath(r, "history.bson") history
-    BSON.@load joinpath(r, "trained_model.bson") trained_model
-    return Flux.testmode!(trained_model), history
+    BSON.@load joinpath(r, "trained_model_best_ess.bson") trained_model_best_ess
+    return Flux.testmode!(trained_model_best_ess), history
 end
 ```
 
 ```julia
 function plot_action(r)
     hp = LFT.load_hyperparams(joinpath(r, "config.toml"));
+    @show hp
     model, _ = restore(r);
 
     batchsize = 1024
@@ -74,7 +75,7 @@ function plot_action(r)
     lattice_shape = hp.pp.lattice_shape
 
     z = rand(prior, lattice_shape..., batchsize)
-    logq_device = sum(logpdf(prior, z), dims=(1:ndims(z) - 1)) |> device
+    logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
     
     z_device = z |> device
     x_device, logq_ = model((z_device, logq_device))
@@ -133,7 +134,7 @@ end
 ```
 
 ```julia
-r = results[12] # modify here
+r = results[17] # modify here
 @show r
 ```
 
@@ -180,10 +181,14 @@ end
 ```
 
 ```julia
-a = history[:accepted][2000:end]
-ρ̄(a, t) = auto_corr(a, t)/auto_corr(a, 0)
+# Idea is taken from https://arxiv.org/pdf/hep-lat/0409106.pdf
+```
 
-function auto_corr(a::AbstractVector, t::Int) # \bar{\Gamma}
+```julia
+a = history[:accepted][2000:end]
+ρ̄(a, t) = goma_auto_corr(a, t)/goma_auto_corr(a, 0)
+
+function goma_auto_corr(a::AbstractVector, t::Int) # \bar{\Gamma}
     t = abs(t)
     ā = mean(a)
     s = zero(eltype(a))
@@ -195,7 +200,7 @@ function auto_corr(a::AbstractVector, t::Int) # \bar{\Gamma}
 end
 
 function δρ²(a, t)
-    Λ = 100
+    Λ = 600 # ここは 100 だとダメだった.
     s = 0.
     for k in 1:(t + Λ)
         s += (ρ̄(a, k + t) + ρ̄(a, k - t) - 2ρ̄(a, k) * ρ̄(a, t))^2
@@ -204,13 +209,55 @@ function δρ²(a, t)
 end
 
 W = -1
-
 for t in 1:1000
     if ρ̄(a, t) ≤ √(δρ²(a, t))
         W = t
         break
     end
 end
-
+@show W
 τᵢₙₜ = 0.5 + sum(t->ρ̄(a, t), 1:W)
+```
+
+```julia
+plot([ρ̄(a, t) for t in 1:100])
+```
+
+```julia
+τᵢₙₜ * sqrt((4W + 2)/length(a))
+```
+
+```julia
+using StatsBase
+```
+
+```julia
+function tomiya_autocorr(x)
+    result = crosscor(x, x) # , mode='full')
+    idx = div(length(result),2)
+    return result[(idx+1):end]
+end
+function calc_τ_ac(x)
+    ρ = tomiya_autocorr(x)
+    @show ρ
+    return sum(ρ)+1/2
+end
+```
+
+```julia
+a = history[:accepted][2000:end];
+```
+
+```julia
+calc_τ_ac(a)
+```
+
+```julia
+StatsBase.autocor(a) |> sum
+```
+
+```julia
+plot(StatsBase.autocor(a))
+plot(tomiya_autocorr(a), alpha=0.5)
+plt.ylim(0, 1)
 ```
