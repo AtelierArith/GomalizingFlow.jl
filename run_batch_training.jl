@@ -43,8 +43,8 @@ function main()
     config = TOML.parsefile(path)
     for L in [4, 8, 12, 16]
         config["physical"]["L"] = L
-        foldername = splitext(basename(configpath))[begin]
-        foldername * "L_$(L)"
+        foldername = splitext(basename(path))[begin]
+        foldername *= "_L_$(L)"
         @info "foldername" foldername
         hp = LFT.load_hyperparams(config, foldername; device_id, pretrained, result)
         LFT.train(hp)
