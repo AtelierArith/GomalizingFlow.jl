@@ -299,8 +299,7 @@ end
 @testset "retraining" begin
     configpath = joinpath(@__DIR__, "assets", "config.toml")
     pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
-    config = TOML.parsefile(configpath)
-    hp = LFT.load_hyperparams(config; pretrained)
+    hp = LFT.load_hyperparams(configpath; pretrained)
     LFT.train(hp)
     # notify retraining has been done
     @test true
