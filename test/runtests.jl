@@ -34,11 +34,17 @@ function create_hp_example2d()
     inC = 1
     outC = 2
     use_final_tanh = true
-    mp = LFT.ModelParams(; n_layers, hidden_sizes, kernel_size, inC, outC, use_final_tanh)
+    mp = LFT.ModelParams(;
+        n_layers,
+        hidden_sizes,
+        kernel_size,
+        inC,
+        outC,
+        use_final_tanh,
+    )
 
     return LFT.HyperParams(dp, tp, pp, mp, "config.toml")
 end
-
 
 function create_hp_example3d()
     @info "load hyper parmeters"
@@ -67,7 +73,15 @@ function create_hp_example3d()
     inC = 1
     outC = 2
     use_final_tanh = true
-    mp = LFT.ModelParams(; seed, n_layers, hidden_sizes, kernel_size, inC, outC, use_final_tanh)
+    mp = LFT.ModelParams(;
+        seed,
+        n_layers,
+        hidden_sizes,
+        kernel_size,
+        inC,
+        outC,
+        use_final_tanh,
+    )
 
     return LFT.HyperParams(dp, tp, pp, mp, "config.toml")
 end
@@ -167,7 +181,7 @@ end
         1 0 1
         0 1 0
     ]
-    @test LFT.make_checker_mask((3, 3, 3), 0) == cat(a1, a2, a3, dims = 3)
+    @test LFT.make_checker_mask((3, 3, 3), 0) == cat(a1, a2, a3, dims=3)
 
     a1 = [
         1 0 1
@@ -184,7 +198,7 @@ end
         0 1 0
         1 0 1
     ]
-    @test LFT.make_checker_mask((3, 3, 3), 1) == cat(a1, a2, a3, dims = 3)
+    @test LFT.make_checker_mask((3, 3, 3), 1) == cat(a1, a2, a3, dims=3)
 end
 
 @testset "model" begin
@@ -217,8 +231,24 @@ end
     # switch to testmode
     Flux.testmode!(model)
     nsamples = 8196
-    history1 = LFT.make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device = cpu)
-    history2 = LFT.make_mcmc_ensamble(model, prior, action, lattice_shape; batchsize, nsamples, device = cpu)
+    history1 = LFT.make_mcmc_ensamble(
+        model,
+        prior,
+        action,
+        lattice_shape;
+        batchsize,
+        nsamples,
+        device=cpu,
+    )
+    history2 = LFT.make_mcmc_ensamble(
+        model,
+        prior,
+        action,
+        lattice_shape;
+        batchsize,
+        nsamples,
+        device=cpu,
+    )
     for k in keys(history1)
         @test history1[k] ≈ history2[k]
     end

@@ -7,20 +7,20 @@ function parse_commandline()
 
     @add_arg_table! s begin
         "config"
-            help = """
-            specify path/to/a/toml/file
-            you can find an example 'cfgs/example2d.toml'
-            """
-            required = true
+        help = """
+        specify path/to/a/toml/file
+        you can find an example 'cfgs/example2d.toml'
+        """
+        required = true
         "--device"
-            help = "override Device ID"
-            default = nothing
+        help = "override Device ID"
+        default = nothing
         "--result"
-            help = "path/to/result/dir"
-            default = "result"
+        help = "path/to/result/dir"
+        default = "result"
         "--pretrained"
-            help = "load /path/to/trained_model.bson and train with the model"
-            default = nothing
+        help = "load /path/to/trained_model.bson and train with the model"
+        default = nothing
     end
 
     return parse_args(s)

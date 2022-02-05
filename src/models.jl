@@ -15,7 +15,7 @@ function (model::AffineCoupling)(x_pair_loghidden)
     s = @view net_out[.., 1, :] # extract feature from 1st channel
     t = @view net_out[.., 2, :] # extract feature from 2nd channel
     fx = @. (1 - model.mask) * t + x_active * exp(s) + x_frozen
-    logJ = sum((1 .- model.mask) .* s, dims=1:(ndims(s) - 1))
+    logJ = sum((1 .- model.mask) .* s, dims=1:(ndims(s)-1))
     return (fx, loghidden .- logJ)
 end
 
@@ -42,11 +42,11 @@ function create_model(hp::HyperParams)
     use_final_tanh = hp.mp.use_final_tanh
 
     module_list = []
-    for i ∈ 0:(n_layers - 1)
+    for i in 0:(n_layers-1)
         parity = mod(i, 2)
         channels = [inC, hidden_sizes..., outC]
         net = []
-        for (c, c_next) ∈ pairwise(channels)
+        for (c, c_next) in pairwise(channels)
             # https://pytorch.org/docs/stable/generated/torch.nn.Conv3d.html
             k = 1 / (c * prod(kernel_size))
             W = rand(Uniform(-√k, √k), kernel_size..., c, c_next)
@@ -59,7 +59,7 @@ function create_model(hp::HyperParams)
             end
         end
         if use_final_tanh
-            c = channels[end - 1]
+            c = channels[end-1]
             c_next = channels[end]
             k = 1 / (c * prod(kernel_size))
             W = rand(Uniform(-√k, √k), kernel_size..., c, c_next)
