@@ -49,13 +49,13 @@ function train(hp)
         Flux.trainmode!(model)
         @showprogress for _ in 1:iterations
             z = rand(prior, lattice_shape..., batchsize)
-            logq_device = sum(logpdf.(prior, z), dims = (1:ndims(z)-1)) |> device
+            logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
             z_device = z |> device
             gs = Flux.gradient(ps) do
                 x, logq_ = model((z_device, logq_device))
                 logq = dropdims(
                     logq_,
-                    dims = Tuple(1:(ndims(logq_)-1))
+                    dims=Tuple(1:(ndims(logq_)-1)),
                 )
                 logp = -action(x)
                 loss = calc_dkl(logp, logq)
@@ -66,12 +66,12 @@ function train(hp)
         # switch to testmode
         Flux.testmode!(model)
         z = rand(prior, lattice_shape..., batchsize)
-        logq_device = sum(logpdf.(prior, z), dims = (1:ndims(z)-1)) |> device
+        logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
         z_device = z |> device
         x, logq_ = model((z_device, logq_device))
         logq = dropdims(
             logq_,
-            dims = Tuple(1:(ndims(logq_)-1))
+            dims=Tuple(1:(ndims(logq_)-1)),
         )
 
         logp = -action(x)
@@ -112,7 +112,15 @@ function train(hp)
     LFT.BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
     @info "make mcmc ensamble"
     nsamples = 8196
-    history = make_mcmc_ensamble(trained_model, prior, action, lattice_shape; batchsize, nsamples, device = cpu)
+    history = make_mcmc_ensamble(
+        trained_model,
+        prior,
+        action,
+        lattice_shape;
+        batchsize,
+        nsamples,
+        device=cpu,
+    )
     @info "save history to $(joinpath(result_dir, "history.bson"))"
     LFT.BSON.@save joinpath(result_dir, "history.bson") history
     @info "Done"
