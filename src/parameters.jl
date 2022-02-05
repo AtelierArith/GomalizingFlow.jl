@@ -65,7 +65,7 @@ end
 
 function load_hyperparams(
     config::Dict,
-    output_dirname::String,
+    output_dirname::String;
     device_id::Union{Nothing,Int}=nothing,
     pretrained::Union{Nothing,String}=nothing,
     result::AbstractString="result",
