@@ -118,6 +118,7 @@ function train(hp)
         push!(evaluations, Dict(pairs((; epoch, loss, ess, best_epoch, best_ess, accepted_ratio))))
 
         CSV.write(joinpath(result_dir, "evaluations.csv"), evaluations)
+        @info "Done epoch $(epoch)"
     end
     @info "finished training"
     trained_model = model |> cpu
