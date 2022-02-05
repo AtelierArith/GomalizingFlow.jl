@@ -6,7 +6,7 @@ using CSV, DataFrames
 
 export serve
 
-function serve(dir, item::Symbol, title = "Evaluation")
+function serve(dir, item::Symbol, title="Evaluation")
     file = joinpath(dir, "evaluations.csv")
     while true
         FileWatching.watch_file(file)
@@ -16,11 +16,11 @@ function serve(dir, item::Symbol, title = "Evaluation")
             df = CSV.read(file, DataFrame)
             p = lineplot(
                 df.epoch, getproperty(df, item);
-                name = string(item),
-                title = title,
-                xlabel = "epoch",
-                ylabel = string(item),
-                width = 60
+                name=string(item),
+                title=title,
+                xlabel="epoch",
+                ylabel=string(item),
+                width=60,
             )
             display(p)
             println()

@@ -1,23 +1,23 @@
 using PyCall
-using LFT:reversedims
+using LFT: reversedims
 
 pushfirst!(PyVector(pyimport("sys")."path"), "")
 
 @testset "ScalarPhi4Action" begin
-	pyaction = pyimport("pymod.action")
-	cfgs = pyaction.cfgs
+    pyaction = pyimport("pymod.action")
+    cfgs = pyaction.cfgs
 
-	M2 = 1.0
-	lam = 1.0
-	out1 = LFT.ScalarPhi4Action(M2, lam)(cfgs |> reversedims)
-	pyout1 = pyaction.out1
-	@test out1 ≈ pyout1
+    M2 = 1.0
+    lam = 1.0
+    out1 = LFT.ScalarPhi4Action(M2, lam)(cfgs |> reversedims)
+    pyout1 = pyaction.out1
+    @test out1 ≈ pyout1
 
-	M2 = -4.0
-	lam = 8.0
-	out2 = LFT.ScalarPhi4Action(M2, lam)(cfgs |> reversedims)
-	pyout2 = pyaction.out2
-	@test out2 ≈ pyout2
+    M2 = -4.0
+    lam = 8.0
+    out2 = LFT.ScalarPhi4Action(M2, lam)(cfgs |> reversedims)
+    pyout2 = pyaction.out2
+    @test out2 ≈ pyout2
 end
 
 torch = pyimport("torch")
@@ -47,7 +47,7 @@ function torch2conv(lay, σ=Flux.identity)
         pad = 0
         return Chain(
             LFT.mycircular,
-            Conv(W, b, σ; pad, stride)
+            Conv(W, b, σ; pad, stride),
         )
     else
         return Chain(Conv(W, b, σ; pad, stride))
@@ -55,41 +55,42 @@ function torch2conv(lay, σ=Flux.identity)
 end
 
 @testset "make_checker_mask" begin
-	torchlayer = pyimport("pymod.torchlayer")
-	@test torchlayer.make_checker_mask((8, 8), 0).data.numpy() == LFT.make_checker_mask((8, 8), 0)
+    torchlayer = pyimport("pymod.torchlayer")
+    @test torchlayer.make_checker_mask((8, 8), 0).data.numpy() ==
+          LFT.make_checker_mask((8, 8), 0)
 end
 
 @testset "torch layer" begin
-	torchlayer = pyimport("pymod.torchlayer")
-	config = joinpath(@__DIR__, "assets", "config.toml")
-	lattice_shape = torchlayer.lattice_shape
-	batchsize = torchlayer.batch_size
+    torchlayer = pyimport("pymod.torchlayer")
+    config = joinpath(@__DIR__, "assets", "config.toml")
+    lattice_shape = torchlayer.lattice_shape
+    batchsize = torchlayer.batch_size
 
-	module_list = []
-	for (i, coupling) in enumerate(torchlayer.my_model["layers"])
-		parity = (i + 1) % 2
-		net = []
-		for (lay, σ) in pairwise(coupling.net)
-			if py"isinstance"(lay, torch.nn.Conv2d)
-				if py"isinstance"(σ, torch.nn.LeakyReLU)
-					push!(net, torch2conv(lay, leakyrelu))
-				elseif py"isinstance"(σ, torch.nn.Tanh)
-					push!(net, torch2conv(lay, tanh))
-				else
-					@show lay
-					@show σ
-					error("Expected σ is LeakyReLU or Tanh")
-				end
-			end
-		end
-		mask = LFT.make_checker_mask(lattice_shape, parity)
-		push!(module_list, LFT.AffineCoupling(Chain(net...), mask))
-	end
-	model = Chain(module_list...)
-	prior = Normal{Float32}(0f0, 1f0)
-	x = rand(prior, lattice_shape..., batchsize)
-	logq_ = sum(logpdf.(prior, x), dims=(1:ndims(x) - 1))
-	xout, logq = model((x, logq_))
-	torch_out = torchlayer.applyflow(x |> jl2torch) |> torch2jl
-	@test torch_out ≈ xout
+    module_list = []
+    for (i, coupling) in enumerate(torchlayer.my_model["layers"])
+        parity = (i + 1) % 2
+        net = []
+        for (lay, σ) in pairwise(coupling.net)
+            if py"isinstance"(lay, torch.nn.Conv2d)
+                if py"isinstance"(σ, torch.nn.LeakyReLU)
+                    push!(net, torch2conv(lay, leakyrelu))
+                elseif py"isinstance"(σ, torch.nn.Tanh)
+                    push!(net, torch2conv(lay, tanh))
+                else
+                    @show lay
+                    @show σ
+                    error("Expected σ is LeakyReLU or Tanh")
+                end
+            end
+        end
+        mask = LFT.make_checker_mask(lattice_shape, parity)
+        push!(module_list, LFT.AffineCoupling(Chain(net...), mask))
+    end
+    model = Chain(module_list...)
+    prior = Normal{Float32}(0.0f0, 1.0f0)
+    x = rand(prior, lattice_shape..., batchsize)
+    logq_ = sum(logpdf.(prior, x), dims=(1:ndims(x)-1))
+    xout, logq = model((x, logq_))
+    torch_out = torchlayer.applyflow(x |> jl2torch) |> torch2jl
+    @test torch_out ≈ xout
 end

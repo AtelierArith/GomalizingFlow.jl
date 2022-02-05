@@ -64,12 +64,12 @@ struct HyperParams
 end
 
 function load_hyperparams(
-        configpath::AbstractString;
-        device_id::Union{Nothing,Int}=nothing,
-        pretrained::Union{Nothing,String}=nothing,
-        result::AbstractString="result",
-    )::HyperParams
-    config = TOML.parsefile(configpath)
+    config::Dict,
+    output_dirname::String;
+    device_id::Union{Nothing,Int}=nothing,
+    pretrained::Union{Nothing,String}=nothing,
+    result::AbstractString="result",
+)::HyperParams
     if !isnothing(device_id)
         @info "override device id $(device_id)"
     else
@@ -88,15 +88,30 @@ function load_hyperparams(
         config["model"]["use_bn"] = false
     end
     mp = ToStruct.tostruct(ModelParams, config["model"])
-    result_dir = abspath(joinpath(result, splitext(basename(configpath))[begin]))
+    result_dir = abspath(joinpath(result, output_dirname))
     return HyperParams(dp, tp, pp, mp, result_dir)
+end
+
+function _d(configpath::AbstractString)
+    foldername = splitext(basename(configpath))[begin]
+    return foldername
+end
+
+function load_hyperparams(
+    configpath::AbstractString,
+    output_dirname::String=_d(configpath),
+    args...;
+    kwargs...,
+)
+    config = TOML.parsefile(configpath)
+    load_hyperparams(config, output_dirname, args...; kwargs...)
 end
 
 function hp2toml(hp::HyperParams, fname::AbstractString)
     data = OrderedDict{String,Any}("device_id" => hp.dp.device_id)
     for (sym, itemname) in [(:mp, "model"), (:pp, "physical"), (:tp, "training")]
         obj = getfield(hp, sym)
-        v = OrderedDict(key => getfield(obj, key) for key ∈ fieldnames(obj |> typeof))
+        v = OrderedDict(key => getfield(obj, key) for key in fieldnames(obj |> typeof))
         data[itemname] = v
     end
     open(fname, "w") do io

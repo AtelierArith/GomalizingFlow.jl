@@ -1,3 +1,5 @@
+using TOML
+
 using ArgParse
 
 using LFT
@@ -38,8 +40,15 @@ function main()
         pretrained = abspath(args["pretrained"])
     end
     result = abspath(args["result"])
-    hp = LFT.load_hyperparams(path; device_id, pretrained, result)
-    LFT.train(hp)
+    config = TOML.parsefile(path)
+    for L in [4, 8, 12, 16]
+        config["physical"]["L"] = L
+        foldername = splitext(basename(path))[begin]
+        foldername *= "_L_$(L)"
+        @info "foldername" foldername
+        hp = LFT.load_hyperparams(config, foldername; device_id, pretrained, result)
+        LFT.train(hp)
+    end
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
