@@ -119,6 +119,8 @@ function train(hp)
 
         CSV.write(joinpath(result_dir, "evaluations.csv"), evaluations)
         @info "Done epoch $(epoch)"
+        @info "Increment random seed"
+        Random.seed!(seed + epoch)
     end
     @info "finished training"
     trained_model = model |> cpu
