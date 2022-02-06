@@ -86,13 +86,13 @@ function train(hp)
 
         nsamples = 8196
         history_current_epoch = make_mcmc_ensamble(
-            model |> cpu,
+            model,
             prior,
             action,
             lattice_shape;
             batchsize,
             nsamples,
-            device=cpu,
+            device=device,
         )
         accepted_ratio = 100mean(history_current_epoch.accepted)
         @show accepted_ratio
@@ -110,7 +110,7 @@ function train(hp)
             history_best_ess = history_current_epoch
             @info "save history_best_ess to $(joinpath(result_dir, "history_best_ess.bson"))"
             LFT.BSON.@save joinpath(result_dir, "history_best_ess.bson") history_best_ess
-            Printf.@printf "accepted_ratio= %.2f [percent]" 100mean(
+            Printf.@printf "accepted_ratio= %.2f [percent]\n" 100mean(
                 history_best_ess.accepted,
             )
         end
