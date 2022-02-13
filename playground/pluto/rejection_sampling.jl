@@ -8,40 +8,65 @@ using InteractiveUtils
 begin
 	using Plots
 	using Random
+	import Distributions
+end
+
+# ╔═╡ 2c3c0381-5625-4cb4-9d9c-3eefacd744e8
+begin
+	abstract type Prior{T<:Real} end
+	Broadcast.broadcastable(d::Prior) = Ref(d)
 end
 
 # ╔═╡ 6403ab64-ac6d-4ba7-be99-0f4fb8d29368
 begin
-	Base.@kwdef struct Potential{T <: Real}
+	Base.@kwdef struct Potential{T} <: Prior{T}
 		m²::T
 		λ::T
 		xmin::T=-2.
 		xmax::T=2.
 	end
-	
-	Broadcast.broadcastable(d::Potential) = Ref(d)
+	Base.eltype(::Type{Potential{T}}) where T = T
+end
+
+# ╔═╡ 0103f06c-390f-4648-b50b-6b1c74e79178
+begin
+	Base.@kwdef struct Normal{T} <: Prior{T}
+		μ::T
+		σ::T
+		xmin::T=-3.5
+		xmax::T=3.5
+	end
+	Base.eltype(::Type{Normal{T}}) where T = T
 end
 
 # ╔═╡ 1b335f8a-362d-40c2-b2b9-d164978080d2
 begin
-	pdf(v::Potential{T}, x) where T <: Real = exp(-T(v.m² * x^2 + v.λ * x^4))
+	logpdf(d::Potential{T}, x) where T = -T(d.m² * x^2 + d.λ * x^4)
+	pdf(d::Potential{T}, x) where T = exp(logpdf(d, x))
+	logpdf(d::Normal{T}, x) where T = -0.5(T(x)-d.μ)^2/(d.σ)^2 - log(√(2π*(d.σ)^2))
+	function pdf(d::Normal{T}, x) where T
+		exp(-0.5(T(x)-d.μ)^2/(d.σ)^2)/√(2π*(d.σ)^2)
+	end
 end
 
 # ╔═╡ 98162e2d-c2df-48ee-82fb-bd9f361ca5e6
-begin
+let
 	v = Potential{Float32}(m²=-0.6, λ=3.0)
-	pdf.(Ref(v), [0.1, 0.2]) |> typeof
+	pdf.(v, [0.1, 0.2]) |> typeof
 end
 
 # ╔═╡ cd70d327-f249-429e-94a7-1bff31d6e281
-(pdf(v, 0.1), pdf(v, 0.2)) |> typeof
+let
+	v = Potential{Float32}(m²=-0.6, λ=3.0)
+	(pdf(v, 0.1), pdf(v, 0.2)) |> typeof
+end
 
 # ╔═╡ c6465daa-b789-4e68-83ab-4dce57f02b08
-function get_example(rng::AbstractRNG, v::Potential)
-	k = 5.
+function get_example(rng::AbstractRNG, v::Prior{T}) where T
+	k = T(3)
 	while true
-		z = (v.xmax - v.xmin) * rand(rng) +  v.xmin
-		u = k * 0.5rand(rng)
+		z = (v.xmax - v.xmin) * rand(rng, T) +  v.xmin
+		u = k * rand(rng, T)
 		if pdf(v, z) > u
 			return z
 		end
@@ -50,42 +75,69 @@ end
 
 # ╔═╡ 329c524c-2066-4bff-b6ee-11af18143148
 begin
+	v = Potential{Float32}(m²=-0.6, λ=3.0)
 	rng = MersenneTwister(0)
 	get_example(rng, v)
 end
 
 # ╔═╡ 20acb0f5-ed09-47ab-b0f6-6fcb653d75a5
 begin
-	function Random.rand(rng::AbstractRNG, v::Potential)
+	function Random.rand(rng::AbstractRNG, v::D) where D <: Prior
 		get_example(rng, v)
 	end
 	
 	function Random.rand(
 		rng::AbstractRNG,
-		d::Random.SamplerTrivial{Potential{T}}
-	) where T<:Real
+		d::Random.SamplerTrivial{D}
+	) where D <: Prior
 		get_example(rng, d[])
 	end
 end
 
 # ╔═╡ f52b5e7d-af08-401f-a8a5-570814c71df4
-begin
-samples = rand(v, 5*10^5)
-histogram(samples, normalize=:pdf)
-#plot!(x->pdf(v, x))
-x = v.xmin:0.001:v.xmax |> collect
-normalization = sum(pdf.(v, x)) * 0.001
-y = pdf.(v, x)/normalization
-plot!(x, y)
+let
+	v = Potential{Float32}(m²=-0.6, λ=3.0)
+	samples = rand(v, 5*10^5)
+	@show samples |> typeof
+	histogram(samples, normalize=:pdf, label="histogram")
+	#plot!(x->pdf(v, x))
+	x = v.xmin:0.001:v.xmax |> collect
+	normalization = sum(pdf.(v, x)) * 0.001
+	y = pdf.(v, x)/normalization
+	plot!(x, y, label="mypdf")
+end
+
+# ╔═╡ 1b681ced-f571-4445-be80-876000e6a9da
+let
+	for T in [Float32, Float64]
+		v = Potential{T}(m²=-0.6, λ=3.0)
+		@assert rand(v, 10, 10) |> eltype == T
+	end
+end
+
+# ╔═╡ f7463a10-b90b-4121-9a14-980cec61c416
+let
+	v = Normal{Float32}(μ=0., σ=1)
+	samples = rand(v, 5*10^5)
+	@show samples |> typeof
+	histogram(samples, normalize=:pdf, label="histogram")
+	#plot!(x->pdf(v, x))
+	x = v.xmin:0.001:v.xmax |> collect
+	normalization = sum(pdf.(v, x)) * 0.001
+	y = pdf.(v, x)/normalization
+	plot!(x, y, label="mypdf")
+	plot!(x->Distributions.pdf(Distributions.Normal(0., 1.), x), label="Distributions.jl", α=0.5)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
+Distributions = "~0.25.48"
 Plots = "~1.25.8"
 """
 
@@ -93,7 +145,7 @@ Plots = "~1.25.8"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.7.1"
+julia_version = "1.7.2"
 manifest_format = "2.0"
 
 [[deps.Adapt]]
@@ -193,9 +245,21 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 deps = ["Mmap"]
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
+[[deps.DensityInterface]]
+deps = ["InverseFunctions", "Test"]
+git-tree-sha1 = "80c3e8639e3353e5d2912fb3a1916b8455e2494b"
+uuid = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
+version = "0.4.0"
+
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+
+[[deps.Distributions]]
+deps = ["ChainRulesCore", "DensityInterface", "FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SparseArrays", "SpecialFunctions", "Statistics", "StatsBase", "StatsFuns", "Test"]
+git-tree-sha1 = "38012bf3553d01255e83928eec9c998e19adfddf"
+uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
+version = "0.25.48"
 
 [[deps.DocStringExtensions]]
 deps = ["LibGit2"]
@@ -230,6 +294,12 @@ deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers",
 git-tree-sha1 = "d8a578692e3077ac998b50c0217dfd67f21d1e5f"
 uuid = "b22a6f82-2f65-5046-a5b2-351ab43fb4e5"
 version = "4.4.0+0"
+
+[[deps.FillArrays]]
+deps = ["LinearAlgebra", "Random", "SparseArrays", "Statistics"]
+git-tree-sha1 = "deed294cde3de20ae0b2e0355a6c4e1c6a5ceffc"
+uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
+version = "0.12.8"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -527,11 +597,21 @@ version = "1.3.5+1"
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
 
+[[deps.OpenLibm_jll]]
+deps = ["Artifacts", "Libdl"]
+uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
+
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "648107615c15d4e09f7eca16307bc821c1f718d8"
 uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
 version = "1.1.13+0"
+
+[[deps.OpenSpecFun_jll]]
+deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "13652491f6856acfd2db29360e1bbcd4565d04f1"
+uuid = "efe28fd5-8261-553b-a9e1-b2916fc3738e"
+version = "0.5.5+0"
 
 [[deps.Opus_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -549,6 +629,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "b2a7af664e098055a7529ad1a900ded962bca488"
 uuid = "2f80f16e-611a-54ab-bc61-aa92de5b98fc"
 version = "8.44.0+0"
+
+[[deps.PDMats]]
+deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
+git-tree-sha1 = "ee26b350276c51697c9c2d88a072b339f9f03d73"
+uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
+version = "0.11.5"
 
 [[deps.Parsers]]
 deps = ["Dates"]
@@ -600,6 +686,12 @@ git-tree-sha1 = "ad368663a5e20dbb8d6dc2fddeefe4dae0781ae8"
 uuid = "ea2cea3b-5b76-57ae-a6ef-0a8af62496e1"
 version = "5.15.3+0"
 
+[[deps.QuadGK]]
+deps = ["DataStructures", "LinearAlgebra"]
+git-tree-sha1 = "78aadffb3efd2155af139781b8a8df1ef279ea39"
+uuid = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
+version = "2.4.2"
+
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
@@ -636,6 +728,18 @@ git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.3.0"
 
+[[deps.Rmath]]
+deps = ["Random", "Rmath_jll"]
+git-tree-sha1 = "bf3188feca147ce108c76ad82c2792c57abe7b1f"
+uuid = "79098fc4-a85e-5d69-aa6a-4863f24498fa"
+version = "0.7.0"
+
+[[deps.Rmath_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "68db32dff12bb6127bac73c209881191bf0efbb7"
+uuid = "f50d1b31-88e8-58de-be2c-1cc44531875f"
+version = "0.3.0+0"
+
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
@@ -671,6 +775,12 @@ version = "1.0.1"
 deps = ["LinearAlgebra", "Random"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
+[[deps.SpecialFunctions]]
+deps = ["ChainRulesCore", "IrrationalConstants", "LogExpFunctions", "OpenLibm_jll", "OpenSpecFun_jll"]
+git-tree-sha1 = "8d0c8e3d0ff211d9ff4a0c2307d876c99d10bdf1"
+uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
+version = "2.1.2"
+
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
 git-tree-sha1 = "a635a9333989a094bddc9f940c04c549cd66afcf"
@@ -692,11 +802,21 @@ git-tree-sha1 = "51383f2d367eb3b444c961d485c565e4c0cf4ba0"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.33.14"
 
+[[deps.StatsFuns]]
+deps = ["ChainRulesCore", "InverseFunctions", "IrrationalConstants", "LogExpFunctions", "Reexport", "Rmath", "SpecialFunctions"]
+git-tree-sha1 = "f35e1879a71cca95f4826a14cdbf0b9e253ed918"
+uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
+version = "0.9.15"
+
 [[deps.StructArrays]]
 deps = ["Adapt", "DataAPI", "StaticArrays", "Tables"]
 git-tree-sha1 = "d21f2c564b21a202f4677c0fba5b5ee431058544"
 uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 version = "0.6.4"
+
+[[deps.SuiteSparse]]
+deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
+uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 
 [[deps.TOML]]
 deps = ["Dates"]
@@ -962,7 +1082,9 @@ version = "0.9.1+5"
 
 # ╔═╡ Cell order:
 # ╠═959896de-8b29-11ec-39ef-4fdfabd1f372
+# ╠═2c3c0381-5625-4cb4-9d9c-3eefacd744e8
 # ╠═6403ab64-ac6d-4ba7-be99-0f4fb8d29368
+# ╠═0103f06c-390f-4648-b50b-6b1c74e79178
 # ╠═1b335f8a-362d-40c2-b2b9-d164978080d2
 # ╠═98162e2d-c2df-48ee-82fb-bd9f361ca5e6
 # ╠═cd70d327-f249-429e-94a7-1bff31d6e281
@@ -970,5 +1092,7 @@ version = "0.9.1+5"
 # ╠═329c524c-2066-4bff-b6ee-11af18143148
 # ╠═20acb0f5-ed09-47ab-b0f6-6fcb653d75a5
 # ╠═f52b5e7d-af08-401f-a8a5-570814c71df4
+# ╠═1b681ced-f571-4445-be80-876000e6a9da
+# ╠═f7463a10-b90b-4121-9a14-980cec61c416
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
