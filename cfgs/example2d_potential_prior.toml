@@ -25,7 +25,7 @@ epochs = 40
 iterations = 100
 base_lr = 0.001
 opt = "ADAM"
-prior = "Potential{T}(;m², λ)"
+prior = "Potential{Float32}(; m²=-4.0, λ=8.0)"
 pretrained = ""
 
 # setup PhysicalParams
