@@ -41,63 +41,66 @@ function train(hp)
         :best_ess => T[],
         :best_epoch => Int[],
         :acceptance_rate => T[],
+        :elapsed_time => Float64[],
     )
 
     rng = MersenneTwister(seed)
 
     @info "start training"
     for epoch in 1:epochs
-        @info "epoch=$epoch"
-        # switch to trainmode
-        Flux.trainmode!(model)
-        @showprogress for _ in 1:iterations
+        td = @timed begin
+            @info "epoch=$epoch"
+            # switch to trainmode
+            Flux.trainmode!(model)
+            @showprogress for _ in 1:iterations
+                z = rand(rng, prior, lattice_shape..., batchsize)
+                logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
+                z_device = z |> device
+                gs = Flux.gradient(ps) do
+                    x, logq_ = model((z_device, logq_device))
+                    logq = dropdims(
+                        logq_,
+                        dims=Tuple(1:(ndims(logq_)-1)),
+                    )
+                    logp = -action(x)
+                    loss = calc_dkl(logp, logq)
+                end
+                Flux.Optimise.update!(opt, ps, gs)
+            end
+
+            # switch to testmode
+            Flux.testmode!(model)
             z = rand(rng, prior, lattice_shape..., batchsize)
             logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
             z_device = z |> device
-            gs = Flux.gradient(ps) do
-                x, logq_ = model((z_device, logq_device))
-                logq = dropdims(
-                    logq_,
-                    dims=Tuple(1:(ndims(logq_)-1)),
-                )
-                logp = -action(x)
-                loss = calc_dkl(logp, logq)
-            end
-            Flux.Optimise.update!(opt, ps, gs)
-        end
+            x, logq_ = model((z_device, logq_device))
+            logq = dropdims(
+                logq_,
+                dims=Tuple(1:(ndims(logq_)-1)),
+            )
 
-        # switch to testmode
-        Flux.testmode!(model)
-        z = rand(rng, prior, lattice_shape..., batchsize)
-        logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
-        z_device = z |> device
-        x, logq_ = model((z_device, logq_device))
-        logq = dropdims(
-            logq_,
-            dims=Tuple(1:(ndims(logq_)-1)),
-        )
+            logp = -action(x)
+            loss = calc_dkl(logp, logq)
+            @show loss
+            println("loss per site", loss / prod(lattice_shape))
+            @show mean(logp)
+            @show mean(logq)
+            ess = compute_ess(logp, logq)
+            @show ess
 
-        logp = -action(x)
-        loss = calc_dkl(logp, logq)
-        @show loss
-        println("loss per site", loss / prod(lattice_shape))
-        @show mean(logp)
-        @show mean(logq)
-        ess = compute_ess(logp, logq)
-        @show ess
-
-        nsamples = 8196
-        history_current_epoch = make_mcmc_ensamble(
-            model,
-            prior,
-            action,
-            lattice_shape;
-            batchsize,
-            nsamples,
-            device=device,
-        )
-        acceptance_rate = 100mean(history_current_epoch.accepted)
-        @show acceptance_rate
+            nsamples = 8196
+            history_current_epoch = make_mcmc_ensamble(
+                model,
+                prior,
+                action,
+                lattice_shape;
+                batchsize,
+                nsamples,
+                device=device,
+            )
+            acceptance_rate = 100mean(history_current_epoch.accepted)
+            @show acceptance_rate
+        end # @timed
         # save best checkpoint
         if ess >= best_ess
             @info "Found best ess"
@@ -116,8 +119,8 @@ function train(hp)
                 history_best_ess.accepted[2000:end],
             )
         end
-
-        push!(evaluations, Dict(pairs((; epoch, loss, ess, best_epoch, best_ess, acceptance_rate))))
+        elapsed_time = td.time
+        push!(evaluations, Dict(pairs((; epoch, loss, ess, best_epoch, best_ess, acceptance_rate, elapsed_time))))
 
         CSV.write(joinpath(result_dir, "evaluations.csv"), evaluations)
     end
