@@ -1,2 +1,5 @@
 # Always pair ipynb notebooks to md files
 formats = "ipynb,md"
+# omit metadata
+notebook_metadata_filter = "-all"
+cell_metadata_filter = "-all"
