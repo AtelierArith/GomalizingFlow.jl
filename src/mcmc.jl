@@ -8,12 +8,12 @@ function make_mcmc_ensamble(
     device=cpu,
     seed=2009,
 )
-    Random.seed!(seed)
+    rng = MersenneTwister(seed)
     Nd = length(lattice_shape)
     history = (x=Array{Float32,Nd}[], logq=Float32[], logp=Float32[], accepted=Bool[])
     c = 0
     for _ in 1:(nsamples÷batchsize+1)
-        z = rand(prior, lattice_shape..., batchsize)
+        z = rand(rng, prior, lattice_shape..., batchsize)
         logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
         z_device = z |> device
         x_device, logq_ = model((z_device, logq_device))
@@ -37,7 +37,7 @@ function make_mcmc_ensamble(
                 last_x = history[:x][end]
                 p_accept = exp((new_logp - new_logq) - (last_logp - last_logq))
                 p_accept = min(one(p_accept), p_accept)
-                draw = rand()
+                draw = rand(rng, typeof(p_accept))
                 if draw < p_accept
                     accepted = true
                 else
