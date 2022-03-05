@@ -1,4 +1,5 @@
 using Test
+using Random
 using TOML
 
 using BSON
@@ -123,6 +124,9 @@ end
         @test getfield(tar_hp.mp, f) == getfield(ref_hp.mp, f)
     end
 end
+
+# PotentialDistributions.jl
+include("potential.jl")
 
 include("pyinterface.jl")
 

@@ -1,48 +1,5 @@
-# setup DeviceParams for example
-# device_id = -1 # <--- train with CPU
-# device_id = 0 # <--- train with GPU its Device ID is 0
-# device_id = 1 # <--- train with GPU its Device ID is 1
-
 device_id = -1
 
-
-# setup TrainingParams
-#
-# for _ in 1:epochs
-#    for _ in 1:iterations
-#       # extract batchsize data
-#       z = rand(prior, lattice_shape..., batchsize)
-#       gs = Flux.gradient(ps) do
-#                do something
-#       end
-#       Flux.Optimise.update!(opt(base_lr), ps, gs)
-#    end
-# end
-[training]
-seed = 12345
-batchsize = 64
-#epochs = 40
-epochs = 1
-iterations = 100
-base_lr = 0.001
-opt = "ADAM"
-prior = "Normal{Float32}(0.f0, 1.f0)"
-pretrained = ""
-
-# setup PhysicalParams
-#
-# lattice_shape = (L, L) if Nd = 2
-# lattice_shape = (L, L, L) if Nd = 3
-# action = ScalarPhi4Action(M2, lam)
-[physical]
-L = 8
-Nd = 2
-M2 = -4.0 # m²
-lam = 8.0 # λ
-
-
-# setup ModelParams
-#
 [model]
 seed = 2021
 n_layers = 16
@@ -52,3 +9,19 @@ inC = 1
 outC = 2
 use_final_tanh = true
 use_bn = false
+
+[physical]
+L = 8
+Nd = 2
+M2 = -4.0
+lam = 8.0
+
+[training]
+seed = 12345
+batchsize = 64
+epochs = 1
+iterations = 100
+base_lr = 0.001
+opt = "ADAM"
+prior = "Normal{Float32}(0.f0, 1.f0)"
+pretrained = ""

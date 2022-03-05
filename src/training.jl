@@ -3,6 +3,7 @@ function train(hp)
     @info "setup action"
     @unpack m², λ, lattice_shape = hp.pp
     action = ScalarPhi4Action(m², λ)
+    @show action
 
     @unpack pretrained, batchsize, epochs, iterations, seed = hp.tp
     @info "setup model"
@@ -18,14 +19,13 @@ function train(hp)
 
     prior = eval(Meta.parse(hp.tp.prior))
     T = prior |> rand |> eltype
-    @show T
+    @show "eltype $(T)"
     @show prior
 
     @info "setup optimiser"
     opt = eval(Meta.parse("$(hp.tp.opt)($(hp.tp.base_lr))"))
     @info opt
     @info "set random seed: $(seed)"
-    Random.seed!(seed)
 
     result_dir = hp.result_dir
     @info "create result dir: $(result_dir)"
@@ -43,13 +43,15 @@ function train(hp)
         :accepted_ratio => T[],
     )
 
+    rng = MersenneTwister(seed)
+
     @info "start training"
     for epoch in 1:epochs
         @info "epoch=$epoch"
         # switch to trainmode
         Flux.trainmode!(model)
         @showprogress for _ in 1:iterations
-            z = rand(prior, lattice_shape..., batchsize)
+            z = rand(rng, prior, lattice_shape..., batchsize)
             logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
             z_device = z |> device
             gs = Flux.gradient(ps) do
@@ -66,7 +68,7 @@ function train(hp)
 
         # switch to testmode
         Flux.testmode!(model)
-        z = rand(prior, lattice_shape..., batchsize)
+        z = rand(rng, prior, lattice_shape..., batchsize)
         logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
         z_device = z |> device
         x, logq_ = model((z_device, logq_device))
@@ -118,9 +120,6 @@ function train(hp)
         push!(evaluations, Dict(pairs((; epoch, loss, ess, best_epoch, best_ess, accepted_ratio))))
 
         CSV.write(joinpath(result_dir, "evaluations.csv"), evaluations)
-        @info "Done epoch $(epoch)"
-        @info "Increment random seed"
-        Random.seed!(seed + epoch)
     end
     @info "finished training"
     trained_model = model |> cpu

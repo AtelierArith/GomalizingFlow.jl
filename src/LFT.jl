@@ -22,6 +22,9 @@ include("metrics.jl")
 include("parameters.jl")
 include("models.jl")
 include("mcmc.jl")
+include("PotentialDistributions.jl")
+using .PotentialDistributions
+export Potential
 include("training.jl")
 
 end # module
