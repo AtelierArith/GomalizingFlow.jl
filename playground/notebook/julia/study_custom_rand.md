@@ -5,11 +5,11 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.6
+      jupytext_version: 1.13.7
   kernelspec:
-    display_name: julia 1.7.1
+    display_name: julia 1.6.5
     language: julia
-    name: julia-1.7
+    name: julia-1.6
 ---
 
 ```julia
@@ -19,26 +19,10 @@ using StatsPlots
 ```
 
 ```julia
-@time rand(Xoshiro(0), Float32, 8, 8, 64);
-```
-
-```julia
-@time rand(MersenneTwister(0), Float32, 8, 8, 64);
-```
-
-```julia
-@time rand(Xoshiro(0), Normal(0.,1.), 8, 8, 64);
-```
-
-```julia
-@time rand(MersenneTwister(0), Normal(0.,1.), 8, 8, 64);
-```
-
-```julia
 module My
 
 import Base: minimum, maximum # work with @distr_spport
-
+using QuadGK
 using Distributions
 import Distributions: pdf, logpdf, @distr_support
 using Random
@@ -50,14 +34,15 @@ struct Potential{T<:Real} <: ContinuousUnivariateDistribution
     λ::T
     xmin::T
     xmax::T
+    ymax::T
     denom::T
     function Potential{T}(;m²::Real, λ::Real, xmin::Real=-2, xmax::Real=2) where T<:Real
         (xmin < xmax) || error("must be xmin < xmax")
         Δ = T(0.001)
         x = xmin:Δ:xmax
         y = exp.(-v.(x, T(m²), T(λ)))
-        denom = sum(y) * Δ
-        new{T}(T(m²), T(λ), T(xmin), T(xmax), T(denom))
+        denom = quadgk(x-> exp(-v(x, T(m²), T(λ))), T(xmin), T(xmax))[1]
+        new{T}(T(m²), T(λ), T(xmin), T(xmax), T(maximum(y)), T(denom))
     end
 end
 
@@ -74,7 +59,7 @@ logpdf(d::Potential{T}, x::Real) where T = -v(d, x) - log(d.denom)
 pdf(d::Potential{T}, x::Real) where T = exp(-v(d, x))/d.denom
 
 function Random.rand(rng::AbstractRNG, v::Potential{T}) where T
-    k = T(2)
+    k = 1.1v.ymax
     while true
         z = (v.xmax - v.xmin) * rand(rng, T) +  v.xmin
         u = k * rand(rng, T)
@@ -127,6 +112,17 @@ samples = rand(rng, d, 5*10^5)
 @show samples |> typeof
 histogram(samples, normalize=:pdf, label="histogram")
 
+x = d.xmin:0.001:d.xmax |> collect
+plot!(d)
+```
+
+```julia
+d = Potential{Float32}(m²=0.5, λ=0., xmin=-4, xmax=4) # should be similar to Distributions.Normal(0, 1)
+rng = MersenneTwister(0)
+samples = rand(rng, d, 10^6)
+@show abs(mean(samples)) < 1e-4
+@show abs(mean(samples .^2)) - 1f0 < 1e-4
+histogram(samples, normalize=:pdf, label="histogram")
 x = d.xmin:0.001:d.xmax |> collect
 plot!(d)
 ```
