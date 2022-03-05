@@ -41,13 +41,14 @@ function train(hp)
         :best_ess => T[],
         :best_epoch => Int[],
         :acceptance_rate => T[],
+        :elapsed_time => Float64[],
     )
 
     rng = MersenneTwister(seed)
 
     @info "start training"
     for epoch in 1:epochs
-        @time begin
+        td = @timed begin
             @info "epoch=$epoch"
             # switch to trainmode
             Flux.trainmode!(model)
@@ -99,29 +100,29 @@ function train(hp)
             )
             acceptance_rate = 100mean(history_current_epoch.accepted)
             @show acceptance_rate
-            # save best checkpoint
-            if ess >= best_ess
-                @info "Found best ess"
-                @show epoch
-                best_ess = ess
-                best_epoch = epoch
-                # save model
-                trained_model_best_ess = model |> cpu
-                LFT.BSON.@save joinpath(result_dir, "trained_model_best_ess.bson") trained_model_best_ess
-                # save mcmc history
-                @info "make mcmc ensamble"
-                history_best_ess = history_current_epoch
-                @info "save history_best_ess to $(joinpath(result_dir, "history_best_ess.bson"))"
-                LFT.BSON.@save joinpath(result_dir, "history_best_ess.bson") history_best_ess
-                Printf.@printf "acceptance_rate= %.2f [percent]\n" 100mean(
-                    history_best_ess.accepted[2000:end],
-                )
-            end
+        end # @timed
+        # save best checkpoint
+        if ess >= best_ess
+            @info "Found best ess"
+            @show epoch
+            best_ess = ess
+            best_epoch = epoch
+            # save model
+            trained_model_best_ess = model |> cpu
+            LFT.BSON.@save joinpath(result_dir, "trained_model_best_ess.bson") trained_model_best_ess
+            # save mcmc history
+            @info "make mcmc ensamble"
+            history_best_ess = history_current_epoch
+            @info "save history_best_ess to $(joinpath(result_dir, "history_best_ess.bson"))"
+            LFT.BSON.@save joinpath(result_dir, "history_best_ess.bson") history_best_ess
+            Printf.@printf "acceptance_rate= %.2f [percent]\n" 100mean(
+                history_best_ess.accepted[2000:end],
+            )
+        end
+        elapsed_time = td.time
+        push!(evaluations, Dict(pairs((; epoch, loss, ess, best_epoch, best_ess, acceptance_rate, elapsed_time))))
 
-            push!(evaluations, Dict(pairs((; epoch, loss, ess, best_epoch, best_ess, acceptance_rate))))
-
-            CSV.write(joinpath(result_dir, "evaluations.csv"), evaluations)
-        end # @time
+        CSV.write(joinpath(result_dir, "evaluations.csv"), evaluations)
     end
     @info "finished training"
     trained_model = model |> cpu
