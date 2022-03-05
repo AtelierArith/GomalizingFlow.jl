@@ -29,7 +29,7 @@ function create_model(hp::HyperParams)
     lattice_shape = hp.pp.lattice_shape
     # network configurations
     seed = hp.mp.seed
-    MersenneTwister(seed)
+    rng = MersenneTwister(seed)
     n_layers = hp.mp.n_layers
     hidden_sizes = hp.mp.hidden_sizes
     kernel_size = hp.mp.kernel_size
