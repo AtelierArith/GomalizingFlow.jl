@@ -11,7 +11,7 @@ $ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
 
 # Usage (detailed description)
 
-## Setup environment (without Docker)
+## Setup environment (without using Docker)
 
 - Install jupyter and jupytext
 
@@ -93,7 +93,7 @@ $ docker-compose up lab # CPU
 ```
 
 
-## Start training (without Docker)
+## Start training (without using Docker)
 
 ### syntax
 
@@ -103,7 +103,7 @@ In general:
 julia --project=@. begin_training.jl path/to/config.toml
 ```
 
-- The `path/to/config.toml` above has a option named `device_id` which accepts an integer >= -1. 
+- The `path/to/config.toml` above has a option named `device_id` which accepts an integer >= -1.
   - If you set `device_id = 0`. Our software is trying to use GPU its Device ID is `0`.
   - Setting `device_id = -1` will train model on CPU
 - Optionally, you can override a Device ID by setting the `--device=<device_id>`
@@ -133,12 +133,15 @@ julia> # do something
 
 See https://github.com/JuliaIO/BSON.jl for more information.
 
-## Start training (with Docker)
+## Start training (using Docker)
 
 ### Case 1: You have a CUDA-Enabled machine
 
 ```julia
 $ docker-compose run --rm julia-gpu julia begin_training.jl cfgs/example3d.toml
+$ # equivalently
+$ docker run --gpus all --rm -it -v $PWD:/work -w /work lftjl julia -e 'using Pkg; Pkg.instantiate()'
+$ docker run --gpus all --rm -it -v $PWD:/work -w /work lftjl julia begin_training.jl cfgs/example2d.toml
 ```
 
 ### Case 2: CPU only
