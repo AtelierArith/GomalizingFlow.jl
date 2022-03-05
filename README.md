@@ -33,8 +33,43 @@ $ cd path/to/this/repository
 $ jupyter notebook
 ```
 
-## Setup environment (with Docker)
+## Setup environment (using Docker)
 
+We would like to add an example of hardware/software environment
+
+```console
+$ docker --version
+Docker version 20.10.12, build e91ed57
+$ docker-compose --version
+docker-compose version 1.29.1, build c34c88b2
+$ nvidia-smi
+Sun Mar  6 00:30:45 2022
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.103.01   Driver Version: 470.103.01   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  NVIDIA GeForce ...  Off  | 00000000:03:00.0 Off |                  N/A |
+|  0%   29C    P8     9W / 280W |      6MiB / 11178MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  NVIDIA GeForce ...  Off  | 00000000:04:00.0 Off |                  N/A |
+|  0%   30C    P8     9W / 280W |     15MiB / 11177MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+$ cat /etc/docker/daemon.json
+{
+    "default-runtime": "nvidia",
+    "runtimes": {
+        "nvidia": {
+            "path": "nvidia-container-runtime",
+            "runtimeArgs": []
+        }
+    }
+}
+```
 
 ### Case 1: You have a CUDA-Enabled machine
 
