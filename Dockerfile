@@ -23,15 +23,15 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 # Install NodeJS
 RUN apt-get update && \
-    curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
+    curl -sL https://deb.nodesource.com/setup_16.x | bash - && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
     apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* # clean up
 
 # Install Julia
-RUN wget https://julialang-s3.julialang.org/bin/linux/x64/1.6/julia-1.6.5-linux-x86_64.tar.gz && \
+RUN wget https://julialang-s3.julialang.org/bin/linux/x64/1.7/julia-1.7.2-linux-x86_64.tar.gz && \
     mkdir "$JULIA_PATH" && \
-    tar zxvf julia-1.6.5-linux-x86_64.tar.gz -C "$JULIA_PATH" --strip-components 1 && \
-    rm julia-1.6.5-linux-x86_64.tar.gz # clean up
+    tar zxvf julia-1.7.2-linux-x86_64.tar.gz -C "$JULIA_PATH" --strip-components 1 && \
+    rm julia-1.7.2-linux-x86_64.tar.gz # clean up
 
 # Create user named jovyan which is compatible with Binder
 ARG NB_USER=jovyan
@@ -107,6 +107,8 @@ RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/shortcuts-extension 
     echo '{"shortcuts": [{"command": "runmenu:restart-and-run-all", "keys": ["Alt R"], "selector": "[data-jp-code-runner]"}]}' >> \
     ${HOME}/.jupyter/lab/user-settings/@jupyterlab/shortcuts-extension/shortcuts.jupyterlab-settings
 
+RUN wget https://raw.githubusercontent.com/mwouts/jupytext/main/binder/labconfig/default_setting_overrides.json -P  ~/.jupyter/labconfig/
+
 RUN conda install -y seaborn matplotlib pytorch=1.9 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
     conda clean -afy # clean up
 
@@ -141,5 +143,6 @@ EXPOSE 8000
 EXPOSE 9999
 ENV JULIA_EDITOR="code"
 ENV EDITOR="nano"
+
 RUN julia --threads auto -e 'using Base.Threads, IJulia; installkernel("julia", env=Dict("JULIA_NUM_THREADS"=>"$(nthreads())"))'
 CMD ["julia"]
