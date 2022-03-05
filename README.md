@@ -11,7 +11,7 @@ $ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
 
 # Usage (detailed description)
 
-## Setup environment (without Docker)
+## Setup environment (without using Docker)
 
 - Install jupyter and jupytext
 
@@ -33,8 +33,43 @@ $ cd path/to/this/repository
 $ jupyter notebook
 ```
 
-## Setup environment (with Docker)
+## Setup environment (using Docker)
 
+We would like to add an example of hardware/software environment
+
+```console
+$ docker --version
+Docker version 20.10.12, build e91ed57
+$ docker-compose --version
+docker-compose version 1.29.1, build c34c88b2
+$ nvidia-smi
+Sun Mar  6 00:30:45 2022
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 470.103.01   Driver Version: 470.103.01   CUDA Version: 11.4     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  NVIDIA GeForce ...  Off  | 00000000:03:00.0 Off |                  N/A |
+|  0%   29C    P8     9W / 280W |      6MiB / 11178MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  NVIDIA GeForce ...  Off  | 00000000:04:00.0 Off |                  N/A |
+|  0%   30C    P8     9W / 280W |     15MiB / 11177MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+$ cat /etc/docker/daemon.json
+{
+    "default-runtime": "nvidia",
+    "runtimes": {
+        "nvidia": {
+            "path": "nvidia-container-runtime",
+            "runtimeArgs": []
+        }
+    }
+}
+```
 
 ### Case 1: You have a CUDA-Enabled machine
 
@@ -58,7 +93,7 @@ $ docker-compose up lab # CPU
 ```
 
 
-## Start training (without Docker)
+## Start training (without using Docker)
 
 ### syntax
 
@@ -68,7 +103,7 @@ In general:
 julia --project=@. begin_training.jl path/to/config.toml
 ```
 
-- The `path/to/config.toml` above has a option named `device_id` which accepts an integer >= -1. 
+- The `path/to/config.toml` above has a option named `device_id` which accepts an integer >= -1.
   - If you set `device_id = 0`. Our software is trying to use GPU its Device ID is `0`.
   - Setting `device_id = -1` will train model on CPU
 - Optionally, you can override a Device ID by setting the `--device=<device_id>`
@@ -88,7 +123,7 @@ $ julia --project=@. begin_training.jl cfgs/example2d.toml --device=1 # train wi
 $ julia --project=@. begin_training.jl cfgs/example3d.toml
 ```
 
-After training, `result/<config.toml>/trained_model.bson` is created. You can resotre the file on Julia session something like this:
+After training, we'll find `result/<config.toml>/trained_model.bson` is created. You can resotre the file in another Julia session something like this:
 
 ```julia
 julia> using BSON: @load
@@ -98,12 +133,15 @@ julia> # do something
 
 See https://github.com/JuliaIO/BSON.jl for more information.
 
-## Start training (with Docker)
+## Start training (using Docker)
 
 ### Case 1: You have a CUDA-Enabled machine
 
 ```julia
 $ docker-compose run --rm julia-gpu julia begin_training.jl cfgs/example3d.toml
+$ # equivalently
+$ docker run --gpus all --rm -it -v $PWD:/work -w /work lftjl julia -e 'using Pkg; Pkg.instantiate()'
+$ docker run --gpus all --rm -it -v $PWD:/work -w /work lftjl julia begin_training.jl cfgs/example2d.toml
 ```
 
 ### Case 2: CPU only
