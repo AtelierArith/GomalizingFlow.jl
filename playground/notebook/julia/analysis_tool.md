@@ -145,8 +145,8 @@ plt.show()
 
 ```julia
 _, history = restore(r);
-accepted_ratio =  mean(history[:accepted][4000:7000])
-Printf.@printf "accepted_ratio= %.2f [percent]" 100accepted_ratio
+acceptance_rate =  mean(history[:accepted][4000:7000])
+Printf.@printf "acceptance_rate= %.2f [percent]" 100acceptance_rate
 
 function drawgreen(r)
     hp = LFT.load_hyperparams(joinpath(r, "config.toml"))
