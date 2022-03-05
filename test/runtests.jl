@@ -124,6 +124,9 @@ end
     end
 end
 
+# PotentialDistributions.jl
+include("potential.jl")
+
 include("pyinterface.jl")
 
 @testset "circular" begin
