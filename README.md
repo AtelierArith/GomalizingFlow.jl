@@ -123,7 +123,7 @@ $ julia --project=@. begin_training.jl cfgs/example2d.toml --device=1 # train wi
 $ julia --project=@. begin_training.jl cfgs/example3d.toml
 ```
 
-After training, `result/<config.toml>/trained_model.bson` is created. You can resotre the file on Julia session something like this:
+After training, we'll find `result/<config.toml>/trained_model.bson` is created. You can resotre the file in another Julia session something like this:
 
 ```julia
 julia> using BSON: @load
