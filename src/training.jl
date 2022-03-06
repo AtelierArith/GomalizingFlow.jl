@@ -120,6 +120,7 @@ function train(hp)
             )
         end
         elapsed_time = td.time
+        @show elapsed_time
         push!(evaluations, Dict(pairs((; epoch, loss, ess, best_epoch, best_ess, acceptance_rate, elapsed_time))))
 
         CSV.write(joinpath(result_dir, "evaluations.csv"), evaluations)
