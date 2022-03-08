@@ -21,7 +21,7 @@ device_id = -1
 [training]
 seed = 12345
 batchsize = 64
-epochs = 40
+epochs = 200
 iterations = 100
 base_lr = 0.001
 opt = "ADAM"
