@@ -16,7 +16,7 @@ function create_hp_example2d()
     dp = LFT.DeviceParams(device_id)
 
     batchsize = 64
-    epochs = 40
+    epochs = 200
     iterations = 100
     base_lr = 0.001
     opt = "ADAM"
