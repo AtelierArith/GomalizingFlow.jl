@@ -48,7 +48,7 @@ df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
 r = results[prior_normal]
 df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
 
-@df df plot(:epoch, :acceptance_rate, label="loss", title="$(basename(r))")
+@df df plot(:epoch, :acceptance_rate, label="acceptance_rate", title="$(basename(r))")
 ```
 
 ```julia
