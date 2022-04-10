@@ -10,8 +10,8 @@ function (model::AffineCoupling)(x_pair_loghidden)
     loghidden = x_pair_loghidden[end]
     x_frozen = model.mask .* x
     x_active = (1 .- model.mask) .* x
-    # (inW, inH, inD, inB) -> (inW, inH, inD, 1, inB) # by Flux.unsqueeze(*, 4)
-    net_out = model.net(Flux.unsqueeze(x_frozen, ndims(x_frozen)))
+    # (inW, inH, inD, inB) -> (inW, inH, inD, 1, inB) # by Flux.unsqueeze(*, dims=4)
+    net_out = model.net(Flux.unsqueeze(x_frozen, dims=ndims(x_frozen)))
     s = @view net_out[.., 1, :] # extract feature from 1st channel
     t = @view net_out[.., 2, :] # extract feature from 2nd channel
     fx = @. (1 - model.mask) * t + x_active * exp(s) + x_frozen
