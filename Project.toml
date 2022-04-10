@@ -38,7 +38,7 @@ UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
 Unrolled = "9602ed7d-8fef-5bc8-8597-8f21381861e8"
 
 [compat]
-NNlib = "=0.8.2"
+NNlib = "0.8.4"
 
 [extras]
 ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
