@@ -107,3 +107,47 @@ d32 = Chain(
 ```julia
 @assert d31(X) ≈ d32(X)
 ```
+
+```julia
+function mycircular(Y::AbstractArray{<:Real,4 + 2}, d1=1, d2=1,d3=1,d4=1)
+    Y_top_center = Y[begin:begin+(d1-1), :, :, :, :, :]
+    Y_top_right = Y[begin:begin+(d1-1), end-(d2-1):end, :, :, :, :]
+    Y_top_left = Y[begin:begin+(d1-1), begin:begin+(d2-1), :, :, :, :]
+    Z_bottom = cat(Y_top_right, Y_top_center, Y_top_left, dims=2) # calc pad under
+
+    Y_bottom_center = Y[end-(d1-1):end, :, :, :, :, :]
+    Y_bottom_right = Y[end-(d1-1):end, end-(d2-1):end, :, :, :, :]
+    Y_bottom_left = Y[end-(d1-1):end, begin:begin+(d2-1), :, :, :, :]
+    Z_top = cat(Y_bottom_right, Y_bottom_center, Y_bottom_left, dims=2) # calc pad under
+
+    Y_main_left = Y[:,begin:begin+(d2-1),:,:,:,:]
+    Y_main_right = Y[:,end-(d2-1):end,:,:,:,:]
+    Z_main = cat(Y_main_right, Y, Y_main_left, dims=2)
+    Z_3rd = cat(Z_top, Z_main, Z_bottom, dims=1)
+    
+    # pad along 3rd axis
+    Z_3rd_begin = Z_3rd[:, :, begin:begin+(d3-1), :, :, :]
+    Z_3rd_end = Z_3rd[:, :, end-(d3-1):end, :, :, :]
+    Z_ = cat(Z_3rd_end, Z_3rd, Z_3rd_begin, dims=3)
+
+    # pad along 4th axis
+    Z_begin = Z_[:, :, :, begin:begin+(d4-1), :, :]
+    Z_end = Z_[:, :, :, end-(d4-1):end, :, :]
+    return cat(Z_end, Z_, Z_begin, dims=4)
+end
+```
+
+```julia
+X = reshape(collect(Float32, 0:5^4-1), 5,5,5,5)
+X = reshape(X, 5,5,5,5, 1, 1) |> f32
+
+d1 = 2
+d2 = 3
+d3 = 4
+d4 = 5
+
+r41 = mycircular(X, d1, d2, d3,d4)
+r42 = padarray(X, Pad(:circular,d1, d2 , d3, d4,0, 0)).parent
+
+@assert r41 == r42
+```
