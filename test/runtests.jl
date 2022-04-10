@@ -130,7 +130,7 @@ include("potential.jl")
 
 include("pyinterface.jl")
 
-@testset "circular" begin
+@testset "circular default" begin
     # used for 2D Lattice
     x = rand(4, 4, 4, 4)
     tar = LFT.mycircular(x)
@@ -146,6 +146,29 @@ include("pyinterface.jl")
     tar = LFT.mycircular(x)
     ref = ImageFiltering.padarray(x, Pad(:circular, 1, 1, 1, 1, 0, 0)).parent
     tar ≈ ref
+end
+
+@testset "circular default padding" begin
+    # used for 2D Lattice
+    d1 = 2
+    d2 = 3
+    d3 = 4
+    d4 = 5
+    x = rand(4, 4, 4, 4)
+    tar = LFT.mycircular(x, d1, d2)
+    ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, 0, 0)).parent
+    @test tar ≈ ref
+    # used for 3D Lattice
+    x = rand(4, 4, 4, 4, 4)
+    tar = LFT.mycircular(x, d1, d2, d3)
+    ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, d3, 0, 0)).parent
+    @test tar ≈ ref
+
+    # used for 4D Lattice
+    x = rand(7, 7, 7, 7, 7, 7)
+    tar = LFT.mycircular(x, d1, d2, d3, d4)
+    ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, d3, d4, 0, 0)).parent
+    @test tar ≈ ref
 end
 
 @testset "make_checker_mask" begin
