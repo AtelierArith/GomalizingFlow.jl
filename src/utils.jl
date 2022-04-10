@@ -23,58 +23,52 @@ function make_checker_mask(L::Int, parity)
 end
 
 """
-Differential padarray for 2D
+Differentiable padarray for 2D
 """
-function mycircular(Y::AbstractArray{<:Real,2 + 2})
-    # calc Z_bottom
-    Y_b_c = Y[begin:begin, :, :, :]
-    Y_b_r = Y[begin:begin, end:end, :, :]
-    Y_b_l = Y[begin:begin, begin:begin, :, :]
-    Z_bottom = cat(Y_b_r, Y_b_c, Y_b_l, dims=2) # calc pad under
+function mycircular(Y::AbstractArray{<:Real,2 + 2}, d1=1, d2=1)
+    Y_top_center = Y[begin:begin+(d1-1), :, :, :]
+    Y_top_right = Y[begin:begin+(d1-1), end-(d2-1):end, :, :]
+    Y_top_left = Y[begin:begin+(d1-1), begin:begin+(d2-1), :, :]
+    Z_bottom = cat(Y_top_right, Y_top_center, Y_top_left, dims=2) # calc pad under
 
-    # calc Z_top
-    Y_e_c = Y[end:end, :, :, :]
-    Y_e_r = Y[end:end, end:end, :, :]
-    Y_e_l = Y[end:end, begin:begin, :, :]
-    Z_top = cat(Y_e_r, Y_e_c, Y_e_l, dims=2)
+    Y_bottom_center = Y[end-(d1-1):end, :, :, :]
+    Y_bottom_right = Y[end-(d1-1):end, end-(d2-1):end, :, :]
+    Y_bottom_left = Y[end-(d1-1):end, begin:begin+(d2-1), :, :]
+    Z_top = cat(Y_bottom_right, Y_bottom_center, Y_bottom_left, dims=2) # calc pad under
 
-    # calc Z_main
-    Y_main_l = Y[:, begin:begin, :, :]
-    Y_main_r = Y[:, end:end, :, :]
-    Z_main = cat(Y_main_r, Y, Y_main_l, dims=2)
-    cat(Z_top, Z_main, Z_bottom, dims=1)
+    Y_main_left = Y[:, begin:begin+(d2-1), :, :]
+    Y_main_right = Y[:, end-(d2-1):end, :, :]
+    Z_main = cat(Y_main_right, Y, Y_main_left, dims=2)
+    return cat(Z_top, Z_main, Z_bottom, dims=1)
 end
 
 """
-Differential padarray for 3D
+Differentiable padarray for 3D
 """
-function mycircular(Y::AbstractArray{<:Real,3 + 2})
-    # calc Z_bottom
-    Y_b_c = Y[begin:begin, :, :, :, :]
-    Y_b_r = Y[begin:begin, end:end, :, :, :]
-    Y_b_l = Y[begin:begin, begin:begin, :, :, :]
-    Z_bottom = cat(Y_b_r, Y_b_c, Y_b_l, dims=2) # calc pad under
+function mycircular(Y::AbstractArray{<:Real,3 + 2}, d1=1, d2=1, d3=1)
+    Y_top_center = Y[begin:begin+(d1-1), :, :, :, :]
+    Y_top_right = Y[begin:begin+(d1-1), end-(d2-1):end, :, :, :]
+    Y_top_left = Y[begin:begin+(d1-1), begin:begin+(d2-1), :, :, :]
+    Z_bottom = cat(Y_top_right, Y_top_center, Y_top_left, dims=2) # calc pad under
 
-    # calc Z_top
-    Y_e_c = Y[end:end, :, :, :, :]
-    Y_e_r = Y[end:end, end:end, :, :, :]
-    Y_e_l = Y[end:end, begin:begin, :, :, :]
-    Z_top = cat(Y_e_r, Y_e_c, Y_e_l, dims=2)
+    Y_bottom_center = Y[end-(d1-1):end, :, :, :, :]
+    Y_bottom_right = Y[end-(d1-1):end, end-(d2-1):end, :, :, :]
+    Y_bottom_left = Y[end-(d1-1):end, begin:begin+(d2-1), :, :, :]
+    Z_top = cat(Y_bottom_right, Y_bottom_center, Y_bottom_left, dims=2) # calc pad under
 
-    # calc Z_main
-    Y_main_l = Y[:, begin:begin, :, :, :]
-    Y_main_r = Y[:, end:end, :, :, :]
-    Z_main = cat(Y_main_r, Y, Y_main_l, dims=2)
+    Y_main_left = Y[:, begin:begin+(d2-1), :, :, :]
+    Y_main_right = Y[:, end-(d2-1):end, :, :, :]
+    Z_main = cat(Y_main_right, Y, Y_main_left, dims=2)
     Z_ = cat(Z_top, Z_main, Z_bottom, dims=1)
 
     # pad along 3rd axis
-    Z_begin = Z_[:, :, begin:begin, :, :]
-    Z_end = Z_[:, :, end:end, :, :]
-    cat(Z_end, Z_, Z_begin, dims=3)
+    Z_begin = Z_[:, :, begin:begin+(d3-1), :, :]
+    Z_end = Z_[:, :, end-(d3-1):end, :, :]
+    return cat(Z_end, Z_, Z_begin, dims=3)
 end
 
 """
-Differential padarray for 4D
+Differentiable padarray for 4D
 """
 function mycircular(Y::AbstractArray{<:Real,4 + 2})
     # calc Z_bottom
