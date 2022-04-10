@@ -36,9 +36,8 @@ pretrained = ""
 [physical]
 L = 8
 Nd = 3
-M2 = -0.53 # m²
-lam = 8.0 # λ
-
+M2 = -4. # m²
+lam = 5.113 # λ
 
 # setup ModelParams
 #
