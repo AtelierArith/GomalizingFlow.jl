@@ -1,3 +1,5 @@
+using JSON3: JSON3
+
 function train(hp)
     device = hp.dp.device
     @info "setup action"
@@ -28,6 +30,9 @@ function train(hp)
     @info "set random seed: $(seed)"
 
     result_dir = hp.result_dir
+    # JuliaHub
+    ENV["RESULTS_FILE"] = result_dir
+
     @info "create result dir: $(result_dir)"
     mkpath(result_dir)
     @info "dump hyperparams: $(joinpath(result_dir, "config.toml"))"
@@ -142,5 +147,13 @@ function train(hp)
     )
     @info "save history to $(joinpath(result_dir, "history.bson"))"
     LFT.BSON.@save joinpath(result_dir, "history.bson") history
+
+    result4juliahub = Dict()
+    for col in names(evaluations)
+        result4juliahub[col] = evaluations[!, col]
+    end
+
+    ENV["RESULTS"]=JSON3.write(result4juliahub)
+    ENV["RESULTS_FILE"] = result_dir
     @info "Done"
 end
