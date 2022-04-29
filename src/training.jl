@@ -105,6 +105,9 @@ function train(hp)
             )
             acceptance_rate = 100mean(history_current_epoch.accepted)
             @show acceptance_rate
+
+            @info "progress logging:" epoch=epoch loss=loss ess=ess acceptance_rate=acceptance_rate
+
         end # @timed
         # save best checkpoint
         if ess >= best_ess
