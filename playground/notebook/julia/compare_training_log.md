@@ -1,8 +1,3 @@
-# TODO
-
-- 移動平均をとる
-- 
-
 ```julia
 using CSV
 using DataFrames
@@ -36,59 +31,45 @@ end
 # Training Loss
 
 ```julia
-case1 = 1
-case2 = 2
+cases = [7,8,9]
 ```
 
 ```julia
-r = results[case1]
 p_loss = plot()
-df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
-@df df plot!(p_loss, :epoch, :loss, label="loss-$(basename(r))", title="$(basename(r))")
-```
+for c in cases
+    r = results[c]
+    df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
+    @df df plot!(p_loss, :epoch, :loss, label="loss-$(basename(r))")
+end
 
-```julia
-r = results[case2]
-df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
-@df df plot!(p_loss, :epoch, :loss, label="loss-$(basename(r))", title="$(basename(r))")
+plot(p_loss, title="Loss")
 ```
 
 # Acceptance_rate
 
 ```julia
 p_acceptance = plot()
+for c in cases
+    r = results[c]
+    df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
 
-r = results[case1]
-df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
+    @df df plot!(p_acceptance, :epoch, :acceptance_rate, label="acceptance_rate-$(basename(r))", title="$(basename(r))", legend=:bottomright, alpha=0.5)
+    plot!(p_acceptance, df.epoch, movingaverage(df.acceptance_rate, 10), label="moving average acceptance_rate-$(basename(r))")
+end
 
-@df df plot!(p_acceptance, :epoch, :acceptance_rate, label="acceptance_rate-$(basename(r))", title="$(basename(r))", legend=:bottomright)
-plot!(p_acceptance, df.epoch, movingaverage(df.acceptance_rate, 10), label="moving average acceptance_rate-$(basename(r))")
-```
-
-```julia
-r = results[case2]
-df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
-
-@df df plot!(p_acceptance, :epoch, :acceptance_rate, label="acceptance_rate-$(basename(r))", title="$(basename(r))", legend=:bottomright)
-plot!(p_acceptance, df.epoch, movingaverage(df.acceptance_rate, 10), label="moving average acceptance_rate-$(basename(r))")
+plot(p_acceptance, title="Acceptance")
 ```
 
 # Ess
 
 ```julia
 p_ess = plot()
+for c in cases
+    r = results[c]
+    df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
+    @df df plot!(p_ess, :epoch, :ess, label="ess-$(basename(r))", title="$(basename(r))", alpha=0.5)
+    plot!(p_ess, df.epoch, movingaverage(df.ess, 10), label="moving average for ess-$(basename(r))")
+end
 
-r = results[case1]
-df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
-
-@df df plot!(p_ess, :epoch, :ess, label="ess-$(basename(r))", title="$(basename(r))")
-plot!(p_ess, df.epoch, movingaverage(df.ess, 10), label="moving average for ess-$(basename(r))")
-```
-
-```julia
-r = results[case2]
-df = CSV.read(joinpath(r, "evaluations.csv"), DataFrame);
-
-@df df plot!(p_ess, :epoch, :ess, label="ess-$(basename(r))", title="Compare", legend=:topleft)
-plot!(p_ess, df.epoch, movingaverage(df.ess, 10), label="moving average for ess-$(basename(r))")
+plot(p_ess, title="ess", size=(1000,500))
 ```
