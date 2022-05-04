@@ -31,7 +31,7 @@ end
 # Training Loss
 
 ```julia
-cases = [7,8,9]
+cases = [26,27,28,29]
 ```
 
 ```julia
@@ -42,7 +42,7 @@ for c in cases
     @df df plot!(p_loss, :epoch, :loss, label="loss-$(basename(r))")
 end
 
-plot(p_loss, title="Loss")
+plot(p_loss, title="Loss", size=(1000,500))
 ```
 
 # Acceptance_rate
@@ -57,7 +57,7 @@ for c in cases
     plot!(p_acceptance, df.epoch, movingaverage(df.acceptance_rate, 10), label="moving average acceptance_rate-$(basename(r))")
 end
 
-plot(p_acceptance, title="Acceptance")
+plot(p_acceptance, title="Acceptance", legend = :outertop, size=(1000,500))
 ```
 
 # Ess
