@@ -1,5 +1,15 @@
 using JSON3: JSON3
 
+function schedule_lr(base_lr, e)
+    T = typeof(base_lr)
+    if e < 200
+        return base_lr
+    end
+    if 200 <= e
+        return base_lr * T(0.1)
+    end
+end
+
 function train(hp)
     device = hp.dp.device
     @info "setup action"
@@ -55,6 +65,8 @@ function train(hp)
     for epoch in 1:epochs
         td = @timed begin
             @info "epoch=$epoch"
+            opt.eta = schedule_lr(opt.eta, epoch)
+            @info "lr" opt.eta
             # switch to trainmode
             Flux.trainmode!(model)
             @showprogress for _ in 1:iterations
@@ -106,8 +118,8 @@ function train(hp)
             acceptance_rate = 100mean(history_current_epoch.accepted)
             @show acceptance_rate
 
-            @info "progress logging:" epoch=epoch loss=loss ess=ess acceptance_rate=acceptance_rate
-
+            @info "progress logging:" epoch = epoch loss = loss ess = ess acceptance_rate =
+                acceptance_rate
         end # @timed
         # save best checkpoint
         if ess >= best_ess
@@ -129,7 +141,20 @@ function train(hp)
         end
         elapsed_time = td.time
         @show elapsed_time
-        push!(evaluations, Dict(pairs((; epoch, loss, ess, best_epoch, best_ess, acceptance_rate, elapsed_time))))
+        push!(
+            evaluations,
+            Dict(
+                pairs((;
+                    epoch,
+                    loss,
+                    ess,
+                    best_epoch,
+                    best_ess,
+                    acceptance_rate,
+                    elapsed_time,
+                )),
+            ),
+        )
 
         CSV.write(joinpath(result_dir, "evaluations.csv"), evaluations)
     end
@@ -156,7 +181,7 @@ function train(hp)
         result4juliahub[col] = evaluations[!, col]
     end
 
-    ENV["RESULTS"]=JSON3.write(result4juliahub)
+    ENV["RESULTS"] = JSON3.write(result4juliahub)
     ENV["RESULTS_FILE"] = result_dir
     @info "Done"
 end
