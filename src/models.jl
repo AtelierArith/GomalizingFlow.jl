@@ -53,7 +53,7 @@ function create_model(hp::HyperParams)
             b = rand(rng, Uniform(-√k, √k), c_next)
             push!(net, x -> mycircular(x, (kernel_size .÷ 2)...))
             if use_bn
-                push!(net, Chain(Conv(W, b, pad=0), BatchNorm(c_next, leakyrelu)))
+                push!(net, Chain(Conv(W, b, pad=0, bias=false), BatchNorm(c_next, leakyrelu)))
             else
                 push!(net, Conv(W, b, pad=0, leakyrelu))
             end
@@ -65,7 +65,7 @@ function create_model(hp::HyperParams)
             W = rand(rng, Uniform(-√k, √k), kernel_size..., c, c_next)
             b = rand(rng, Uniform(-√k, √k), c_next)
             if use_bn
-                net[end] = Chain(Conv(W, b, pad=0), BatchNorm(c_next, tanh))
+                net[end] = Chain(Conv(W, b, pad=0, bias=false), BatchNorm(c_next, tanh))
             else
                 net[end] = Conv(W, b, tanh, pad=0)
             end
