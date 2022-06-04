@@ -56,6 +56,7 @@ end
 end
 
 struct HyperParams
+    configversion::VersionNumber
     dp::DeviceParams
     tp::TrainingParams
     pp::PhysicalParams
@@ -70,10 +71,11 @@ function load_hyperparams(
     pretrained::Union{Nothing,String}=nothing,
     result::AbstractString="result",
 )::HyperParams
+    configversion = VersionNumber(string(config["config"]["version"]))
     if !isnothing(device_id)
         @info "override device id $(device_id)"
     else
-        device_id = config["device_id"]
+        device_id = config["device"]["device_id"]
     end
 
     if !isnothing(pretrained)
@@ -89,7 +91,7 @@ function load_hyperparams(
     end
     mp = ToStruct.tostruct(ModelParams, config["model"])
     result_dir = abspath(joinpath(result, output_dirname))
-    return HyperParams(dp, tp, pp, mp, result_dir)
+    return HyperParams(configversion, dp, tp, pp, mp, result_dir)
 end
 
 function _d(configpath::AbstractString)
