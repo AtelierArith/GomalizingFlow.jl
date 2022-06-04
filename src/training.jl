@@ -32,7 +32,7 @@ function train(hp)
             scheduler = eval(Meta.parse("$(hp.tp.lr_scheduler)"))
             opt = Scheduler(scheduler, opt)
         end
-        @info opt
+        @info nameof(typeof(opt))
         model, opt
     else
         pretrained = abspath(pretrained)
