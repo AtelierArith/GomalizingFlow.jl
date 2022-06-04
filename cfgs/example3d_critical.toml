@@ -1,10 +1,12 @@
+[config]
+version = "0.1"
+
+[device]
 # setup DeviceParams for example
 # device_id = -1 # <--- train with CPU
 # device_id = 0 # <--- train with GPU its Device ID is 0
 # device_id = 1 # <--- train with GPU its Device ID is 1
-
 device_id = 0
-
 
 # setup TrainingParams
 #
