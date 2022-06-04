@@ -192,6 +192,32 @@ end
     @test tar ≈ ref
 end
 
+@testset "circular padding with Base.Fix2" begin
+    # used for 2D Lattice
+    d1 = 2
+    d2 = 3
+    d3 = 4
+    d4 = 5
+    x = rand(4, 4, 4, 4)
+    c = Chain(Base.Fix2(GomalizingFlow.mycircular, (d1, d2)))
+    tar = c(x)
+    ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, 0, 0)).parent
+    @test tar ≈ ref
+    # used for 3D Lattice
+    x = rand(4, 4, 4, 4, 4)
+    c = Chain(Base.Fix2(GomalizingFlow.mycircular, (d1, d2, d3)))
+    tar = c(x)
+    ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, d3, 0, 0)).parent
+    @test tar ≈ ref
+
+    # used for 4D Lattice
+    x = rand(7, 7, 7, 7, 7, 7)
+    c = Chain(Base.Fix2(GomalizingFlow.mycircular, (d1, d2, d3, d4)))
+    tar = c(x)
+    ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, d3, d4, 0, 0)).parent
+    @test tar ≈ ref
+end
+
 @testset "make_checker_mask" begin
     @test GomalizingFlow.make_checker_mask((8, 8), 0) == [
         0 1 0 1 0 1 0 1

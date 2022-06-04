@@ -51,7 +51,9 @@ function create_model(hp::HyperParams)
             k = 1 / (c * prod(kernel_size))
             W = rand(rng, Uniform(-√k, √k), kernel_size..., c, c_next)
             b = rand(rng, Uniform(-√k, √k), c_next)
-            push!(net, x -> mycircular(x, (kernel_size .÷ 2)...))
+            #push!(net, x -> mycircular(x, (kernel_size .÷ 2)...)) # <--- DO NOT USE. Use Base.Fix2 instead
+            # See https://github.com/JuliaIO/BSON.jl/issues/69
+            push!(net, Base.Fix2(mycircular, (kernel_size .÷ 2)))
             if use_bn
                 push!(
                     net,
