@@ -42,6 +42,7 @@ Unrolled = "9602ed7d-8fef-5bc8-8597-8f21381861e8"
 
 [compat]
 NNlib = "0.8.4"
+BSON = "0.3.5"
 
 [extras]
 ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
