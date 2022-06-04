@@ -47,7 +47,7 @@ function train(hp)
 
     prior = eval(Meta.parse(hp.tp.prior))
     T = prior |> rand |> eltype
-    @show "eltype $(T)"
+    @show "eltype" T
     @show prior
 
     @info "set random seed: $(seed)"
