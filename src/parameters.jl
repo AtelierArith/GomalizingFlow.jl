@@ -112,7 +112,7 @@ end
 
 function hp2toml(hp::HyperParams, fname::AbstractString)
     data = OrderedDict{String,Any}()
-    data["config"] = OrderedDict{String,Any}("version" => hp.configversion)
+    data["config"] = OrderedDict{String,Any}("version" => string(hp.configversion))
     data["device"] = OrderedDict{String,Any}("device_id" => hp.dp.device_id)
     for (sym, itemname) in [(:mp, "model"), (:pp, "physical"), (:tp, "training")]
         obj = getfield(hp, sym)
