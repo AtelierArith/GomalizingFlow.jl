@@ -1,4 +1,5 @@
 using JSON3: JSON3
+using BSON
 
 function schedule_lr(base_lr, e)
     T = typeof(base_lr)
@@ -129,15 +130,18 @@ function train(hp)
             best_epoch = epoch
             # save model
             trained_model_best_ess = model |> cpu
-            GomalizingFlow.BSON.@save joinpath(
+            BSON.@save joinpath(
                 result_dir,
                 "trained_model_best_ess.bson",
             ) trained_model_best_ess
-            # save mcmc history
+            BSON.@save joinpath(
+                result_dir,
+                "opt_best_ess.bson",
+            ) opt_best_ess            # save mcmc history
             @info "make mcmc ensamble"
             history_best_ess = history_current_epoch
             @info "save history_best_ess to $(joinpath(result_dir, "history_best_ess.bson"))"
-            GomalizingFlow.BSON.@save joinpath(result_dir, "history_best_ess.bson") history_best_ess
+            BSON.@save joinpath(result_dir, "history_best_ess.bson") history_best_ess
             Printf.@printf "acceptance_rate= %.2f [percent]\n" 100mean(
                 history_best_ess.accepted[2000:end],
             )
@@ -164,7 +168,8 @@ function train(hp)
     @info "finished training"
     trained_model = model |> cpu
     @info "save model"
-    GomalizingFlow.BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
+    BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
+    BSON.@save joinpath(result_dir, "opt.bson") opt
     @info "make mcmc ensamble"
     nsamples = 8196
     history = make_mcmc_ensamble(
@@ -177,7 +182,7 @@ function train(hp)
         device=cpu,
     )
     @info "save history to $(joinpath(result_dir, "history.bson"))"
-    GomalizingFlow.BSON.@save joinpath(result_dir, "history.bson") history
+    BSON.@save joinpath(result_dir, "history.bson") history
 
     result4juliahub = Dict()
     for col in names(evaluations)
