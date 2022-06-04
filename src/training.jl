@@ -1,5 +1,7 @@
 using JSON3: JSON3
 using BSON
+using ParameterSchedulers
+using ParameterSchedulers: Scheduler
 
 function schedule_lr(base_lr, e)
     T = typeof(base_lr)
@@ -24,6 +26,10 @@ function train(hp)
         model = create_model(hp)
         @info "setup optimiser"
         opt = eval(Meta.parse("$(hp.tp.opt)($(hp.tp.base_lr))"))
+        if !isempty(hp.tp.lr_scheduler)
+            scheduler = eval(Meta.parse("$(hp.tp.lr_scheduler)"))
+            opt = Scheduler(scheduler, opt)
+        end
         @info opt
         model, opt
     else
@@ -71,7 +77,6 @@ function train(hp)
     for epoch in 1:epochs
         td = @timed begin
             @info "epoch=$epoch"
-            opt.eta = schedule_lr(opt.eta, epoch)
             @info "lr" opt.eta
             # switch to trainmode
             Flux.trainmode!(model)

@@ -29,6 +29,7 @@ iterations = 100
 base_lr = 0.0015
 opt = "ADAM"
 prior = "Potential{Float32}(; m²=-4f0, λ=8f0)"
+lr_scheduler = ""
 pretrained = ""
 
 # setup PhysicalParams

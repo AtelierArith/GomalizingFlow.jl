@@ -52,6 +52,7 @@ end
     base_lr::Float64 = 0.001
     opt::String = "ADAM"
     prior::String = "Normal{Float32}(0.f0, 1.f0)"
+    lr_scheduler::String = ""
     pretrained::String = ""
 end
 
