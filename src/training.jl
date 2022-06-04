@@ -20,12 +20,20 @@ function train(hp)
 
     @unpack pretrained, batchsize, epochs, iterations, seed = hp.tp
     @info "setup model"
-    if isempty(pretrained)
+    model, opt = if isempty(pretrained)
         model = create_model(hp)
+        @info "setup optimiser"
+        opt = eval(Meta.parse("$(hp.tp.opt)($(hp.tp.base_lr))"))
+        @info opt
+        model, opt
     else
-        @info "load model from $(abspath((pretrained)))"
-        BSON.@load abspath(pretrained) trained_model
+        pretrained = abspath(pretrained)
+        @info "load model from $(pretrained)"
+        BSON.@load pretrained trained_model opt
         model = trained_model
+        @info model
+        @info opt
+        model, opt
     end
     Flux.trainmode!(model)
     ps = get_training_params(model)
@@ -35,9 +43,6 @@ function train(hp)
     @show "eltype $(T)"
     @show prior
 
-    @info "setup optimiser"
-    opt = eval(Meta.parse("$(hp.tp.opt)($(hp.tp.base_lr))"))
-    @info opt
     @info "set random seed: $(seed)"
 
     result_dir = hp.result_dir
@@ -133,11 +138,7 @@ function train(hp)
             BSON.@save joinpath(
                 result_dir,
                 "trained_model_best_ess.bson",
-            ) trained_model_best_ess
-            BSON.@save joinpath(
-                result_dir,
-                "opt_best_ess.bson",
-            ) opt_best_ess            # save mcmc history
+            ) trained_model_best_ess opt_best_ess
             @info "make mcmc ensamble"
             history_best_ess = history_current_epoch
             @info "save history_best_ess to $(joinpath(result_dir, "history_best_ess.bson"))"
@@ -168,8 +169,7 @@ function train(hp)
     @info "finished training"
     trained_model = model |> cpu
     @info "save model"
-    BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
-    BSON.@save joinpath(result_dir, "opt.bson") opt
+    BSON.@save joinpath(result_dir, "trained_model.bson") trained_model opt
     @info "make mcmc ensamble"
     nsamples = 8196
     history = make_mcmc_ensamble(
