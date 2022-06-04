@@ -12,6 +12,7 @@ using GomalizingFlow
 
 function create_hp_example2d()
     @info "load hyper parmeters"
+    configversion = v"0.1"
     device_id = 0
     dp = GomalizingFlow.DeviceParams(device_id)
 
@@ -20,6 +21,7 @@ function create_hp_example2d()
     iterations = 100
     base_lr = 0.001
     opt = "ADAM"
+    lr_scheduler = ""
     prior = "Normal{Float32}(0.f0, 1.f0)"
     tp = GomalizingFlow.TrainingParams(;
         batchsize,
@@ -27,6 +29,7 @@ function create_hp_example2d()
         iterations,
         base_lr,
         opt,
+        lr_scheduler,
         prior,
     )
 
@@ -51,11 +54,12 @@ function create_hp_example2d()
         use_final_tanh,
     )
 
-    return GomalizingFlow.HyperParams(dp, tp, pp, mp, "config.toml")
+    return GomalizingFlow.HyperParams(configversion, dp, tp, pp, mp, "config.toml")
 end
 
 function create_hp_example3d()
     @info "load hyper parmeters"
+    configversion = v"0.1"
     device_id = 0
     dp = GomalizingFlow.DeviceParams(device_id)
 
@@ -65,6 +69,7 @@ function create_hp_example3d()
     iterations = 100
     base_lr = 0.0015
     opt = "ADAM"
+    lr_scheduler = ""
     prior = "Normal{Float32}(0.f0, 1.f0)"
     tp = GomalizingFlow.TrainingParams(;
         seed,
@@ -73,6 +78,7 @@ function create_hp_example3d()
         iterations,
         base_lr,
         opt,
+        lr_scheduler,
         prior,
     )
 
@@ -99,7 +105,7 @@ function create_hp_example3d()
         use_final_tanh,
     )
 
-    return GomalizingFlow.HyperParams(dp, tp, pp, mp, "config.toml")
+    return GomalizingFlow.HyperParams(configversion, dp, tp, pp, mp, "config.toml")
 end
 
 @testset "PhysicalParams property" begin
@@ -343,6 +349,6 @@ end
     pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
     hp = GomalizingFlow.load_hyperparams(configpath; pretrained)
     GomalizingFlow.train(hp)
-    # notify retraining has been done
+    # notify retraining has finished
     @test true
 end

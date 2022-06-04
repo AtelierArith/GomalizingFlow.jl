@@ -39,7 +39,8 @@ using DataStructures
 
 ```julia
 function hp2toml(hp)
-    tomldata = OrderedDict{String, Any}("device_id" => hp.dp.device_id)
+    tomldata["config"] = OrderedDict{String, Any}("version" => hp.configversion)
+    tomldata["device"] = OrderedDict{String, Any}("device_id" => hp.dp.device_id)
     for (sym, itemname) in [(:mp, "model"), (:pp, "physical"), (:tp, "training")]
         obj = getfield(hp, sym)
         v = OrderedDict(key=>getfield(obj, key) for key ∈ fieldnames(obj |> typeof))

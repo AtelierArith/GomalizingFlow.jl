@@ -111,7 +111,9 @@ function load_hyperparams(
 end
 
 function hp2toml(hp::HyperParams, fname::AbstractString)
-    data = OrderedDict{String,Any}("device_id" => hp.dp.device_id)
+    data = OrderedDict{String,Any}()
+    data["config"] = OrderedDict{String,Any}("version" => hp.configversion)
+    data["device"] = OrderedDict{String,Any}("device_id" => hp.dp.device_id)
     for (sym, itemname) in [(:mp, "model"), (:pp, "physical"), (:tp, "training")]
         obj = getfield(hp, sym)
         v = OrderedDict(key => getfield(obj, key) for key in fieldnames(obj |> typeof))

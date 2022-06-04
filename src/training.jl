@@ -1,7 +1,9 @@
 using JSON3: JSON3
 using BSON
+using Parameters
 using ParameterSchedulers
 using ParameterSchedulers: Scheduler
+using ProgressMeter
 
 function schedule_lr(base_lr, e)
     T = typeof(base_lr)
@@ -140,6 +142,7 @@ function train(hp)
             best_epoch = epoch
             # save model
             trained_model_best_ess = model |> cpu
+            opt_best_ess = opt |> cpu
             BSON.@save joinpath(
                 result_dir,
                 "trained_model_best_ess.bson",
