@@ -42,6 +42,10 @@ function mycircular(Y::AbstractArray{<:Real,2 + 2}, d1=1, d2=1)
     return cat(Z_top, Z_main, Z_bottom, dims=1)
 end
 
+function mycircular(Y::AbstractArray{<:Real,2 + 2}, ds::NTuple{2,Int})
+    mycircular(Y, ds[1], ds[2])
+end
+
 """
 Differentiable padarray for 3D
 """
@@ -65,6 +69,10 @@ function mycircular(Y::AbstractArray{<:Real,3 + 2}, d1=1, d2=1, d3=1)
     Z_begin = Z_[:, :, begin:begin+(d3-1), :, :]
     Z_end = Z_[:, :, end-(d3-1):end, :, :]
     return cat(Z_end, Z_, Z_begin, dims=3)
+end
+
+function mycircular(Y::AbstractArray{<:Real,3 + 2}, ds::NTuple{3,Int})
+    mycircular(Y, ds[1], ds[2], ds[3])
 end
 
 """
@@ -95,4 +103,8 @@ function mycircular(Y::AbstractArray{<:Real,4 + 2}, d1=1, d2=1, d3=1, d4=1)
     Z_begin = Z_[:, :, :, begin:begin+(d4-1), :, :]
     Z_end = Z_[:, :, :, end-(d4-1):end, :, :]
     return cat(Z_end, Z_, Z_begin, dims=4)
+end
+
+function mycircular(Y::AbstractArray{<:Real,4 + 2}, ds::NTuple{4,Int})
+    mycircular(Y, ds[1], ds[2], ds[3], ds[4])
 end

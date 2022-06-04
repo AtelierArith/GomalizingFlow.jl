@@ -20,7 +20,7 @@ jupyter:
 using LinearAlgebra
 
 using BSON
-using LFT
+using GomalizingFlow
 using Flux
 using Distributions
 using ImageTransformations
@@ -30,13 +30,13 @@ using Plots
 
 ```julia
 model_name = "example2d_16x16"
-result_dir = joinpath(pkgdir(LFT), "result")
+result_dir = joinpath(pkgdir(GomalizingFlow), "result")
 model_dir = joinpath(result_dir, model_name)
 BSON.@load joinpath(model_dir, "trained_model_best_ess.bson") trained_model_best_ess
 ```
 
 ```julia
-hp = LFT.load_hyperparams(joinpath(model_dir, "config.toml"));
+hp = GomalizingFlow.load_hyperparams(joinpath(model_dir, "config.toml"));
 ```
 
 ```julia
@@ -45,7 +45,7 @@ device = hp.dp.device
 prior = eval(Meta.parse(hp.tp.prior))
 
 @unpack m², λ, lattice_shape = hp.pp
-action = LFT.ScalarPhi4Action(m², λ)
+action = GomalizingFlow.ScalarPhi4Action(m², λ)
 batchsize = 1
 ```
 

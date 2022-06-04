@@ -3,12 +3,12 @@ using CSV
 using DataFrames
 using StatsPlots
 
-using LFT
+using GomalizingFlow
 ```
 
 ```julia
 results = String[]
-repo_dir = abspath(joinpath(dirname(dirname(pathof(LFT)))))
+repo_dir = abspath(joinpath(dirname(dirname(pathof(GomalizingFlow)))))
 result_dir = joinpath(repo_dir, "result")
 for d in sort(readdir(result_dir))
     if ispath(joinpath(result_dir, d, "config.toml"))

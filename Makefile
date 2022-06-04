@@ -1,6 +1,6 @@
 .PHONY: all build clean
 
-IMAGENAME=lftjl
+IMAGENAME=gomalizingflowjl
 
 all: build
 

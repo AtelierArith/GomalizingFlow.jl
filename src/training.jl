@@ -1,4 +1,9 @@
 using JSON3: JSON3
+using BSON
+using Parameters
+using ParameterSchedulers
+using ParameterSchedulers: Scheduler
+using ProgressMeter
 
 function schedule_lr(base_lr, e)
     T = typeof(base_lr)
@@ -19,24 +24,32 @@ function train(hp)
 
     @unpack pretrained, batchsize, epochs, iterations, seed = hp.tp
     @info "setup model"
-    if isempty(pretrained)
+    model, opt = if isempty(pretrained)
         model = create_model(hp)
+        @info "setup optimiser"
+        opt = eval(Meta.parse("$(hp.tp.opt)($(hp.tp.base_lr))"))
+        if !isempty(hp.tp.lr_scheduler)
+            scheduler = eval(Meta.parse("$(hp.tp.lr_scheduler)"))
+            opt = Scheduler(scheduler, opt)
+        end
+        @info nameof(typeof(opt))
+        model, opt
     else
-        @info "load model from $(abspath((pretrained)))"
-        BSON.@load abspath(pretrained) trained_model
+        pretrained = abspath(pretrained)
+        @info "load model from $(pretrained)"
+        BSON.@load pretrained trained_model opt
         model = trained_model
+        @info nameof(typeof(opt))
+        model, opt
     end
     Flux.trainmode!(model)
     ps = get_training_params(model)
 
     prior = eval(Meta.parse(hp.tp.prior))
     T = prior |> rand |> eltype
-    @show "eltype $(T)"
+    @show "eltype" T
     @show prior
 
-    @info "setup optimiser"
-    opt = eval(Meta.parse("$(hp.tp.opt)($(hp.tp.base_lr))"))
-    @info opt
     @info "set random seed: $(seed)"
 
     result_dir = hp.result_dir
@@ -46,7 +59,7 @@ function train(hp)
     @info "create result dir: $(result_dir)"
     mkpath(result_dir)
     @info "dump hyperparams: $(joinpath(result_dir, "config.toml"))"
-    LFT.hp2toml(hp, joinpath(result_dir, "config.toml"))
+    GomalizingFlow.hp2toml(hp, joinpath(result_dir, "config.toml"))
     best_epoch = 1
     best_ess = T |> zero
     evaluations = DataFrame(
@@ -65,7 +78,6 @@ function train(hp)
     for epoch in 1:epochs
         td = @timed begin
             @info "epoch=$epoch"
-            opt.eta = schedule_lr(opt.eta, epoch)
             @info "lr" opt.eta
             # switch to trainmode
             Flux.trainmode!(model)
@@ -129,12 +141,15 @@ function train(hp)
             best_epoch = epoch
             # save model
             trained_model_best_ess = model |> cpu
-            LFT.BSON.@save joinpath(result_dir, "trained_model_best_ess.bson") trained_model_best_ess
-            # save mcmc history
+            opt_best_ess = opt |> cpu
+            BSON.@save joinpath(
+                result_dir,
+                "trained_model_best_ess.bson",
+            ) trained_model_best_ess opt_best_ess
             @info "make mcmc ensamble"
             history_best_ess = history_current_epoch
             @info "save history_best_ess to $(joinpath(result_dir, "history_best_ess.bson"))"
-            LFT.BSON.@save joinpath(result_dir, "history_best_ess.bson") history_best_ess
+            BSON.@save joinpath(result_dir, "history_best_ess.bson") history_best_ess
             Printf.@printf "acceptance_rate= %.2f [percent]\n" 100mean(
                 history_best_ess.accepted[2000:end],
             )
@@ -161,7 +176,7 @@ function train(hp)
     @info "finished training"
     trained_model = model |> cpu
     @info "save model"
-    LFT.BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
+    BSON.@save joinpath(result_dir, "trained_model.bson") trained_model opt
     @info "make mcmc ensamble"
     nsamples = 8196
     history = make_mcmc_ensamble(
@@ -174,7 +189,7 @@ function train(hp)
         device=cpu,
     )
     @info "save history to $(joinpath(result_dir, "history.bson"))"
-    LFT.BSON.@save joinpath(result_dir, "history.bson") history
+    BSON.@save joinpath(result_dir, "history.bson") history
 
     result4juliahub = Dict()
     for col in names(evaluations)

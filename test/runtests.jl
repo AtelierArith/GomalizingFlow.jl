@@ -8,26 +8,36 @@ using Parameters
 using Distributions
 using ImageFiltering
 
-using LFT
+using GomalizingFlow
 
 function create_hp_example2d()
     @info "load hyper parmeters"
+    configversion = v"0.1"
     device_id = 0
-    dp = LFT.DeviceParams(device_id)
+    dp = GomalizingFlow.DeviceParams(device_id)
 
     batchsize = 64
     epochs = 200
     iterations = 100
     base_lr = 0.001
     opt = "ADAM"
+    lr_scheduler = ""
     prior = "Normal{Float32}(0.f0, 1.f0)"
-    tp = LFT.TrainingParams(; batchsize, epochs, iterations, base_lr, opt, prior)
+    tp = GomalizingFlow.TrainingParams(;
+        batchsize,
+        epochs,
+        iterations,
+        base_lr,
+        opt,
+        lr_scheduler,
+        prior,
+    )
 
     L = 8
     Nd = 2
     M2 = -4.0
     lam = 8
-    pp = LFT.PhysicalParams(; L, Nd, M2, lam)
+    pp = GomalizingFlow.PhysicalParams(; L, Nd, M2, lam)
 
     n_layers = 16
     hidden_sizes = [8, 8]
@@ -35,7 +45,7 @@ function create_hp_example2d()
     inC = 1
     outC = 2
     use_final_tanh = true
-    mp = LFT.ModelParams(;
+    mp = GomalizingFlow.ModelParams(;
         n_layers,
         hidden_sizes,
         kernel_size,
@@ -44,13 +54,14 @@ function create_hp_example2d()
         use_final_tanh,
     )
 
-    return LFT.HyperParams(dp, tp, pp, mp, "config.toml")
+    return GomalizingFlow.HyperParams(configversion, dp, tp, pp, mp, "config.toml")
 end
 
 function create_hp_example3d()
     @info "load hyper parmeters"
+    configversion = v"0.1"
     device_id = 0
-    dp = LFT.DeviceParams(device_id)
+    dp = GomalizingFlow.DeviceParams(device_id)
 
     seed = 12345
     batchsize = 64
@@ -58,14 +69,24 @@ function create_hp_example3d()
     iterations = 100
     base_lr = 0.0015
     opt = "ADAM"
+    lr_scheduler = ""
     prior = "Normal{Float32}(0.f0, 1.f0)"
-    tp = LFT.TrainingParams(; seed, batchsize, epochs, iterations, base_lr, opt, prior)
+    tp = GomalizingFlow.TrainingParams(;
+        seed,
+        batchsize,
+        epochs,
+        iterations,
+        base_lr,
+        opt,
+        lr_scheduler,
+        prior,
+    )
 
     L = 8
     Nd = 3
     M2 = -4.0
     lam = 8
-    pp = LFT.PhysicalParams(; L, Nd, M2, lam)
+    pp = GomalizingFlow.PhysicalParams(; L, Nd, M2, lam)
 
     seed = 2021
     n_layers = 16
@@ -74,7 +95,7 @@ function create_hp_example3d()
     inC = 1
     outC = 2
     use_final_tanh = true
-    mp = LFT.ModelParams(;
+    mp = GomalizingFlow.ModelParams(;
         seed,
         n_layers,
         hidden_sizes,
@@ -84,7 +105,7 @@ function create_hp_example3d()
         use_final_tanh,
     )
 
-    return LFT.HyperParams(dp, tp, pp, mp, "config.toml")
+    return GomalizingFlow.HyperParams(configversion, dp, tp, pp, mp, "config.toml")
 end
 
 @testset "PhysicalParams property" begin
@@ -92,7 +113,7 @@ end
     Nd = 2
     M2 = -4.0
     lam = 8
-    pp = LFT.PhysicalParams(; L, Nd, M2, lam)
+    pp = GomalizingFlow.PhysicalParams(; L, Nd, M2, lam)
     @test pp.L == L
     @test pp.lattice_shape == (L, L)
     @test pp.m² == pp.M2
@@ -102,7 +123,7 @@ end
 @testset "example2d.toml" begin
     path = "../cfgs/example2d.toml"
     ref_hp = create_hp_example2d()
-    tar_hp = LFT.load_hyperparams(path)
+    tar_hp = GomalizingFlow.load_hyperparams(path)
     for f in fieldnames(typeof(ref_hp.tp))
         @test getfield(tar_hp.tp, f) == getfield(ref_hp.tp, f)
     end
@@ -115,7 +136,7 @@ end
 @testset "example3d.toml" begin
     path = "../cfgs/example3d.toml"
     ref_hp = create_hp_example3d()
-    tar_hp = LFT.load_hyperparams(path)
+    tar_hp = GomalizingFlow.load_hyperparams(path)
     for f in fieldnames(typeof(ref_hp.tp))
         @test getfield(tar_hp.tp, f) == getfield(ref_hp.tp, f)
     end
@@ -133,17 +154,17 @@ include("pyinterface.jl")
 @testset "circular default" begin
     # used for 2D Lattice
     x = rand(4, 4, 4, 4)
-    tar = LFT.mycircular(x)
+    tar = GomalizingFlow.mycircular(x)
     ref = ImageFiltering.padarray(x, Pad(:circular, 1, 1, 0, 0)).parent
     @test tar ≈ ref
     # used for 3D Lattice
     x = rand(4, 4, 4, 4, 4)
-    tar = LFT.mycircular(x)
+    tar = GomalizingFlow.mycircular(x)
     ref = ImageFiltering.padarray(x, Pad(:circular, 1, 1, 1, 0, 0)).parent
     @test tar ≈ ref
 
     x = rand(4, 4, 4, 4, 4, 4)
-    tar = LFT.mycircular(x)
+    tar = GomalizingFlow.mycircular(x)
     ref = ImageFiltering.padarray(x, Pad(:circular, 1, 1, 1, 1, 0, 0)).parent
     tar ≈ ref
 end
@@ -155,24 +176,50 @@ end
     d3 = 4
     d4 = 5
     x = rand(4, 4, 4, 4)
-    tar = LFT.mycircular(x, d1, d2)
+    tar = GomalizingFlow.mycircular(x, d1, d2)
     ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, 0, 0)).parent
     @test tar ≈ ref
     # used for 3D Lattice
     x = rand(4, 4, 4, 4, 4)
-    tar = LFT.mycircular(x, d1, d2, d3)
+    tar = GomalizingFlow.mycircular(x, d1, d2, d3)
     ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, d3, 0, 0)).parent
     @test tar ≈ ref
 
     # used for 4D Lattice
     x = rand(7, 7, 7, 7, 7, 7)
-    tar = LFT.mycircular(x, d1, d2, d3, d4)
+    tar = GomalizingFlow.mycircular(x, d1, d2, d3, d4)
+    ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, d3, d4, 0, 0)).parent
+    @test tar ≈ ref
+end
+
+@testset "circular padding with Base.Fix2" begin
+    # used for 2D Lattice
+    d1 = 2
+    d2 = 3
+    d3 = 4
+    d4 = 5
+    x = rand(4, 4, 4, 4)
+    c = Chain(Base.Fix2(GomalizingFlow.mycircular, (d1, d2)))
+    tar = c(x)
+    ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, 0, 0)).parent
+    @test tar ≈ ref
+    # used for 3D Lattice
+    x = rand(4, 4, 4, 4, 4)
+    c = Chain(Base.Fix2(GomalizingFlow.mycircular, (d1, d2, d3)))
+    tar = c(x)
+    ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, d3, 0, 0)).parent
+    @test tar ≈ ref
+
+    # used for 4D Lattice
+    x = rand(7, 7, 7, 7, 7, 7)
+    c = Chain(Base.Fix2(GomalizingFlow.mycircular, (d1, d2, d3, d4)))
+    tar = c(x)
     ref = ImageFiltering.padarray(x, Pad(:circular, d1, d2, d3, d4, 0, 0)).parent
     @test tar ≈ ref
 end
 
 @testset "make_checker_mask" begin
-    @test LFT.make_checker_mask((8, 8), 0) == [
+    @test GomalizingFlow.make_checker_mask((8, 8), 0) == [
         0 1 0 1 0 1 0 1
         1 0 1 0 1 0 1 0
         0 1 0 1 0 1 0 1
@@ -182,7 +229,7 @@ end
         0 1 0 1 0 1 0 1
         1 0 1 0 1 0 1 0
     ]
-    @test LFT.make_checker_mask((8, 8), 1) == [
+    @test GomalizingFlow.make_checker_mask((8, 8), 1) == [
         1 0 1 0 1 0 1 0
         0 1 0 1 0 1 0 1
         1 0 1 0 1 0 1 0
@@ -208,7 +255,7 @@ end
         1 0 1
         0 1 0
     ]
-    @test LFT.make_checker_mask((3, 3, 3), 0) == cat(a1, a2, a3, dims=3)
+    @test GomalizingFlow.make_checker_mask((3, 3, 3), 0) == cat(a1, a2, a3, dims=3)
 
     a1 = [
         1 0 1
@@ -225,13 +272,13 @@ end
         0 1 0
         1 0 1
     ]
-    @test LFT.make_checker_mask((3, 3, 3), 1) == cat(a1, a2, a3, dims=3)
+    @test GomalizingFlow.make_checker_mask((3, 3, 3), 1) == cat(a1, a2, a3, dims=3)
 end
 
 @testset "model" begin
-    hp = LFT.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
-    model1 = LFT.create_model(hp)
-    model2 = LFT.create_model(hp)
+    hp = GomalizingFlow.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
+    model1 = GomalizingFlow.create_model(hp)
+    model2 = GomalizingFlow.create_model(hp)
     for i in 1:length(model1)
         @test model1[i].mask == model2[i].mask
         for j in 1:length(model1[i].net)
@@ -244,21 +291,21 @@ end
 end
 
 @testset "mcmc" begin
-    hp = LFT.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
+    hp = GomalizingFlow.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
 
     device = hp.dp.device
     @info "setup action"
     @unpack m², λ, lattice_shape = hp.pp
-    action = LFT.ScalarPhi4Action(m², λ)
+    action = GomalizingFlow.ScalarPhi4Action(m², λ)
 
     @unpack batchsize, epochs, iterations, seed = hp.tp
     prior = eval(Meta.parse(hp.tp.prior))
     @info "setup model"
-    model = LFT.create_model(hp)
+    model = GomalizingFlow.create_model(hp)
     # switch to testmode
     Flux.testmode!(model)
     nsamples = 8196
-    history1 = LFT.make_mcmc_ensamble(
+    history1 = GomalizingFlow.make_mcmc_ensamble(
         model,
         prior,
         action,
@@ -267,7 +314,7 @@ end
         nsamples,
         device=cpu,
     )
-    history2 = LFT.make_mcmc_ensamble(
+    history2 = GomalizingFlow.make_mcmc_ensamble(
         model,
         prior,
         action,
@@ -282,8 +329,8 @@ end
 end
 
 @testset "training" begin
-    hp = LFT.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
-    LFT.train(hp)
+    hp = GomalizingFlow.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
+    GomalizingFlow.train(hp)
 
     function loadtar()
         config = TOML.parsefile(joinpath(@__DIR__, "result/config", "config.toml"))
@@ -326,8 +373,8 @@ end
 @testset "retraining" begin
     configpath = joinpath(@__DIR__, "assets", "config.toml")
     pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
-    hp = LFT.load_hyperparams(configpath; pretrained)
-    LFT.train(hp)
-    # notify retraining has been done
+    hp = GomalizingFlow.load_hyperparams(configpath; pretrained)
+    GomalizingFlow.train(hp)
+    # notify retraining has finished
     @test true
 end

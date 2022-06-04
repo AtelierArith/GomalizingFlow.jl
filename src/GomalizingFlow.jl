@@ -1,4 +1,4 @@
-module LFT
+module GomalizingFlow
 
 using Random
 using Printf

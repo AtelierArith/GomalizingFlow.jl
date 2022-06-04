@@ -1,8 +1,12 @@
+[config]
+version="0.1"
+
 # setup DeviceParams for example
 # device_id = -1 # <--- train with CPU
 # device_id = 0 # <--- train with GPU its Device ID is 0
 # device_id = 1 # <--- train with GPU its Device ID is 1
 
+[device]
 device_id = -1
 
 
@@ -26,6 +30,7 @@ iterations = 100
 base_lr = 0.001
 opt = "ADAM"
 prior = "Normal{Float32}(0.f0, 1.f0)"
+lr_scheduler = ""
 pretrained = ""
 
 # setup PhysicalParams

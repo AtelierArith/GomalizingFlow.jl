@@ -1,3 +1,7 @@
+[config]
+version = "0.1.0"
+
+[device]
 device_id = -1
 
 [model]
@@ -20,8 +24,9 @@ lam = 8.0
 seed = 12345
 batchsize = 64
 epochs = 1
-iterations = 100
+iterations = 10
 base_lr = 0.001
 opt = "ADAM"
 prior = "Normal{Float32}(0.f0, 1.f0)"
+lr_scheduler = ""
 pretrained = ""

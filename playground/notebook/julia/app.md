@@ -20,13 +20,13 @@ using PyPlot
 using IterTools
 using Flux: cpu
 
-using LFT
+using GomalizingFlow
 ```
 
 ```julia
 Nd = 2
-model_path = joinpath(dirname(dirname(pathof(LFT))), "result" , "example2d", "trained_model.bson")
-config_path = joinpath(dirname(dirname(pathof(LFT))), "result" , "example2d", "config.toml")
+model_path = joinpath(dirname(dirname(pathof(GomalizingFlow))), "result" , "example2d", "trained_model.bson")
+config_path = joinpath(dirname(dirname(pathof(GomalizingFlow))), "result" , "example2d", "config.toml")
 ```
 
 ```julia
@@ -34,7 +34,7 @@ BSON.@load model_path trained_model
 ```
 
 ```julia
-hp = LFT.load_hyperparams(config_path);
+hp = GomalizingFlow.load_hyperparams(config_path);
 ```
 
 ```julia
@@ -43,7 +43,7 @@ batchsize=1024
 device = cpu
 model = trained_model
 prior = hp.tp.prior
-phi4_action = LFT.ScalarPhi4Action(hp.pp.m², hp.pp.λ)
+phi4_action = GomalizingFlow.ScalarPhi4Action(hp.pp.m², hp.pp.λ)
 L = hp.pp.L
 lattice_shape = hp.pp.lattice_shape
 ```
@@ -72,7 +72,7 @@ plt.show()
 ```
 
 ```julia
-history = LFT.make_mcmc_ensamble(model, prior, phi4_action, lattice_shape, batchsize=64, nsamples=ensamble_size);
+history = GomalizingFlow.make_mcmc_ensamble(model, prior, phi4_action, lattice_shape, batchsize=64, nsamples=ensamble_size);
 @show mean(history[:accepted]) |> mean
 ```
 

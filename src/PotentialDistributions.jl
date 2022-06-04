@@ -8,7 +8,7 @@ using Random
 
 export Potential
 
-v(x::T, m²::T, λ::T) where T<:Real = m² * x^2 + λ * x^4
+v(x::T, m²::T, λ::T) where {T<:Real} = m² * x^2 + λ * x^4
 
 struct Potential{T<:Real} <: ContinuousUnivariateDistribution
     m²::T
@@ -16,7 +16,12 @@ struct Potential{T<:Real} <: ContinuousUnivariateDistribution
     xmin::T
     xmax::T
     denom::T
-    function Potential{T}(;m²::Real, λ::Real, xmin::Real=-2, xmax::Real=2) where T<:Real
+    function Potential{T}(;
+        m²::Real,
+        λ::Real,
+        xmin::Real=-2,
+        xmax::Real=2,
+    ) where {T<:Real}
         (xmin < xmax) || error("must be xmin < xmax")
         Δ = T(0.001)
         x = xmin:Δ:xmax
@@ -31,17 +36,17 @@ partype(::Potential{T}) where {T<:Real} = T # Not sure how to use it, but just i
 
 Distributions.@distr_support Potential d.xmin d.xmax
 
-v(d::Potential{T}, x::Real) where T = v(T(x), d.m², d.λ)
+v(d::Potential{T}, x::Real) where {T} = v(T(x), d.m², d.λ)
 
 Base.eltype(::Type{Potential{T}}) where {T} = T
 
-logpdf(d::Potential{T}, x::Real) where T = -v(d, x) - log(d.denom)
-pdf(d::Potential{T}, x::Real) where T = exp(-v(d, x))/d.denom
+logpdf(d::Potential{T}, x::Real) where {T} = -v(d, x) - log(d.denom)
+pdf(d::Potential{T}, x::Real) where {T} = exp(-v(d, x)) / d.denom
 
-function Random.rand(rng::AbstractRNG, v::Potential{T}) where T
+function Random.rand(rng::AbstractRNG, v::Potential{T}) where {T}
     k = T(2)
     while true
-        z = (v.xmax - v.xmin) * rand(rng, T) +  v.xmin
+        z = (v.xmax - v.xmin) * rand(rng, T) + v.xmin
         u = k * rand(rng, T)
         if pdf(v, z) > u
             return z

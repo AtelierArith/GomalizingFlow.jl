@@ -52,10 +52,12 @@ end
     base_lr::Float64 = 0.001
     opt::String = "ADAM"
     prior::String = "Normal{Float32}(0.f0, 1.f0)"
+    lr_scheduler::String = ""
     pretrained::String = ""
 end
 
 struct HyperParams
+    configversion::VersionNumber
     dp::DeviceParams
     tp::TrainingParams
     pp::PhysicalParams
@@ -70,10 +72,11 @@ function load_hyperparams(
     pretrained::Union{Nothing,String}=nothing,
     result::AbstractString="result",
 )::HyperParams
+    configversion = VersionNumber(string(config["config"]["version"]))
     if !isnothing(device_id)
         @info "override device id $(device_id)"
     else
-        device_id = config["device_id"]
+        device_id = config["device"]["device_id"]
     end
 
     if !isnothing(pretrained)
@@ -89,7 +92,7 @@ function load_hyperparams(
     end
     mp = ToStruct.tostruct(ModelParams, config["model"])
     result_dir = abspath(joinpath(result, output_dirname))
-    return HyperParams(dp, tp, pp, mp, result_dir)
+    return HyperParams(configversion, dp, tp, pp, mp, result_dir)
 end
 
 function _d(configpath::AbstractString)
@@ -108,7 +111,9 @@ function load_hyperparams(
 end
 
 function hp2toml(hp::HyperParams, fname::AbstractString)
-    data = OrderedDict{String,Any}("device_id" => hp.dp.device_id)
+    data = OrderedDict{String,Any}()
+    data["config"] = OrderedDict{String,Any}("version" => string(hp.configversion))
+    data["device"] = OrderedDict{String,Any}("device_id" => hp.dp.device_id)
     for (sym, itemname) in [(:mp, "model"), (:pp, "physical"), (:tp, "training")]
         obj = getfield(hp, sym)
         v = OrderedDict(key => getfield(obj, key) for key in fieldnames(obj |> typeof))

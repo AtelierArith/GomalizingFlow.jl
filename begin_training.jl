@@ -1,6 +1,6 @@
 using ArgParse
 
-using LFT
+using GomalizingFlow
 
 function parse_commandline()
     s = ArgParseSettings()
@@ -38,8 +38,8 @@ function main()
         pretrained = abspath(args["pretrained"])
     end
     result = abspath(args["result"])
-    hp = LFT.load_hyperparams(path; device_id, pretrained, result)
-    LFT.train(hp)
+    hp = GomalizingFlow.load_hyperparams(path; device_id, pretrained, result)
+    GomalizingFlow.train(hp)
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

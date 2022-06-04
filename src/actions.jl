@@ -1,4 +1,4 @@
-struct ScalarPhi4Action
+mutable struct ScalarPhi4Action
     m²::Float32
     λ::Float32
 end

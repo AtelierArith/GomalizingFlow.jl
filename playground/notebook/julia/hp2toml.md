@@ -14,11 +14,11 @@ jupyter:
 
 ```julia
 using TOML
-using LFT
+using GomalizingFlow
 ```
 
 ```julia
-configpath = joinpath(dirname(dirname(pathof(LFT))), "cfgs", "example2d.toml")
+configpath = joinpath(dirname(dirname(pathof(GomalizingFlow))), "cfgs", "example2d.toml")
 ```
 
 ```julia
@@ -30,7 +30,7 @@ config = TOML.parsefile(configpath)
 ```
 
 ```julia
-hp = LFT.load_hyperparams(configpath)
+hp = GomalizingFlow.load_hyperparams(configpath)
 ```
 
 ```julia
@@ -39,7 +39,8 @@ using DataStructures
 
 ```julia
 function hp2toml(hp)
-    tomldata = OrderedDict{String, Any}("device_id" => hp.dp.device_id)
+    tomldata["config"] = OrderedDict{String, Any}("version" => hp.configversion)
+    tomldata["device"] = OrderedDict{String, Any}("device_id" => hp.dp.device_id)
     for (sym, itemname) in [(:mp, "model"), (:pp, "physical"), (:tp, "training")]
         obj = getfield(hp, sym)
         v = OrderedDict(key=>getfield(obj, key) for key ∈ fieldnames(obj |> typeof))
