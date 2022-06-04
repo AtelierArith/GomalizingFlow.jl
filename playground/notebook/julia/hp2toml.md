@@ -14,11 +14,11 @@ jupyter:
 
 ```julia
 using TOML
-using LFT
+using GomalizingFlow
 ```
 
 ```julia
-configpath = joinpath(dirname(dirname(pathof(LFT))), "cfgs", "example2d.toml")
+configpath = joinpath(dirname(dirname(pathof(GomalizingFlow))), "cfgs", "example2d.toml")
 ```
 
 ```julia
@@ -30,7 +30,7 @@ config = TOML.parsefile(configpath)
 ```
 
 ```julia
-hp = LFT.load_hyperparams(configpath)
+hp = GomalizingFlow.load_hyperparams(configpath)
 ```
 
 ```julia

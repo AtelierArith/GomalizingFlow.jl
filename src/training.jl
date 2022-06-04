@@ -46,7 +46,7 @@ function train(hp)
     @info "create result dir: $(result_dir)"
     mkpath(result_dir)
     @info "dump hyperparams: $(joinpath(result_dir, "config.toml"))"
-    LFT.hp2toml(hp, joinpath(result_dir, "config.toml"))
+    GomalizingFlow.hp2toml(hp, joinpath(result_dir, "config.toml"))
     best_epoch = 1
     best_ess = T |> zero
     evaluations = DataFrame(
@@ -129,12 +129,15 @@ function train(hp)
             best_epoch = epoch
             # save model
             trained_model_best_ess = model |> cpu
-            LFT.BSON.@save joinpath(result_dir, "trained_model_best_ess.bson") trained_model_best_ess
+            GomalizingFlow.BSON.@save joinpath(
+                result_dir,
+                "trained_model_best_ess.bson",
+            ) trained_model_best_ess
             # save mcmc history
             @info "make mcmc ensamble"
             history_best_ess = history_current_epoch
             @info "save history_best_ess to $(joinpath(result_dir, "history_best_ess.bson"))"
-            LFT.BSON.@save joinpath(result_dir, "history_best_ess.bson") history_best_ess
+            GomalizingFlow.BSON.@save joinpath(result_dir, "history_best_ess.bson") history_best_ess
             Printf.@printf "acceptance_rate= %.2f [percent]\n" 100mean(
                 history_best_ess.accepted[2000:end],
             )
@@ -161,7 +164,7 @@ function train(hp)
     @info "finished training"
     trained_model = model |> cpu
     @info "save model"
-    LFT.BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
+    GomalizingFlow.BSON.@save joinpath(result_dir, "trained_model.bson") trained_model
     @info "make mcmc ensamble"
     nsamples = 8196
     history = make_mcmc_ensamble(
@@ -174,7 +177,7 @@ function train(hp)
         device=cpu,
     )
     @info "save history to $(joinpath(result_dir, "history.bson"))"
-    LFT.BSON.@save joinpath(result_dir, "history.bson") history
+    GomalizingFlow.BSON.@save joinpath(result_dir, "history.bson") history
 
     result4juliahub = Dict()
     for col in names(evaluations)

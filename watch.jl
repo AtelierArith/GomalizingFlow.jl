@@ -1,6 +1,6 @@
 using ArgParse
 
-using LFT.Watcher
+using GomalizingFlow.Watcher
 
 function parse_commandline()
     s = ArgParseSettings()

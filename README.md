@@ -1,4 +1,4 @@
-# LFT.jl
+# GomalizingFlow.jl
 
 # Usage (今北産業, TL; DR)
 
@@ -140,8 +140,8 @@ See https://github.com/JuliaIO/BSON.jl for more information.
 ```julia
 $ docker-compose run --rm julia-gpu julia begin_training.jl cfgs/example3d.toml
 $ # equivalently
-$ docker run --gpus all --rm -it -v $PWD:/work -w /work lftjl julia -e 'using Pkg; Pkg.instantiate()'
-$ docker run --gpus all --rm -it -v $PWD:/work -w /work lftjl julia begin_training.jl cfgs/example2d.toml
+$ docker run --gpus all --rm -it -v $PWD:/work -w /work GomalizingFlowjl julia -e 'using Pkg; Pkg.instantiate()'
+$ docker run --gpus all --rm -it -v $PWD:/work -w /work GomalizingFlowjl julia begin_training.jl cfgs/example2d.toml
 ```
 
 ### Case 2: CPU only
@@ -153,9 +153,9 @@ $ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
 #### M1 mac users
 
 ```console
-$ docker build -t lftjl -f docker/Dockerfile.m1 .
-$ docker run --rm -it -v $PWD:/work -w /work lftjl julia --project=/work -e 'using Pkg; Pkg.instantiate()'
-$ docker run --rm -it -v $PWD:/work -w /work lftjl julia begin_training.jl cfgs/example2d.toml
+$ docker build -t GomalizingFlowjl -f docker/Dockerfile.m1 .
+$ docker run --rm -it -v $PWD:/work -w /work GomalizingFlowjl julia --project=/work -e 'using Pkg; Pkg.instantiate()'
+$ docker run --rm -it -v $PWD:/work -w /work GomalizingFlowjl julia begin_training.jl cfgs/example2d.toml
 ```
 
 ## Optional

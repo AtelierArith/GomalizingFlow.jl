@@ -1,5 +1,5 @@
 using PyCall
-using LFT: reversedims
+using GomalizingFlow: reversedims
 
 pushfirst!(PyVector(pyimport("sys")."path"), "")
 
@@ -9,13 +9,13 @@ pushfirst!(PyVector(pyimport("sys")."path"), "")
 
     M2 = 1.0
     lam = 1.0
-    out1 = LFT.ScalarPhi4Action(M2, lam)(cfgs |> reversedims)
+    out1 = GomalizingFlow.ScalarPhi4Action(M2, lam)(cfgs |> reversedims)
     pyout1 = pyaction.out1
     @test out1 ≈ pyout1
 
     M2 = -4.0
     lam = 8.0
-    out2 = LFT.ScalarPhi4Action(M2, lam)(cfgs |> reversedims)
+    out2 = GomalizingFlow.ScalarPhi4Action(M2, lam)(cfgs |> reversedims)
     pyout2 = pyaction.out2
     @test out2 ≈ pyout2
 end
@@ -46,7 +46,7 @@ function torch2conv(lay, σ=Flux.identity)
     if lay.padding_mode == "circular"
         pad = 0
         return Chain(
-            LFT.mycircular,
+            GomalizingFlow.mycircular,
             Conv(W, b, σ; pad, stride),
         )
     else
@@ -57,7 +57,7 @@ end
 @testset "make_checker_mask" begin
     torchlayer = pyimport("pymod.torchlayer")
     @test torchlayer.make_checker_mask((8, 8), 0).data.numpy() ==
-          LFT.make_checker_mask((8, 8), 0)
+          GomalizingFlow.make_checker_mask((8, 8), 0)
 end
 
 @testset "torch layer" begin
@@ -83,8 +83,8 @@ end
                 end
             end
         end
-        mask = LFT.make_checker_mask(lattice_shape, parity)
-        push!(module_list, LFT.AffineCoupling(Chain(net...), mask))
+        mask = GomalizingFlow.make_checker_mask(lattice_shape, parity)
+        push!(module_list, GomalizingFlow.AffineCoupling(Chain(net...), mask))
     end
     model = Chain(module_list...)
     prior = Normal{Float32}(0.0f0, 1.0f0)

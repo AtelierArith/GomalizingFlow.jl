@@ -4,7 +4,7 @@ using DataFrames
 using StatsPlots
 using NaturalSort
 
-using LFT
+using GomalizingFlow
 ```
 
 ```julia
@@ -14,7 +14,7 @@ movingaverage(g, n) = [i < n ? mean(g[begin:i]) : mean(g[i-n+1:i]) for i in 1:le
 
 ```julia
 results = String[]
-repo_dir = abspath(joinpath(dirname(dirname(pathof(LFT)))))
+repo_dir = abspath(joinpath(dirname(dirname(pathof(GomalizingFlow)))))
 result_dir = joinpath(repo_dir, "result")
 for d in sort(readdir(result_dir))
     if ispath(joinpath(result_dir, d, "config.toml"))

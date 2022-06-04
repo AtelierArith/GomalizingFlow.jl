@@ -1,8 +1,8 @@
 version: '3'
 services:
   lab:
-    image: lftjl
-    container_name: lftjl-lab
+    image: gomalizingflowjl
+    container_name: gomalizingflowjl-lab
     volumes:
       - ./:/work
     working_dir: /work
@@ -11,9 +11,9 @@ services:
     command: jupyter lab --notebook-dir /work --ip=0.0.0.0 --allow-root
 
   lab-gpu:
-    image: lftjl
+    image: gomalizingflowjl
     runtime: nvidia
-    container_name: lftjl-lab-gpu
+    container_name: gomalizingflowjl-lab-gpu
     volumes:
       - ./:/work
     working_dir: /work
@@ -22,25 +22,25 @@ services:
     command: jupyter lab --notebook-dir /work --ip=0.0.0.0 --allow-root
 
   julia:
-    image: lftjl
-    container_name: lftjl-julia
+    image: gomalizingflowjl
+    container_name: gomalizingflowjl-julia
     volumes:
       - ./:/work
     working_dir: /work
     command: julia --project=/work
 
   julia-gpu:
-    image: lftjl
+    image: gomalizingflowjl
     runtime: nvidia
-    container_name: lftjl-julia-gpu
+    container_name: gomalizingflowjl-julia-gpu
     volumes:
       - ./:/work
     working_dir: /work
     command: julia --project=/work
 
   pluto:
-    image: lftjl
-    container_name: lftjl-pluto
+    image: gomalizingflowjl
+    container_name: gomalizingflowjl-pluto
     volumes:
       - ./:/work
     working_dir: /work

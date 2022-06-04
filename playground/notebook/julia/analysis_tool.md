@@ -24,14 +24,14 @@ using ProgressMeter
 using IterTools
 using Flux
 
-using LFT
+using GomalizingFlow
 ```
 
 ```julia
 using Base.Threads
 if nthreads() == 1
     msg = """
-    We recommend using more than nthreads > 1 to calculate the Green function 
+    We recommend using more than nthreads > 1 to calculate the Green function
     Please run the following command on your terminal (not here)
     \$ julia --threads auto -e 'using Base.Threads, IJulia; installkernel("julia-\$(nthreads())-threads", env=Dict("JULIA_NUM_THREADS"=>"\$(nthreads())"))'
     Then use the kernel named julia-<numthreads>-threads $VERSION where <numthreads> depends on your environment
@@ -44,7 +44,7 @@ end
 
 ```julia
 results = String[]
-repo_dir = abspath(joinpath(dirname(dirname(pathof(LFT)))))
+repo_dir = abspath(joinpath(dirname(dirname(pathof(GomalizingFlow)))))
 result_dir = joinpath(repo_dir, "result")
 for d in readdir(result_dir)
     if ispath(joinpath(result_dir, d, "config.toml"))
@@ -63,25 +63,25 @@ end
 
 ```julia
 function plot_action(r)
-    hp = LFT.load_hyperparams(joinpath(r, "config.toml"));
+    hp = GomalizingFlow.load_hyperparams(joinpath(r, "config.toml"));
     @show hp
     model, _ = restore(r);
 
     batchsize = 1024
     strprior = hp.tp.prior
     prior = eval(Meta.parse(strprior))
-    phi4_action = LFT.ScalarPhi4Action(hp.pp.m², hp.pp.λ)
+    phi4_action = GomalizingFlow.ScalarPhi4Action(hp.pp.m², hp.pp.λ)
     device = Flux.cpu
     lattice_shape = hp.pp.lattice_shape
 
     z = rand(prior, lattice_shape..., batchsize)
     logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z) - 1)) |> device
-    
+
     z_device = z |> device
     x_device, logq_ = model((z_device, logq_device))
     x = cpu(x_device)
     S_eff = -logq_ |> cpu
-    
+
     S = phi4_action(x)
     fit_b = mean(S) - mean(S_eff)
     @show fit_b
@@ -111,7 +111,7 @@ function green(cfgs, offsetX, lattice_shape)
     m_offset = mean(cfgs_offset, dims=batch_dim)
     V = prod(lattice_shape)
     Gc = sum(m_corr .- m .* m_offset)/V
-    return Gc 
+    return Gc
 end
 ```
 
@@ -149,7 +149,7 @@ acceptance_rate =  mean(history[:accepted][4000:7000])
 Printf.@printf "acceptance_rate= %.2f [percent]" 100acceptance_rate
 
 function drawgreen(r)
-    hp = LFT.load_hyperparams(joinpath(r, "config.toml"))
+    hp = GomalizingFlow.load_hyperparams(joinpath(r, "config.toml"))
     _, history = restore(r);
     lattice_shape = hp.pp.lattice_shape
     cfgs = cat(history[:x][4000:7000]..., dims=length(lattice_shape)+1)
