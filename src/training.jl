@@ -39,8 +39,7 @@ function train(hp)
         @info "load model from $(pretrained)"
         BSON.@load pretrained trained_model opt
         model = trained_model
-        @info model
-        @info opt
+        @info nameof(typeof(opt))
         model, opt
     end
     Flux.trainmode!(model)
