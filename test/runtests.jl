@@ -67,7 +67,7 @@ function create_hp_example3d()
     batchsize = 64
     epochs = 300
     iterations = 100
-    base_lr = 0.0015
+    base_lr = 0.001
     opt = "ADAM"
     lr_scheduler = ""
     prior = "Normal{Float32}(0.f0, 1.f0)"
