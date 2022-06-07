@@ -29,7 +29,7 @@ iterations = 100
 base_lr = 0.001
 opt = "ADAM"
 prior = "Normal{Float32}(0.f0, 1.f0)"
-lr_scheduler = "Step(base_lr, 0.1, [200])"
+lr_scheduler = "Step(0.001, 0.1, [200])"
 pretrained = ""
 
 # setup PhysicalParams
@@ -42,7 +42,6 @@ L = 8
 Nd = 3
 M2 = -4.0 # m²
 lam = 5.113 # λ
-
 
 # setup ModelParams
 #
