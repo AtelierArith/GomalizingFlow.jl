@@ -118,7 +118,7 @@ RUN julia -e 'using Pkg; Pkg.add(["ImageFiltering", "WebIO", "Interact"])'
 ENV JULIA_PROJECT=/work
 USER root
 COPY Project.toml /work/
-COPY ./src /work/src
+RUN mkdir -p /work/src && echo "module GomalizingFlow end" > /work/src/GomalizingFlow.jl
 RUN chown -R ${NB_UID} /work/Project.toml
 USER ${NB_USER}
 
