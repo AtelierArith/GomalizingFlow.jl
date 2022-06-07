@@ -5,16 +5,6 @@ using ParameterSchedulers
 using ParameterSchedulers: Scheduler
 using ProgressMeter
 
-function schedule_lr(base_lr, e)
-    T = typeof(base_lr)
-    if e < 200
-        return base_lr
-    end
-    if 200 <= e
-        return base_lr * T(0.1)
-    end
-end
-
 function train(hp)
     device = hp.dp.device
     @info "setup action"
