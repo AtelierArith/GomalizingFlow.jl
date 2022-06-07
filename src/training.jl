@@ -50,6 +50,20 @@ function train(hp)
 
     @info "create result dir: $(result_dir)"
     mkpath(result_dir)
+
+    @info "create snapshot"
+    cp(joinpath(pkgdir(GomalizingFlow), "src"), joinpath(result_dir, "src"), force=true)
+    cp(
+        joinpath(pkgdir(GomalizingFlow), "Project.toml"),
+        joinpath(result_dir, "Project.toml"),
+        force=true,
+    )
+    cp(
+        joinpath(pkgdir(GomalizingFlow), "Manifest.toml"),
+        joinpath(result_dir, "Manifest.toml"),
+        force=true,
+    )
+
     @info "dump hyperparams: $(joinpath(result_dir, "config.toml"))"
     GomalizingFlow.hp2toml(hp, joinpath(result_dir, "config.toml"))
     best_epoch = 1
