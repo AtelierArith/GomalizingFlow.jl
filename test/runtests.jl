@@ -84,8 +84,10 @@ function create_hp_example3d()
 
     L = 8
     Nd = 3
-    M2 = -4.0
-    lam = 8
+
+    M2 = -4.0 # m²
+    lam = 5.113 # λ
+
     pp = GomalizingFlow.PhysicalParams(; L, Nd, M2, lam)
 
     seed = 2021
