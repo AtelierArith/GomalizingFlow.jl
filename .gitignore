@@ -7,3 +7,5 @@ result.zip
 __pycache__
 *.bson
 .DS_Store
+# private tools
+tools
