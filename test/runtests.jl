@@ -7,6 +7,7 @@ using Flux
 using Parameters
 using Distributions
 using ImageFiltering
+using ParameterSchedulers
 
 using GomalizingFlow
 
@@ -374,7 +375,7 @@ end
 
 @testset "retraining" begin
     configpath = joinpath(@__DIR__, "assets", "config.toml")
-    pretrained = joinpath(@__DIR__, "assets", "trained_model.bson")
+    pretrained = joinpath(@__DIR__, "result/config", "trained_model.bson")
     hp = GomalizingFlow.load_hyperparams(configpath; pretrained)
     GomalizingFlow.train(hp)
     # notify retraining has finished
