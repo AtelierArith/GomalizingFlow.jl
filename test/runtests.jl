@@ -65,11 +65,11 @@ function create_hp_example3d()
 
     seed = 12345
     batchsize = 64
-    epochs = 300
+    epochs = 500
     iterations = 100
     base_lr = 0.001
     opt = "ADAM"
-    lr_scheduler = ""
+    lr_scheduler = "Step(0.001f0, 0.1f0, [200])"
     prior = "Normal{Float32}(0.f0, 1.f0)"
     tp = GomalizingFlow.TrainingParams(;
         seed,
