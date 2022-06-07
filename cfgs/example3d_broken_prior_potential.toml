@@ -26,7 +26,7 @@ seed = 12345
 batchsize = 64
 epochs = 1000
 iterations = 100
-base_lr = 0.0015
+base_lr = 0.001
 opt = "ADAM"
 prior = "Potential{Float32}(; m²=-4f0, λ=8f0)"
 lr_scheduler = ""
