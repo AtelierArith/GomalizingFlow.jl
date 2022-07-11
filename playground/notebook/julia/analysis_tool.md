@@ -9,6 +9,8 @@ using Distributions
 using ProgressMeter
 using IterTools
 using Flux
+using CUDA
+using ParameterSchedulers 
 
 using GomalizingFlow
 ```
