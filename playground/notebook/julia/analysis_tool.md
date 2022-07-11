@@ -140,7 +140,8 @@ function drawgreen(r)
     hp = GomalizingFlow.load_hyperparams(joinpath(r, "config.toml"))
     _, history = restore(r);
     lattice_shape = hp.pp.lattice_shape
-    cfgs = cat(history[:x][4000:7000]..., dims=length(lattice_shape)+1)
+    #cfgs = cat(history[:x][4000:7000]..., dims=length(lattice_shape)+1)
+    cfgs = Flux.MLUtils.batch(history[:x][2000:7000])
     y_values = []
     @showprogress for t in 0:hp.pp.L
         y = mfGc(cfgs, t, lattice_shape)
