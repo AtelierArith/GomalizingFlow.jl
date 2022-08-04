@@ -50,7 +50,7 @@ end
     epochs::Int = 40
     iterations::Int = 100
     base_lr::Float64 = 0.001
-    opt::String = "ADAM"
+    opt::String = "Adam"
     prior::String = "Normal{Float32}(0.f0, 1.f0)"
     lr_scheduler::String = ""
     pretrained::String = ""

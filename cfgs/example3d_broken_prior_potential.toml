@@ -27,7 +27,7 @@ batchsize = 64
 epochs = 500
 iterations = 100
 base_lr = 0.001
-opt = "ADAM"
+opt = "Adam"
 prior = "Potential{Float32}(; m²=-4f0, λ=8f0)"
 lr_scheduler = ""
 pretrained = ""
