@@ -189,7 +189,7 @@ const lattice_shape = (L, L)
 struct ScalarPhi4Action
     m²::Float32
     λ::Float32
-end 
+end
 
 function calc_action(action::ScalarPhi4Action, cfgs)
     action_density = @. action.m² * cfgs ^ 2 + action.λ * cfgs ^ 4
@@ -236,7 +236,7 @@ torch.manual_seed(12345)
 batch_size = 1024
 
 prior = py"SimpleNormal"(
-    torch.from_numpy(zeros(Float32, lattice_shape)), 
+    torch.from_numpy(zeros(Float32, lattice_shape)),
     torch.from_numpy(ones(Float32, lattice_shape)),
 )
 
@@ -448,13 +448,13 @@ function mycircular(Y)
     Y_b_r = Y[begin:begin,end:end,:,:]
     Y_b_l = Y[begin:begin,begin:begin,:,:]
     Z_bottom = cat(Y_b_r, Y_b_c, Y_b_l, dims=2) # calc pad under
-    
+
     # calc Z_top
     Y_e_c = Y[end:end,:,:,:]
     Y_e_r = Y[end:end,end:end,:,:]
     Y_e_l = Y[end:end,begin:begin,:,:]
     Z_top = cat(Y_e_r, Y_e_c, Y_e_l, dims=2)
-    
+
     # calc Z_main
     Y_main_l = Y[:,begin:begin,:,:]
     Y_main_r = Y[:,end:end,:,:]
@@ -495,7 +495,7 @@ function create_layer()
             # https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
             k = 1/(c * 3 * 3)
             W = rand(Uniform(-√k, √k), 3, 3, c, c_next)
-            b = rand(Uniform(-√k, √k), c_next) 
+            b = rand(Uniform(-√k, √k), c_next)
             push!(net, mycircular)
             push!(net, Conv(W, b, leakyrelu, pad=0))
         end
@@ -504,7 +504,7 @@ function create_layer()
             c_next = channels[end]
             k = 1/(c * 3 * 3)
             W = rand(Uniform(-√k, √k), 3, 3, c, c_next)
-            b = rand(Uniform(-√k, √k), c_next) 
+            b = rand(Uniform(-√k, √k), c_next)
             net[end] = Conv(W, b, tanh, pad=0)
         end
         mask = make_checker_mask(lattice_shape, parity)
@@ -615,7 +615,7 @@ fit_b = mean(S) - mean(S_eff)
 @show fit_b
 print("slope 1 linear regression S = -logr + $fit_b")
 fig, ax = plt.subplots(1,1, dpi=125, figsize=(4,4))
-ax.hist2d(vec(S_eff), vec(S), bins=20, 
+ax.hist2d(vec(S_eff), vec(S), bins=20,
     #range=[[5, 35], [-5, 25]]
 )
 

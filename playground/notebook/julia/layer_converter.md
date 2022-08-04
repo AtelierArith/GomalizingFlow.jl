@@ -123,7 +123,7 @@ class MyAffineCoupling(torch.nn.Module):
         axes = range(1, len(s.size()))
         logJ = torch.sum(self.mask_flipped * s, dim=tuple(axes))
         return fx, logJ
-    
+
     def reverse(self, fx):
         fx_frozen = self.mask * fx # phi_2'
         fx_active = self.mask_flipped * fx # phi_1'
@@ -262,13 +262,13 @@ function mycircular(Y)
     Y_b_r = Y[begin:begin,end:end,:,:]
     Y_b_l = Y[begin:begin,begin:begin,:,:]
     Z_bottom = cat(Y_b_r, Y_b_c, Y_b_l, dims=2) # calc pad under
-    
+
     # calc Z_top
     Y_e_c = Y[end:end,:,:,:]
     Y_e_r = Y[end:end,end:end,:,:]
     Y_e_l = Y[end:end,begin:begin,:,:]
     Z_top = cat(Y_e_r, Y_e_c, Y_e_l, dims=2)
-    
+
     # calc Z_main
     Y_main_l = Y[:,begin:begin,:,:]
     Y_main_r = Y[:,end:end,:,:]
@@ -372,11 +372,11 @@ function create_layer()
         net = []
         for (ci, (c, c_next)) ∈ enumerate(pairwise(channels))
             push!(
-                net, 
+                net,
                 Chain(
                     mycircular,
                     Conv(
-                        affine_coupling_layers[i+1].net[ci][end].weight, 
+                        affine_coupling_layers[i+1].net[ci][end].weight,
                         affine_coupling_layers[i+1].net[ci][end].bias,
                         leakyrelu,
                         pad=0
@@ -390,7 +390,7 @@ function create_layer()
             net[end] = Chain(
                 mycircular,
                 Conv(
-                    affine_coupling_layers[i+1].net[end][end].weight, 
+                    affine_coupling_layers[i+1].net[end][end].weight,
                     affine_coupling_layers[i+1].net[end][end].bias,
                     tanh,
                     pad=0
