@@ -10,7 +10,7 @@ using ProgressMeter
 using IterTools
 using Flux
 using CUDA
-using ParameterSchedulers 
+using ParameterSchedulers
 
 using GomalizingFlow
 ```
@@ -58,7 +58,7 @@ function plot_action(r)
     batchsize = 1024
     strprior = hp.tp.prior
     prior = eval(Meta.parse(strprior))
-    phi4_action = GomalizingFlow.ScalarPhi4Action(hp.pp.m², hp.pp.λ)
+    phi4_action = GomalizingFlow.ScalarPhi4Action{Float32}(hp.pp.m², hp.pp.λ)
     device = Flux.cpu
     lattice_shape = hp.pp.lattice_shape
 

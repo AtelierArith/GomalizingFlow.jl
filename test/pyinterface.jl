@@ -3,19 +3,19 @@ using GomalizingFlow: reversedims
 
 pushfirst!(PyVector(pyimport("sys")."path"), "")
 
-@testset "ScalarPhi4Action" begin
+@testset "ScalarPhi4Action{Float32}" begin
     pyaction = pyimport("pymod.action")
     cfgs = pyaction.cfgs
 
     M2 = 1.0
     lam = 1.0
-    out1 = GomalizingFlow.ScalarPhi4Action(M2, lam)(cfgs |> reversedims)
+    out1 = GomalizingFlow.ScalarPhi4Action{Float32}(M2, lam)(cfgs |> reversedims)
     pyout1 = pyaction.out1
     @test out1 ≈ pyout1
 
     M2 = -4.0
     lam = 8.0
-    out2 = GomalizingFlow.ScalarPhi4Action(M2, lam)(cfgs |> reversedims)
+    out2 = GomalizingFlow.ScalarPhi4Action{Float32}(M2, lam)(cfgs |> reversedims)
     pyout2 = pyaction.out2
     @test out2 ≈ pyout2
 end
