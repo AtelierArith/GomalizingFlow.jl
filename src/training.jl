@@ -8,14 +8,15 @@ using ProgressMeter
 function train(hp)
     device = hp.dp.device
     @info "setup action"
-    @unpack m², λ, lattice_shape = hp.pp
-    action = ScalarPhi4Action(m², λ)
-    @show action
 
     prior = eval(Meta.parse(hp.tp.prior))
     T = prior |> rand |> eltype
     @show "eltype" T
     @show prior
+
+    @unpack m², λ, lattice_shape = hp.pp
+    action = ScalarPhi4Action{T}(m², λ)
+    @show action
 
     @unpack pretrained, batchsize, epochs, iterations, seed = hp.tp
     @info "setup model"

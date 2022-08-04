@@ -297,12 +297,15 @@ end
     hp = GomalizingFlow.load_hyperparams(joinpath(@__DIR__, "assets", "config.toml"))
 
     device = hp.dp.device
-    @info "setup action"
-    @unpack m², λ, lattice_shape = hp.pp
-    action = GomalizingFlow.ScalarPhi4Action(m², λ)
 
     @unpack batchsize, epochs, iterations, seed = hp.tp
     prior = eval(Meta.parse(hp.tp.prior))
+    T = prior |> rand |> eltype
+
+    @info "setup action"
+    @unpack m², λ, lattice_shape = hp.pp
+    action = GomalizingFlow.ScalarPhi4Action{T}(m², λ)
+
     @info "setup model"
     model = GomalizingFlow.create_model(hp)
     # switch to testmode
