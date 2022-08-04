@@ -187,7 +187,7 @@ epochs = 100
 batchsize = 64
 
 base_lr = 0.001f0
-opt = ADAM(base_lr)
+opt = Adam(base_lr)
 L = 8
 lattice_shape = (L, L)
 M2 = -4.
