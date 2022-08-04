@@ -1,6 +1,6 @@
-mutable struct ScalarPhi4Action
-    m²::Float32
-    λ::Float32
+mutable struct ScalarPhi4Action{T<:AbstractFloat}
+    m²::T
+    λ::T
 end
 
 function calc_action(action::ScalarPhi4Action, cfgs)
