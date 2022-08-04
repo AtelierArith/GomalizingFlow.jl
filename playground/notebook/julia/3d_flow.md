@@ -227,7 +227,7 @@ batchsize = 64
 
 base_lr = 0.0015f0
 
-opt = ADAM(base_lr)
+opt = Adam(base_lr)
 
 
 

@@ -253,7 +253,7 @@ function train()
     epochs = 100
 
     base_lr = 0.001f0
-    opt = ADAM(base_lr)
+    opt = Adam(base_lr)
 
     for era in 1:n_era
         @showprogress for e in 1:epochs
