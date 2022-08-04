@@ -45,7 +45,7 @@ device = hp.dp.device
 prior = eval(Meta.parse(hp.tp.prior))
 
 @unpack m², λ, lattice_shape = hp.pp
-action = GomalizingFlow.ScalarPhi4Action(m², λ)
+action = GomalizingFlow.ScalarPhi4Action{Float32}(m², λ)
 batchsize = 1
 ```
 

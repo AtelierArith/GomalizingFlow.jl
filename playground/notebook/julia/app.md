@@ -43,7 +43,7 @@ batchsize=1024
 device = cpu
 model = trained_model
 prior = hp.tp.prior
-phi4_action = GomalizingFlow.ScalarPhi4Action(hp.pp.m², hp.pp.λ)
+phi4_action = GomalizingFlow.ScalarPhi4Action{Float32}(hp.pp.m², hp.pp.λ)
 L = hp.pp.L
 lattice_shape = hp.pp.lattice_shape
 ```
