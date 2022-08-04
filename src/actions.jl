@@ -3,7 +3,10 @@ mutable struct ScalarPhi4Action{T<:AbstractFloat}
     λ::T
 end
 
-function calc_action(action::ScalarPhi4Action, cfgs)
+function calc_action(
+    action::ScalarPhi4Action{T},
+    cfgs::AbstractArray{T,N},
+) where {T<:AbstractFloat,N}
     potential = @. action.m² * cfgs^2 + action.λ * cfgs^4
     sz = length(size(cfgs))
     Nd = sz - 1 # exclude last axis
@@ -17,6 +20,8 @@ function calc_action(action::ScalarPhi4Action, cfgs)
     )
 end
 
-function (action::ScalarPhi4Action)(cfgs)
+function (action::ScalarPhi4Action{T})(
+    cfgs::AbstractArray{T,N},
+) where {T<:AbstractFloat,N}
     calc_action(action, cfgs)
 end
