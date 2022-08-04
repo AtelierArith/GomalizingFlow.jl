@@ -45,20 +45,20 @@ function make_conv_net(
     net = []
     for i in 1:(length(sizes)-2)
         push!(
-            net, 
+            net,
             Conv(
-                (kernel_size, kernel_size), 
-                sizes[i] => sizes[i+1], 
-                Flux.leakyrelu; 
+                (kernel_size, kernel_size),
+                sizes[i] => sizes[i+1],
+                Flux.leakyrelu;
                 pad, stride=1, bias=true,
             )
         )
     end
     # define last layer
     push!(
-        net, 
+        net,
         Conv(
-            (kernel_size, kernel_size), 
+            (kernel_size, kernel_size),
             sizes[end-1] => sizes[end],
             ifelse(use_final_tanh, identity, tanh)
             ; pad, stride=1, bias=true,
@@ -127,10 +127,10 @@ function make_phi4_affine_layers(;lattice_shape, n_layers, hidden_sizes, kernel_
     for i in 1:n_layers
         parity = mod(i - 1, 2)
         net = make_conv_net(
-            in_channels=1, 
-            out_channels=2, 
+            in_channels=1,
+            out_channels=2,
             hidden_sizes=hidden_sizes,
-            kernel_size=kernel_size, 
+            kernel_size=kernel_size,
             use_final_tanh=true
         )
         mask = make_checker_mask(lattice_shape, parity)
@@ -150,9 +150,9 @@ n_layers = 16
 hidden_sizes = [8,8]
 kernel_size = 3
 layers = make_phi4_affine_layers(
-    lattice_shape=lattice_shape, 
+    lattice_shape=lattice_shape,
     n_layers=n_layers,
-    hidden_sizes=hidden_sizes, 
+    hidden_sizes=hidden_sizes,
     kernel_size=kernel_size,
 )
 model = Dict("layers" => layers, "prior" => prior)
@@ -205,7 +205,7 @@ end
 
 ```julia
 lr = 0.001f0
-optimizer = ADAM(lr)
+optimizer = Adam(lr)
 ```
 
 ```julia

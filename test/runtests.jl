@@ -21,7 +21,7 @@ function create_hp_example2d()
     epochs = 200
     iterations = 100
     base_lr = 0.001
-    opt = "ADAM"
+    opt = "Adam"
     lr_scheduler = ""
     prior = "Normal{Float32}(0.f0, 1.f0)"
     tp = GomalizingFlow.TrainingParams(;
@@ -69,7 +69,7 @@ function create_hp_example3d()
     epochs = 500
     iterations = 100
     base_lr = 0.001
-    opt = "ADAM"
+    opt = "Adam"
     lr_scheduler = "Step(0.001f0, 0.1f0, [200])"
     prior = "Normal{Float32}(0.f0, 1.f0)"
     tp = GomalizingFlow.TrainingParams(;
