@@ -2,10 +2,13 @@
 using LinearAlgebra
 using Random
 using Statistics
+using Plots
 
 using GomalizingFlow
 using GomalizingFlow: PhysicalParams, HyperParams
-using MLUtils
+using Zygote
+using ProgressMeter
+using Flux: unsqueeze
 ```
 
 ```python
@@ -111,6 +114,19 @@ end
 ```
 
 ```python
+function calcgreen(cfgs::AbstractArray, pp::PhysicalParams)
+    example_loc = CartesianIndex(repeat([1], ndims(cfgs))...)
+    volume = prod(pp.lattice_shape)
+    #             sum          vec
+    # (Lx, Ly, Lz) -> (1,1,Lz) -> (Lz)
+    return sum(
+        cfgs[example_loc] * cfgs,
+        dims=1:(ndims(cfgs)-1)
+    )/volume |> vec
+end
+```
+
+```python
 Φ = My.HMC(pp, init=rand);
 ```
 
@@ -125,160 +141,83 @@ action = GomalizingFlow.ScalarPhi4Action(pp.m², pp.λ)
 ```
 
 ```python
-hamiltonian = dot(Φ.p, Φ.p) + action(unsqueeze(Φ.cfgs, dims=ndims(Φ.cfgs)+1))[begin]
-```
+S(cfgs::AbstractArray) = action(unsqueeze(cfgs, dims=ndims(cfgs)+1))[begin]
 
-```python
-function update_force!(Φ::My.HMC, pp::PhysicalParams)
-    Lx, Ly, Lz = pp.lattice_shape
-    m²=pp.m²
-    λ =pp.λ
-    F = Φ.F
-    ϕ = Φ.cfgs
-    for iz=1:Lz
-        for iy=1:Ly
-            @simd for ix=1:Lx
-                F[ix,iy,iz] = 2m²*ϕ[ix,iy,iz] + 4λ*ϕ[ix,iy,iz]^3
-                # = = = = = = =
-                ixp=ix+1
-                ixm=ix-1
-                if ixp>Lx
-                    ixp-=Lx
-                end
-                if ixm<1
-                    ixm+=Lx
-                end
-                C = 4
-                D = 1
-                F[ix,iy,iz]+= (C*ϕ[ix,iy,iz] - ϕ[ixp,iy,iz]-ϕ[ixm,iy,iz])/D
-                # - - - - - - - - - - - - - - - - - - - -
-                iyp=iy+1
-                iym=iy-1
-                if iyp>Ly
-                    iyp-=Ly
-                end
-                if iym<1
-                    iym+=Ly
-                end
-                F[ix,iy,iz]+= (C*ϕ[ix,iy,iz] - ϕ[ix,iyp,iz]-ϕ[ix,iym,iz])/D
-                # - - - - - - - - - - - - - - - - - - - -
-                izp=iz+1
-                izm=iz-1
-                if izp>Lz
-                    izp-=Lz
-                end
-                if izm<1
-                    izm+=Lz
-                end
-                F[ix,iy,iz]+= (C*ϕ[ix,iy,iz] - ϕ[ix,iy,izp]-ϕ[ix,iy,izm])/D
-            end
-        end
-    end
+gradient(S, rand(3,3,3))
+
+function hamiltonian(S::Function, cfgs, p)
+    Σ_p² = dot(p, p)
+    H = 0.5Σ_p² + S(cfgs)
+    return H
 end
 ```
 
 ```python
-function metropolis!(
-        Φ::My.HMC,
-        pp::PhysicalParams,
-        nmd::Int # the number of molecular dynamics
-    )
-    lattice_shape = pp.lattice_shape
-    Φ.cfgs_old .= copy(Φ.cfgs)
-    Φ.p .= randn(lattice_shape...)
-    Φ.p_old .= copy(Φ.p)
-    
-    S_old = action(unsqueeze(Φ.cfgs_old, dims=ndims(Φ.cfgs_old)+1))[begin]
-    Σp_old² = dot(Φ.p_old, Φ.p_old) # faster than sum(Φ.p_old * Φ.p_old)
-    H_old = 0.5Σp_old² + S_old # Hamiltonian
-    @show S_old
-    @show Σp_old²
-    @show H_old
-    
-    ϵ = inv(nmd)
-    for _ in 1:nmd
-        update_force!(Φ, pp)
-        Φ.p .+= ϵ/2 * Φ.F
-        
-        Φ.cfgs .+= ϵ * Φ.p
-        
-        update_force!(Φ, pp)
-        Φ.p .+= ϵ/2 * Φ.F
+# Solve Molecular Dynamics
+# a.k.a leapfrog algorithm 
+function md!(S, x, p, Nτ, Δτ)
+    @. x += Δτ/2 * p
+    for _ in 1:(Nτ-1)
+        ∇, = gradient(S, x)
+        @. p -= Δτ * ∇
+        @. x += Δτ * p
     end
-    
-    S = action(unsqueeze(Φ.cfgs, dims=ndims(Φ.cfgs)+1))[begin]
-    Σp² = dot(Φ.p, Φ.p) # faster than sum(Φ.p * Φ.p)
-    H = 0.5Σp² + S # Hamiltonian
-    @show S
-    @show Σp²
-    @show H
-    
-    ΔH = H - H_old
-    ξ = rand(eltype(Φ))
-    @show ΔH
-    @show ξ, exp(-ΔH)
-    if ξ < exp(-ΔH)
-        return true, ΔH
-    else
-        # restore cfgs from old cfgs
-        Φ.cfgs .= copy(Φ.cfgs_old)
-        return false, ΔH
-    end
-end 
-```
+    ∇, = gradient(S, x)
+    @. p -= Δτ * ∇
+    @. x += Δτ/2 * p
+    return x, p
+end
 
-```python
-function calcgreen(Φ::My.HMC,pp::PhysicalParams)
-    example_loc = CartesianIndex(repeat([1], ndims(Φ.cfgs))...)
-    volume = prod(pp.lattice_shape)
-    #             sum          vec
-    # (Lx, Ly, Lz) -> (1,1,Lz) -> (Lz)
-    return sum(
-        Φ.cfgs[example_loc] * Φ.cfgs,
-        dims=1:(ndims(Φ.cfgs)-1)
-    )/volume |> vec
+function hmc_update(S::Function, x, Nτ, Δτ)
+    p = randn(size(x)...)
+
+    x_init = copy(x)
+    p_init = copy(p)
+    H_init = hamiltonian(S, x_init, p_init)
+
+    x_cand, p_cand = md!(S, x, p, Nτ, Δτ)
+    H_cand = hamiltonian(S, x_cand, p_cand)
+
+    ΔH = H_cand - H_init
+    r = rand()
+    accepted, x_next = (r < exp(-ΔH)) ? (true, x_cand) : (false, x_init)
+    #@show accepted, exp(-ΔH), mean(x_cand), mean(x_init)
+    return (accepted, x_next)
 end
 ```
 
 ```python
-function runHMC(pp::PhysicalParams; ntrials, nmd)
-    T = Float64
-    N = length(pp.lattice_shape)
-    action = GomalizingFlow.ScalarPhi4Action{T}(pp.m², pp.λ)
-    Φ = My.HMC{T}(pp, init=rand)
-    history = (cond=T[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
-    for i in 1:ntrials
-        cond = mean(Φ.cfgs)
-        accepted, ΔH = metropolis!(Φ, pp, nmd)
-        push!(history[:cond], cond)
-        push!(history[:ΔH], ΔH)
-        push!(history[:accepted], accepted)
-        push!(history[:Green], calcgreen(Φ, pp))
+function runHMC(pp::PhysicalParams; ntrials, Nτ, Δτ)
+    
+    cfgs = rand(pp.lattice_shape...)
+    
+    T = eltype(cfgs) # e.g. Float64
+    history = (cfgs=typeof(cfgs)[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
+    
+    @showprogress for _ in 1:ntrials
+        accepted, cfgs = hmc_update(S, cfgs, Nτ, Δτ)
+        push!(history.accepted, accepted)
+        push!(history.cfgs, cfgs)
+        push!(history.Green, calcgreen(cfgs, pp))
     end
-    return history
+    history
 end
 ```
 
 ```python
-ΔH = 1.3765123831082548e129
-exp(-ΔH)
-```
-
-```python
-pp = PhysicalParams(8, 3, 0, 0.001)
+configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example2d.toml")
+hp = GomalizingFlow.load_hyperparams(configpath);
+pp = hp.pp
 @show pp
-ntrials = 10^2*2
-nmd = 10
+Nτ = 400
+Δτ = 0.05
+ntrials = 10 ^ 4 
 Random.seed!(54321)
-history = runHMC(pp; ntrials, nmd);
+history = runHMC(pp; ntrials, Nτ, Δτ);
 ```
 
 ```python
-using Plots
-```
-
-```python
-plot(history[:cond])
+plot(mean.(history.cfgs))
 ```
 
 ```python
@@ -286,9 +225,5 @@ history[:accepted] |> sum
 ```
 
 ```python
-history[:cond] |> sum
-```
-
-```python
-
+mean.(history.cfgs) |> maximum, mean.(history.cfgs) |> minimum
 ```
