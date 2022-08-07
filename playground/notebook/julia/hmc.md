@@ -1,4 +1,4 @@
-```python
+```julia
 using LinearAlgebra
 using Random
 using Statistics
@@ -6,18 +6,19 @@ using Plots
 
 using GomalizingFlow
 using GomalizingFlow: PhysicalParams, HyperParams
-using Zygote
+using Flux
+using Flux.Zygote
 using ProgressMeter
 using Flux: unsqueeze
 ```
 
-```python
+```julia
 configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example3d.toml")
 hp = GomalizingFlow.load_hyperparams(configpath);
 pp = hp.pp
 ```
 
-```python
+```julia
 module My
 
 using GomalizingFlow: PhysicalParams
@@ -50,7 +51,7 @@ end # module
 using .My
 ```
 
-```python
+```julia
 function calc_potential(Φ::My.HMC{T, N}, pp::PhysicalParams) where {T, N}
     Lx, Ly, Lz = pp.lattice_shape
     m²=T(pp.m²)
@@ -69,7 +70,7 @@ function calc_potential(Φ::My.HMC{T, N}, pp::PhysicalParams) where {T, N}
 end
 ```
 
-```python
+```julia
 function calc_kinetic(Φ::My.HMC{T, N},pp::PhysicalParams) where {T, N}
     Lx, Ly, Lz = pp.lattice_shape
     ϕ = Φ.cfgs
@@ -113,7 +114,7 @@ function calc_kinetic(Φ::My.HMC{T, N},pp::PhysicalParams) where {T, N}
 end
 ```
 
-```python
+```julia
 function calcgreen(cfgs::AbstractArray, pp::PhysicalParams)
     example_loc = CartesianIndex(repeat([1], ndims(cfgs))...)
     volume = prod(pp.lattice_shape)
@@ -126,23 +127,24 @@ function calcgreen(cfgs::AbstractArray, pp::PhysicalParams)
 end
 ```
 
-```python
+```julia
 Φ = My.HMC(pp, init=rand);
 ```
 
-```python
+```julia
 action = GomalizingFlow.ScalarPhi4Action(pp.m², pp.λ)
 @time action(unsqueeze(Φ.cfgs, dims=ndims(Φ.cfgs)+1))[begin]
 ```
 
-```python
+```julia
 @assert calc_potential(Φ, pp) ≈ sum(action.m² * Φ.cfgs .^2 + action.λ * Φ.cfgs .^ 4)
 @assert calc_kinetic(Φ, pp) + calc_potential(Φ, pp) ≈ action(unsqueeze(Φ.cfgs, dims=ndims(Φ.cfgs)+1))[begin]
 ```
 
-```python
+```julia
 S(cfgs::AbstractArray) = action(unsqueeze(cfgs, dims=ndims(cfgs)+1))[begin]
 
+gradient(S, rand(3,3))
 gradient(S, rand(3,3,3))
 
 function hamiltonian(S::Function, cfgs, p)
@@ -152,7 +154,7 @@ function hamiltonian(S::Function, cfgs, p)
 end
 ```
 
-```python
+```julia
 # Solve Molecular Dynamics
 # a.k.a leapfrog algorithm 
 function md!(S, x, p, Nτ, Δτ)
@@ -165,17 +167,17 @@ function md!(S, x, p, Nτ, Δτ)
     ∇, = gradient(S, x)
     @. p -= Δτ * ∇
     @. x += Δτ/2 * p
-    return x, p
+    return x |> cpu , p |> cpu
 end
 
 function hmc_update(S::Function, x, Nτ, Δτ)
-    p = randn(size(x)...)
+    p = randn(eltype(x), size(x)...)
 
     x_init = copy(x)
     p_init = copy(p)
     H_init = hamiltonian(S, x_init, p_init)
 
-    x_cand, p_cand = md!(S, x, p, Nτ, Δτ)
+    x_cand, p_cand = md!(S, x |> gpu, p |> gpu, Nτ, Δτ)
     H_cand = hamiltonian(S, x_cand, p_cand)
 
     ΔH = H_cand - H_init
@@ -186,44 +188,45 @@ function hmc_update(S::Function, x, Nτ, Δτ)
 end
 ```
 
-```python
+```julia
 function runHMC(pp::PhysicalParams; ntrials, Nτ, Δτ)
-    
-    cfgs = rand(pp.lattice_shape...)
+    T = Float32
+    cfgs = rand(T, pp.lattice_shape...)
+    action = GomalizingFlow.ScalarPhi4Action{T}(pp.m², pp.λ)
+    function S(cfgs::AbstractArray)
+        out = sum(action(unsqueeze(cfgs, dims=ndims(cfgs)+1)))
+        return out
+    end
     
     T = eltype(cfgs) # e.g. Float64
-    history = (cfgs=typeof(cfgs)[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
+    history = (cfgs=typeof(cfgs |> cpu)[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
     
     @showprogress for _ in 1:ntrials
         accepted, cfgs = hmc_update(S, cfgs, Nτ, Δτ)
         push!(history.accepted, accepted)
-        push!(history.cfgs, cfgs)
-        push!(history.Green, calcgreen(cfgs, pp))
+        push!(history.cfgs, cfgs |> cpu)
+        push!(history.Green, calcgreen(cfgs |> cpu, pp))
     end
     history
 end
 ```
 
-```python
-configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example2d.toml")
+```julia
+configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example3d.toml")
 hp = GomalizingFlow.load_hyperparams(configpath);
 pp = hp.pp
 @show pp
-Nτ = 400
-Δτ = 0.05
-ntrials = 10 ^ 4 
+Nτ = 20
+Δτ = 0.01
+ntrials = 10 ^ 3
 Random.seed!(54321)
 history = runHMC(pp; ntrials, Nτ, Δτ);
 ```
 
-```python
+```julia
 plot(mean.(history.cfgs))
 ```
 
-```python
+```julia
 history[:accepted] |> sum
-```
-
-```python
-mean.(history.cfgs) |> maximum, mean.(history.cfgs) |> minimum
 ```
