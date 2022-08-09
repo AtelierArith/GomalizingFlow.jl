@@ -37,7 +37,6 @@ ToStruct = "43ec2cc1-0e50-5406-a854-b7ff8fdb8dad"
 UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
 
 [compat]
-NNlib = "0.8.4"
 BSON = "0.3.5"
 
 [extras]
