@@ -10,7 +10,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     git \
     wget \
     && \
-    apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* # clean up
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     htop \
@@ -19,13 +19,13 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     tig \
     tree \
     && \
-    apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* # clean up
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install NodeJS
 RUN apt-get update && \
     curl -sL https://deb.nodesource.com/setup_16.x | bash - && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
-    apt-get clean && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* # clean up
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Julia
 RUN wget https://julialang-s3.julialang.org/bin/linux/x64/1.7/julia-1.7.3-linux-x86_64.tar.gz && \
