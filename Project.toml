@@ -4,7 +4,6 @@ authors = ["Satoshi Terasaki <s.terasaki@atelier-arith.jp>", "Akio Tomiya <akio@
 version = "0.8.1"
 
 [deps]
-AdaptiveRejectionSampling = "c75e803d-635f-53bd-ab7d-544e482d8c75"
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
@@ -13,13 +12,11 @@ DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
-FilePathsBase = "48062228-2e41-5def-b9a4-89aafe57970f"
 FileWatching = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
 ImageTransformations = "02fcd773-0e25-5acc-982a-7f6622650795"
 IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
-JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
@@ -38,11 +35,10 @@ StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 ToStruct = "43ec2cc1-0e50-5406-a854-b7ff8fdb8dad"
 UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
-Unrolled = "9602ed7d-8fef-5bc8-8597-8f21381861e8"
 
 [compat]
-NNlib = "0.8.4"
 BSON = "0.3.5"
+Flux = "0.13.4"
 
 [extras]
 ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
