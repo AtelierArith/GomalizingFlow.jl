@@ -5,6 +5,17 @@ using ParameterSchedulers
 using ParameterSchedulers: Scheduler
 using ProgressMeter
 
+"""
+using GomalizingFlow
+
+hp = GomalizingFlow.load_hyperparams(
+    "cfgs/example2d.toml";
+    device_id=0,
+    pretrained=nothing,
+    result="result",
+)
+GomalizingFlow.train(hp)
+"""
 function train(hp)
     device = hp.dp.device
     @info "setup action"
