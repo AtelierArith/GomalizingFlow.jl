@@ -20,7 +20,7 @@ function make_mcmc_ensamble(
         logq =
             dropdims(
                 logq_,
-                dims=NTuple{(ndims(log_q) - 1),Int}(1:(ndims(logq_)-1)),
+                dims=NTuple{(ndims(logq_) - 1),Int}(1:(ndims(logq_)-1)),
             ) |> cpu
         # back to cpu
         logp = -action(x_device) |> cpu
