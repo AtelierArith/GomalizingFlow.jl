@@ -203,7 +203,7 @@ function hmc_update(S::Function, ∂S::Function, x, Nτ, Δτ)
     r = rand()
     accepted, x_next = (r < exp(-ΔH)) ? (true, x_cand) : (false, x_init)
     #@show accepted, exp(-ΔH), mean(x_cand), mean(x_init)
-    return (accepted, x_next)
+    return (accepted, x_next, ΔH)
 end
 ```
 
@@ -222,10 +222,11 @@ function runHMC(pp::PhysicalParams; ntrials, Nτ, Δτ)
     history = (cfgs=typeof(cfgs)[], cond=T[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
     
     @showprogress for _ in 1:ntrials
-        accepted, cfgs = hmc_update(S, ∂S, cfgs, Nτ, Δτ)
+        accepted, cfgs, ΔH = hmc_update(S, ∂S, cfgs, Nτ, Δτ)
         cond = mean(cfgs)
         push!(history.accepted, accepted)
         push!(history.cond, cond)
+        push!(history.ΔH, ΔH)
         push!(history.cfgs, cfgs)
         push!(history.Green, calcgreen(cfgs, pp))
     end
@@ -243,6 +244,10 @@ Nτ = 20
 ntrials = 10 ^ 4
 Random.seed!(54321)
 history = runHMC(pp; ntrials, Nτ, Δτ);
+```
+
+```julia
+mean(exp.(-history.ΔH)) ≈ 1f0
 ```
 
 ```julia
