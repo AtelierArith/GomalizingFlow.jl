@@ -1,9 +1,9 @@
 # GomalizingFlow.jl
 
-# Usage (今北産業, TL; DR)
-
+# Usage (TL; DR)
 
 ```console
+$ git clone https://github.com/AtelierArith/GomalizingFlow.jl && cd GomalizingFlow.jl
 $ # Install Docker and GNU Make command:
 $ make
 $ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
@@ -11,52 +11,46 @@ $ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
 
 # Usage (detailed description)
 
-## Setup environment (without using Docker)
+If you're familiar with how to use Julia especially machine learning or GPU programming, you can setup environment by yourself via:
 
-- Install jupyter and jupytext
-
-```console
-$ pip install numpy matplotlib torch jupyter jupytext
+```julia
+julia> using Pkg; Pkg.instantiate()
+julia> using GomalizingFlow
+julia> hp = GomalizingFlow.load_hyperparams("cfgs/example2d.toml"; device_id=0, pretrained=nothing, result="result")
+julia> GomalizingFlow.train(hp)
 ```
 
-- install dependencies regarding julia
-
-```console
-$ julia -e 'ENV["PYTHON"]=Sys.which("python3"); ENV["JUPYTER"]=Sys.which("jupyter"); using Pkg; Pkg.add(["PyCall", "IJulia"])'
-$ julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate()'
-```
-
-- initialize jupyter server with the following command:
-
-```console
-$ cd path/to/this/repository
-$ jupyter notebook
-```
+Otherwise, we recommend to create one using Docker container.
 
 ## Setup environment (using Docker)
 
-We would like to add an example of hardware/software environment
+[Install Docker, more precisely NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker), [Docker Compose](https://docs.docker.com/compose/install/compose-plugin/#installing-compose-on-linux-systems) and GNU Make.
+
+Below shows author's development environment (Linux/Ubuntu 20.04).
 
 ```console
+$ make --version
+GNU Make 4.2.1
+Built for x86_64-pc-linux-gnu
 $ docker --version
-Docker version 20.10.12, build e91ed57
+Docker version 20.10.17, build 100c701
 $ docker-compose --version
-docker-compose version 1.29.1, build c34c88b2
+docker-compose version 1.29.2, build 5becea4c
 $ nvidia-smi
-Sun Mar  6 00:30:45 2022
+Thu Aug 11 02:17:05 2022
 +-----------------------------------------------------------------------------+
-| NVIDIA-SMI 470.103.01   Driver Version: 470.103.01   CUDA Version: 11.4     |
+| NVIDIA-SMI 510.85.02    Driver Version: 510.85.02    CUDA Version: 11.6     |
 |-------------------------------+----------------------+----------------------+
 | GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
 |                               |                      |               MIG M. |
 |===============================+======================+======================|
 |   0  NVIDIA GeForce ...  Off  | 00000000:03:00.0 Off |                  N/A |
-|  0%   29C    P8     9W / 280W |      6MiB / 11178MiB |      0%      Default |
+|  0%   35C    P8     9W / 280W |      6MiB / 11264MiB |      0%      Default |
 |                               |                      |                  N/A |
 +-------------------------------+----------------------+----------------------+
 |   1  NVIDIA GeForce ...  Off  | 00000000:04:00.0 Off |                  N/A |
-|  0%   30C    P8     9W / 280W |     15MiB / 11177MiB |      0%      Default |
+|  0%   34C    P8    13W / 280W |     15MiB / 11264MiB |      0%      Default |
 |                               |                      |                  N/A |
 +-------------------------------+----------------------+----------------------+
 $ cat /etc/docker/daemon.json
@@ -71,98 +65,47 @@ $ cat /etc/docker/daemon.json
 }
 ```
 
-### Case 1: You have a CUDA-Enabled machine
+## Build a Docker image
 
-- If you want a Docker environment with CUDA, please install [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-docker) by reading [this instructions](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
-
-- The following command will initialize jupyterlab
+Just do
 
 ```console
 $ make
-$ docker-compose up lab-gpu # GPU
 ```
-
-### Case 2: CPU only
-
-- If you're using macOS, for example, you can't use CUDA. Please install [Install Docker Desktop on Mac](https://docs.docker.com/desktop/mac/install/). Then you're good to go.
-- The following command will initialize jupyterlab
-
-```console
-$ make
-$ docker-compose up lab # CPU
-```
-
-
-## Start training (without using Docker)
-
-### syntax
-
-In general:
-
-```julia
-julia --project=@. begin_training.jl path/to/config.toml
-```
-
-- The `path/to/config.toml` above has a option named `device_id` which accepts an integer >= -1.
-  - If you set `device_id = 0`. Our software is trying to use GPU its Device ID is `0`.
-  - Setting `device_id = -1` will train model on CPU
-- Optionally, you can override a Device ID by setting the `--device=<device_id>`
-
-### examples
-
-for example as for 2D lattice:
-
-```julia
-$ julia --project=@. begin_training.jl cfgs/example2d.toml
-$ julia --project=@. begin_training.jl cfgs/example2d.toml --device=1 # train with GPU 1
-```
-
-- as for 3D lattice:
-
-```julia
-$ julia --project=@. begin_training.jl cfgs/example3d.toml
-```
-
-After training, we'll find `result/<config.toml>/trained_model.bson` is created. You can resotre the file in another Julia session something like this:
-
-```julia
-julia> using BSON: @load
-julia> @load "path/to/trained_model.bson" trained_model
-julia> # do something
-```
-
-See https://github.com/JuliaIO/BSON.jl for more information.
 
 ## Start training (using Docker)
 
-### Case 1: You have a CUDA-Enabled machine
+### Syntax
 
-```julia
-$ docker-compose run --rm julia-gpu julia begin_training.jl cfgs/example3d.toml
-$ # equivalently
-$ docker run --gpus all --rm -it -v $PWD:/work -w /work gomalizingflowjl julia -e 'using Pkg; Pkg.instantiate()'
-$ docker run --gpus all --rm -it -v $PWD:/work -w /work gomalizingflowjl julia begin_training.jl cfgs/example2d.toml
-```
-
-### Case 2: CPU only
-
-```julia
-$ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
-```
-
-#### M1 mac users
+In general, you can train a model via:
 
 ```console
-$ docker build -t gomalizingflowjl -f docker/Dockerfile.m1 .
-$ docker run --rm -it -v $PWD:/work -w /work gomalizingflowjl julia --project=/work -e 'using Pkg; Pkg.instantiate()'
-$ docker run --rm -it -v $PWD:/work -w /work gomalizingflowjl julia begin_training.jl cfgs/example2d.toml
+$ docker-compose run --rm julia julia begin_training.jl <path/to/config.toml>
+```
+For example:
+
+```julia
+$ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml # You can enjoy our software on CPU-only hardware device
 ```
 
-## Optional
+It will generate trained model in `result/example2d/`:
 
-- You can watch the value of `ess` during training
+```console
+$ ls result/example2d/
+Manifest.toml               evaluations.csv             src
+Project.toml                history.bson                trained_model.bson
+config.toml                 history_best_ess.bson       trained_model_best_ess.bson
+```
 
-### Usage
+For those who are interested in training for a 3D lattice. Just run:
+
+```julia
+$ docker-compose run --rm julia julia begin_training.jl cfgs/example3d.toml # For 3D lattice case, you may want to use GPU for training.
+```
+
+### Visualize ess.
+
+During training, you can watch the value of ess for each epoch.
 
 - Run training script as usual:
 
@@ -170,34 +113,72 @@ $ docker run --rm -it -v $PWD:/work -w /work gomalizingflowjl julia begin_traini
 $ docker-compose run --rm julia julia begin_training.jl /path/to/config.toml
 ```
 
-- Open another terminal, then run the following:
+- Open another terminal, and run the following:
 
 ```console
 $ docker-compose run --rm julia julia watch.jl /path/to/config.toml
 ```
 
-It will display a plot something like:
+It will display a plot in your terminal something like:
 
-```
+```console
+$ docker-compose run --rm julia julia watch.jl cfgs/example2d.toml
+[ Info: serving ~/work/atelier_arith/GomalizingFlow.jl/result/example2d
 [ Info: evaluations.csv is updated
            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Evaluation⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
            ┌────────────────────────────────────────────────────────────┐
-       0.2 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ ess
-           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⠀⢠⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⢸⠀⠀⠀⠀⡜⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠈⡆⠀⠀⢀⠇⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⢆⠀⠀⠀⡇⠀⠀⢣⠀⠀⡸⠀⠘⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-   ess     │⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡜⠈⢢⠀⢸⠀⠀⠀⠸⡀⠀⡇⠀⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⢸⠀⠀⠀⠀⢠⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠃⠀⠀⠣⡇⠀⠀⠀⠀⢇⢸⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⠀⡇⠀⠀⠀⡎⢱⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡸⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡇⠀⠀⠀⠘⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⠀⢸⠀⠀⡸⠀⠀⢣⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⠀⠀⡇⢠⠃⠀⠀⠈⢆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⡠⠊⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⠀⠀⢸⡎⠀⠀⠀⠀⠘⠤⢄⣀⣀⡠⠔⠒⠒⠊⠑⠤⣀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠎⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
-         0 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
+       0.8 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ ess
+           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡄⠀⠀⠀⠀⠀⠀⠀⠀│
+           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠀⠀⢀⠀⠀⠀⡀⣴⠀⠀⠀⢸⡇⠀⣷⣄⣀⠀⢀⠀⡄│
+           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡀⠀⠀⣿⠀⢠⠀⣼⠀⡇⣸⡇⣿⠀⠀⠀⢸⣷⢰⣿⡇⣿⢀⣸⣰⡇│
+           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡄⠀⠀⡆⡀⠀⢀⣴⡄⠀⡇⣴⡄⣿⡀⣾⠀⣿⣧⢳⣿⣧⣿⡀⠀⠀⣼⣿⣿⡏⠃⣿⣾⣿⣿⡇│
+           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡄⠀⠀⠀⠀⠀⣴⡇⠀⡄⡇⣧⠀⢸⡏⡇⠀⡇⣿⡇⡿⡇⣿⠀⣿⣿⢸⣿⣿⣿⢿⡇⠀⡏⢻⡿⠁⠀⣿⡏⣿⣿⣷│
+           │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⢰⡀⢀⡆⣴⣿⢣⠀⣧⣧⣿⣦⠿⠃⢸⠀⣷⢹⣧⡇⢣⣿⡄⣿⣿⠘⡇⣿⣿⢸⡇⡞⠃⢸⡇⠀⠀⣿⡇⣿⢿⣿│
+   ess     │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣧⣸⡇⣿⣿⡏⣿⢸⣠⢻⡿⠉⢻⠀⠀⢸⣼⣿⢸⣿⡇⢸⣿⢻⢻⣿⠀⠀⢹⡟⠸⣷⡇⠀⢸⡇⠀⠀⣿⡇⣿⠀⡿│
+           │⠀⠀⠀⠀⠀⠀⠀⠀⢠⠀⠀⣇⠀⠀⠀⢀⢸⢸⣿⣇⡇⢹⡇⣿⠀⣿⠸⠇⠀⢸⠀⠀⢸⣿⣿⢸⡿⠀⠈⠋⢸⢸⣿⠀⠀⢸⡇⠀⠸⡇⠀⠸⡇⠀⠀⣿⠁⡏⠀⠁│
+           │⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⢰⣿⡀⢀⡀⡸⣾⢸⣿⣿⡇⢸⡇⡿⠀⣿⠀⠀⠀⠘⠀⠀⢸⡏⣿⢸⡇⠀⠀⠀⢸⢸⡟⠀⠀⢸⡇⠀⠀⡇⠀⠀⡇⠀⠀⣿⠀⡇⠀⠀│
+           │⠀⠀⠀⠀⠀⠀⠀⠀⡸⡄⣾⣿⣇⣼⣇⡇⢿⢸⢿⣿⡇⢸⠀⡇⠀⣿⠀⠀⠀⠀⠀⠀⠈⠁⣿⠀⠁⠀⠀⠀⠘⠈⠃⠀⠀⢸⠁⠀⠀⠀⠀⠀⠃⠀⠀⣿⠀⡇⠀⠀│
+           │⠀⠀⡄⡀⠀⠀⣧⠀⡇⣧⣿⣿⣿⣿⣿⡇⠘⠘⢸⣿⡇⠸⠀⡇⠀⣿⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⡇⠀⠀│
+           │⡀⠀⣧⣇⢸⠀⣿⢸⠁⠀⡇⠻⣿⠛⠻⠇⠀⠀⠀⣿⡇⠀⠀⠀⠀⠿⠀⠀⠀⠀⠀⠀⠀⠀⠙⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⡇⠀⠀│
+           │⢣⣶⣿⢹⡜⡄⡏⡾⠀⠀⠀⠀⠘⠀⠀⠀⠀⠀⠀⠛⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⠀⠀⠀│
+         0 │⠈⠸⠉⠀⠇⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
            └────────────────────────────────────────────────────────────┘
-           ⠀0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀20⠀
+           ⠀0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀200⠀
            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀epoch⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ```
+
+# Directory structure
+
+```console
+$ tree -d
+.
+├── cfgs
+├── playground # The process of trial and error is documented.
+│   ├── notebook
+│   │   ├── julia
+│   │   └── python
+│   └── pluto
+├── src # contains training script etc...
+└── test # `make test` runs the package's test/runtests.jl file 
+    ├── assets
+    └── pymod
+```
+
+# Playground
+
+You can run Jupyter Lab server locally as usual via:
+
+```console
+$ docker-compose up lab
+Creating gomalizingflowjl-lab ... done
+Attaching to gomalizingflowjl-lab
+# Some stuff happen
+gomalizingflowjl-lab |
+gomalizingflowjl-lab |     To access the server, open this file in a browser:
+gomalizingflowjl-lab |         file:///home/jovyan/.local/share/jupyter/runtime/jpserver-1-open.html
+gomalizingflowjl-lab |     Or copy and paste one of these URLs:
+gomalizingflowjl-lab |         http://gomagomakyukkyu:8888/lab?token=xxxxxxxxxx
+gomalizingflowjl-lab |      or http://127.0.0.1:8888/lab?token=xxxxxxxxxx # Click this link in your terminal
+```
+
+We track Jupyter Notebooks as `.md` file rather than `.ipynb` using [jupytext](https://github.com/mwouts/jupytext).
