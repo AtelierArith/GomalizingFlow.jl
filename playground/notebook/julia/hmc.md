@@ -142,7 +142,7 @@ action = GomalizingFlow.ScalarPhi4Action(pp.m², pp.λ)
 ```
 
 ```julia
-S(cfgs::AbstractArray) = action(unsqueeze(cfgs, dims=ndims(cfgs)+1))[begin]
+S(cfgs::AbstractArray) = sum(action(unsqueeze(cfgs, dims=ndims(cfgs)+1)))
 
 gradient(S, rand(3,3))
 gradient(S, rand(3,3,3))
@@ -199,15 +199,17 @@ function runHMC(pp::PhysicalParams; ntrials, Nτ, Δτ)
     end
     
     T = eltype(cfgs) # e.g. Float64
-    history = (cfgs=typeof(cfgs |> cpu)[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
+    history = (cfgs=typeof(cfgs |> cpu)[], cond=T[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
     
     @showprogress for _ in 1:ntrials
         accepted, cfgs = hmc_update(S, cfgs, Nτ, Δτ)
+        cond = mean(cfgs)
         push!(history.accepted, accepted)
+        push!(history.cond, cond)
         push!(history.cfgs, cfgs |> cpu)
         push!(history.Green, calcgreen(cfgs |> cpu, pp))
     end
-    history
+    return history
 end
 ```
 
@@ -224,9 +226,15 @@ history = runHMC(pp; ntrials, Nτ, Δτ);
 ```
 
 ```julia
-plot(mean.(history.cfgs))
+#cfgs = rand(pp.lattice_shape...)
+#p = randn(pp.lattice_shape...)
+#@code_warntype md!(S, cfgs, p, Nτ, Δτ)
 ```
 
 ```julia
-history[:accepted] |> sum
+plot(history.cond)
+```
+
+```julia
+plot(history[:accepted])
 ```
