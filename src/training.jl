@@ -108,7 +108,7 @@ function train(hp)
                     x, logq_ = model((z_device, logq_device))
                     logq = dropdims(
                         logq_,
-                        dims=Tuple(1:(ndims(logq_)-1)),
+                        dims=NTuple{ndims(logq_) - 1,Int}(1:(ndims(logq_)-1)),
                     )
                     logp = -action(x)
                     loss = calc_dkl(logp, logq)
@@ -124,7 +124,7 @@ function train(hp)
             x, logq_ = model((z_device, logq_device))
             logq = dropdims(
                 logq_,
-                dims=Tuple(1:(ndims(logq_)-1)),
+                dims=NTuple{ndims(logq_) - 1,Int}(1:(ndims(logq_)-1)),
             )
 
             logp = -action(x)
