@@ -1,6 +1,7 @@
 ```julia
 using BenchmarkTools
 
+using EllipsisNotation
 using GomalizingFlow
 using GomalizingFlow: PhysicalParams, HyperParams, ScalarPhi4Action
 using Flux
@@ -189,9 +190,23 @@ function ∂kinetic2(cfgs::AbstractArray{T, N}, pp::PhysicalParams) where {T, N}
     ϕ = cfgs
     F = zero(ϕ)
     sz = ndims(cfgs)
-    F += sz * 4cfgs
+    F .+= sz * 4cfgs
     F .-= sum(2circshift(cfgs, -Flux.onehot(μ, 1:sz)) for μ in 1:sz)
     F .-= sum(2circshift(cfgs, +Flux.onehot(μ, 1:sz)) for μ in 1:sz)
+    return F
+end
+
+"""
+Support batch data
+"""
+function ∂kinetic3(cfgs::AbstractArray{T, N}, pp::PhysicalParams) where {T, N}
+    ϕ = cfgs
+    F = zero(ϕ)
+    sz = ndims(cfgs)
+    Nd = sz - 1
+    F .+= Nd * 4cfgs
+    F .-= sum(2circshift(cfgs, -Flux.onehot(μ, 1:sz)) for μ in 1:Nd)
+    F .-= sum(2circshift(cfgs, +Flux.onehot(μ, 1:sz)) for μ in 1:Nd)
     return F
 end
 ```
@@ -244,15 +259,41 @@ cfgs = rand(T, L, L, L) |> cpu;
 ∇3 = Base.Fix2(∂kinetic, pp)(cfgs)
 ∇4 = Base.Fix2(∂kinetic1, pp)(cfgs)
 ∇5 = Base.Fix2(∂kinetic2, pp)(cfgs)
+∇6 = Base.Fix2(∂kinetic3, pp)(unsqueeze(cfgs, dims=ndims(cfgs)+1))
+
 @assert ∇1 ≈ ∇2
 @assert ∇2 ≈ ∇3
 @assert ∇3 ≈ ∇4  ∇3 - ∇4
 @assert ∇4 ≈ ∇5  ∇4 - ∇5
+@assert ∇5 ≈ ∇6  ∇5 - ∇6
 ```
 
 ```julia
 @btime gradient(sum∘Base.Fix1(calc_kinetic, action),unsqueeze($cfgs, dims=ndims($cfgs)+1))[begin]
 @btime gradient(Base.Fix2(calc_kinetic_withloop, pp),$cfgs)[begin]
-@btime Base.Fix2(∂kinetic, pp)($cfgs);
-@btime Base.Fix2(∂kinetic2, pp)($cfgs);
+@btime Base.Fix2(∂kinetic, pp)($cfgs)
+@btime Base.Fix2(∂kinetic2, pp)($cfgs)
+@btime Base.Fix2(∂kinetic3, pp)(unsqueeze(cfgs, dims=ndims(cfgs)+1))[begin];
+```
+
+```julia
+S(cfgs::AbstractArray) = sum(action(unsqueeze(cfgs, dims=ndims(cfgs)+1)))
+```
+
+```julia
+∇a, = gradient(S, cfgs)
+
+∇ap = ∂potential(action, unsqueeze(cfgs, dims=ndims(cfgs)+1))
+∇ak = Base.Fix2(∂kinetic3, pp)(unsqueeze(cfgs, dims=ndims(cfgs)+1))[.., begin]
+
+@assert ∇a ≈ ∇ap + ∇ak
+```
+
+```julia
+@btime gradient(S, $cfgs)
+
+@btime begin
+    ∇ap = ∂potential(action, unsqueeze($cfgs, dims=ndims($cfgs)+1))
+    ∇ak = Base.Fix2(∂kinetic3, pp)(unsqueeze($cfgs, dims=ndims($cfgs)+1))[.., begin]
+end;
 ```
