@@ -17,11 +17,7 @@ function make_mcmc_ensamble(
         logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
         z_device = z |> device
         x_device, logq_ = model((z_device, logq_device))
-        logq =
-            dropdims(
-                logq_,
-                dims=NTuple{(ndims(logq_) - 1),Int}(1:(ndims(logq_)-1)),
-            ) |> cpu
+        logq = reshape(logq_, batchsize) |> cpu
         # back to cpu
         logp = -action(x_device) |> cpu
         x = x_device |> cpu
