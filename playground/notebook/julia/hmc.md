@@ -5,7 +5,7 @@ using Statistics
 using Plots
 
 using GomalizingFlow
-using GomalizingFlow: PhysicalParams, HyperParams
+using GomalizingFlow: PhysicalParams, HyperParams, ScalarPhi4Action
 using Flux
 using Flux.Zygote
 using ProgressMeter
@@ -142,10 +142,29 @@ action = GomalizingFlow.ScalarPhi4Action(pp.m², pp.λ)
 ```
 
 ```julia
-S(cfgs::AbstractArray) = sum(action(unsqueeze(cfgs, dims=ndims(cfgs)+1)))
+function ∂potential(action::ScalarPhi4Action{T}, cfgs::AbstractArray{T, N}) where {T, N}
+    @. 2action.m² * cfgs + 4*action.λ * cfgs ^ 3
+end
 
-gradient(S, rand(3,3))
-gradient(S, rand(3,3,3))
+function ∂kinetic(cfgs::AbstractArray{T, N}) where {T, N}
+    ϕ = cfgs
+    F = zero(ϕ)
+    sz = ndims(cfgs)
+    F .+= sz * 4cfgs
+    F .-= sum(2circshift(cfgs, -Flux.onehot(μ, 1:sz)) for μ in 1:sz)
+    F .-= sum(2circshift(cfgs, +Flux.onehot(μ, 1:sz)) for μ in 1:sz)
+    return F
+end
+```
+
+```julia
+S(cfgs::AbstractArray) = sum(action(unsqueeze(cfgs, dims=ndims(cfgs)+1)))
+∂S(cfgs::AbstractArray) = ∂kinetic(cfgs) + ∂potential(action, cfgs)
+
+cfgs2d = rand(3,3)
+@assert gradient(S, cfgs2d)[begin] ≈ ∂S(cfgs2d)
+cfgs3d = rand(3,3,3)
+@assert gradient(S, cfgs3d)[begin] ≈ ∂S(cfgs3d)
 
 function hamiltonian(S::Function, cfgs, p)
     Σ_p² = dot(p, p)
@@ -157,27 +176,27 @@ end
 ```julia
 # Solve Molecular Dynamics
 # a.k.a leapfrog algorithm 
-function md!(S, x, p, Nτ, Δτ)
+function md!(∂S::Function, x, p, Nτ, Δτ)
     @. x += Δτ/2 * p
     for _ in 1:(Nτ-1)
-        ∇, = gradient(S, x)
+        ∇ = ∂S(x)
         @. p -= Δτ * ∇
         @. x += Δτ * p
     end
-    ∇, = gradient(S, x)
+    ∇ = ∂S(x)
     @. p -= Δτ * ∇
     @. x += Δτ/2 * p
-    return x |> cpu , p |> cpu
+    return x , p
 end
 
-function hmc_update(S::Function, x, Nτ, Δτ)
+function hmc_update(S::Function, ∂S::Function, x, Nτ, Δτ)
     p = randn(eltype(x), size(x)...)
 
     x_init = copy(x)
     p_init = copy(p)
     H_init = hamiltonian(S, x_init, p_init)
 
-    x_cand, p_cand = md!(S, x |> gpu, p |> gpu, Nτ, Δτ)
+    x_cand, p_cand = md!(∂S, x, p, Nτ, Δτ)
     H_cand = hamiltonian(S, x_cand, p_cand)
 
     ΔH = H_cand - H_init
@@ -197,17 +216,18 @@ function runHMC(pp::PhysicalParams; ntrials, Nτ, Δτ)
         out = sum(action(unsqueeze(cfgs, dims=ndims(cfgs)+1)))
         return out
     end
+    ∂S(cfgs::AbstractArray) = ∂kinetic(cfgs) + ∂potential(action, cfgs)
     
     T = eltype(cfgs) # e.g. Float64
-    history = (cfgs=typeof(cfgs |> cpu)[], cond=T[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
+    history = (cfgs=typeof(cfgs)[], cond=T[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
     
     @showprogress for _ in 1:ntrials
-        accepted, cfgs = hmc_update(S, cfgs, Nτ, Δτ)
+        accepted, cfgs = hmc_update(S, ∂S, cfgs, Nτ, Δτ)
         cond = mean(cfgs)
         push!(history.accepted, accepted)
         push!(history.cond, cond)
-        push!(history.cfgs, cfgs |> cpu)
-        push!(history.Green, calcgreen(cfgs |> cpu, pp))
+        push!(history.cfgs, cfgs)
+        push!(history.Green, calcgreen(cfgs, pp))
     end
     return history
 end
