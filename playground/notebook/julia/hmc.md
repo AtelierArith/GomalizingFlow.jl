@@ -220,15 +220,9 @@ pp = hp.pp
 @show pp
 Nτ = 20
 Δτ = 0.01
-ntrials = 10 ^ 3
+ntrials = 10 ^ 4
 Random.seed!(54321)
 history = runHMC(pp; ntrials, Nτ, Δτ);
-```
-
-```julia
-#cfgs = rand(pp.lattice_shape...)
-#p = randn(pp.lattice_shape...)
-#@code_warntype md!(S, cfgs, p, Nτ, Δτ)
 ```
 
 ```julia
@@ -236,5 +230,5 @@ plot(history.cond)
 ```
 
 ```julia
-plot(history[:accepted])
+plot(history[:accepted], title="$(mean(history.accepted))")
 ```
