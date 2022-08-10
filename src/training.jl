@@ -106,10 +106,7 @@ function train(hp)
                 z_device = z |> device
                 gs = Flux.gradient(ps) do
                     x, logq_ = model((z_device, logq_device))
-                    logq = dropdims(
-                        logq_,
-                        dims=Tuple(1:(ndims(logq_)-1)),
-                    )
+                    logq = reshape(logq_, batchsize)
                     logp = -action(x)
                     loss = calc_dkl(logp, logq)
                 end
@@ -122,11 +119,7 @@ function train(hp)
             logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
             z_device = z |> device
             x, logq_ = model((z_device, logq_device))
-            logq = dropdims(
-                logq_,
-                dims=Tuple(1:(ndims(logq_)-1)),
-            )
-
+            logq = reshape(logq_, batchsize)
             logp = -action(x)
             loss = calc_dkl(logp, logq)
             @show loss
