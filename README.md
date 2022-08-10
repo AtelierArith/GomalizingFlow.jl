@@ -149,6 +149,8 @@ $ docker-compose run --rm julia julia watch.jl cfgs/example2d.toml
 
 # Directory structure
 
+Below is our directory structure
+
 ```console
 $ tree -d
 .
@@ -166,7 +168,7 @@ $ tree -d
 
 # Playground
 
-You can run Jupyter Lab server locally as usual via:
+There are lots of notebooks in `playground/notebook/julia` regarding our program. The manuscript here is a draft. Readers can learn about the trial and error process that led to the release of the software. You can run Jupyter Lab server locally as usual via:
 
 ```console
 $ docker-compose up lab
@@ -181,4 +183,4 @@ gomalizingflowjl-lab |         http://gomagomakyukkyu:8888/lab?token=xxxxxxxxxx
 gomalizingflowjl-lab |      or http://127.0.0.1:8888/lab?token=xxxxxxxxxx # Click this link in your terminal
 ```
 
-We track Jupyter Notebooks as `.md` file rather than `.ipynb` using [jupytext](https://github.com/mwouts/jupytext).
+We track Jupyter Notebooks as `.md` with the power of [jupytext](https://github.com/mwouts/jupytext) rather than `.ipynb`.
