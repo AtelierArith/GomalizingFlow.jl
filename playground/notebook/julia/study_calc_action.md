@@ -1,17 +1,3 @@
----
-jupyter:
-  jupytext:
-    text_representation:
-      extension: .md
-      format_name: markdown
-      format_version: '1.3'
-      jupytext_version: 1.13.0
-  kernelspec:
-    display_name: Julia 1.6.3
-    language: julia
-    name: julia-1.6
----
-
 ```julia
 using PyCall
 using Flux
@@ -117,4 +103,8 @@ ScalarPhi4Action(1, 1)(cfgs)
 @assert ScalarPhi4Action(1, 1)(cfgs) ≈ [499.7602, 498.5477]
 phi4_action = ScalarPhi4Action(m², λ)
 @assert phi4_action(cfgs) ≈ [1598.679, 1545.5698]
+```
+
+```julia
+
 ```
