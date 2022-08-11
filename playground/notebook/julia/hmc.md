@@ -235,8 +235,26 @@ end
 ```
 
 ```julia
-configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example3d.toml")
-hp = GomalizingFlow.load_hyperparams(configpath);
+results = String[]
+repo_dir = pkgdir(GomalizingFlow)
+result_dir = joinpath(repo_dir, "result")
+for d in readdir(result_dir)
+    if ispath(joinpath(result_dir, d, "config.toml"))
+        push!(results, joinpath(result_dir, d))
+    end
+end
+
+for (i, r) in enumerate(results)
+    println(i, " ", r)
+end
+```
+
+```julia
+r = results[2] # 3D
+```
+
+```julia
+hp = GomalizingFlow.load_hyperparams(joinpath(r, "config.toml"))
 pp = hp.pp
 @show pp
 Nτ = 20
@@ -258,9 +276,7 @@ plot(history.cond)
 plot(history[:accepted], title="$(mean(history.accepted))")
 ```
 
-```julia
 # Draw green
-```
 
 ```julia
 cfgs = Flux.MLUtils.batch(history[:x][2500:end])
@@ -269,5 +285,20 @@ y_values = []
     y = GomalizingFlow.mfGc(cfgs, t)
     push!(y_values, y)
 end
-plot(0:hp.pp.L, y_values)
+p = plot(0:hp.pp.L, y_values, label="HMC")
+```
+
+```julia
+using CUDA, Flux, ParameterSchedulers # require to call restore function
+
+_, history = GomalizingFlow.restore(r);
+lattice_shape = hp.pp.lattice_shape
+#cfgs = cat(history[:x][4000:7000]..., dims=length(lattice_shape)+1)
+cfgs = Flux.MLUtils.batch(history[:x][2000:7000])
+y_values = []
+@showprogress for t in 0:hp.pp.L
+    y = GomalizingFlow.mfGc(cfgs, t)
+    push!(y_values, y)
+end
+plot!(p, 0:hp.pp.L, y_values, label="AffineCouplingLayer")
 ```
