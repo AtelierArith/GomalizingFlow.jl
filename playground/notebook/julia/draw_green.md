@@ -53,5 +53,5 @@ function compute_integrated_autocorr(r::AbstractString)
 end
 
 r = results[1]
-compute_integrated_autocorr(r)
+τᵢₙₜ = compute_integrated_autocorr(r)
 ```
