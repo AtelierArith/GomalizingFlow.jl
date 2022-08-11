@@ -1,3 +1,17 @@
+using BSON
+
+function restore(r::AbstractString; load_best_ess=false)
+    if load_best_ess
+        BSON.@load joinpath(r, "history_best_ess.bson") history_best_ess
+        BSON.@load joinpath(r, "trained_model_best_ess.bson") trained_model_best_ess
+        return Flux.testmode!(trained_model_best_ess), history_best_ess
+    else
+        BSON.@load joinpath(r, "history.bson") history
+        BSON.@load joinpath(r, "trained_model.bson") trained_model
+        return Flux.testmode!(trained_model), history
+    end
+end
+
 reversedims(inp::AbstractArray{<:Any,N}) where {N} = permutedims(inp, N:-1:1)
 
 function pairwise(iterable)

@@ -210,33 +210,51 @@ end
 ```julia
 function runHMC(pp::PhysicalParams; ntrials, Nτ, Δτ)
     T = Float32
-    cfgs = rand(T, pp.lattice_shape...)
+    x = rand(T, pp.lattice_shape...)
     action = GomalizingFlow.ScalarPhi4Action{T}(pp.m², pp.λ)
-    function S(cfgs::AbstractArray)
-        out = sum(action(unsqueeze(cfgs, dims=ndims(cfgs)+1)))
+    function S(x::AbstractArray)
+        out = sum(action(unsqueeze(x, dims=ndims(x)+1)))
         return out
     end
-    ∂S(cfgs::AbstractArray) = ∂kinetic(cfgs) + ∂potential(action, cfgs)
+    ∂S(x::AbstractArray) = ∂kinetic(x) + ∂potential(action, x)
     
-    T = eltype(cfgs) # e.g. Float64
-    history = (cfgs=typeof(cfgs)[], cond=T[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
+    T = eltype(x) # e.g. Float64
+    history = (x=typeof(x)[], cond=T[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
     
     @showprogress for _ in 1:ntrials
-        accepted, cfgs, ΔH = hmc_update(S, ∂S, cfgs, Nτ, Δτ)
-        cond = mean(cfgs)
+        accepted, x, ΔH = hmc_update(S, ∂S, x, Nτ, Δτ)
+        cond = mean(x)
         push!(history.accepted, accepted)
         push!(history.cond, cond)
         push!(history.ΔH, ΔH)
-        push!(history.cfgs, cfgs)
-        push!(history.Green, calcgreen(cfgs, pp))
+        push!(history.x, x)
+        push!(history.Green, calcgreen(x, pp))
     end
     return history
 end
 ```
 
 ```julia
-configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example3d.toml")
-hp = GomalizingFlow.load_hyperparams(configpath);
+results = String[]
+repo_dir = pkgdir(GomalizingFlow)
+result_dir = joinpath(repo_dir, "result")
+for d in readdir(result_dir)
+    if ispath(joinpath(result_dir, d, "config.toml"))
+        push!(results, joinpath(result_dir, d))
+    end
+end
+
+for (i, r) in enumerate(results)
+    println(i, " ", r)
+end
+```
+
+```julia
+r = results[2] # 3D
+```
+
+```julia
+hp = GomalizingFlow.load_hyperparams(joinpath(r, "config.toml"))
 pp = hp.pp
 @show pp
 Nτ = 20
@@ -256,4 +274,31 @@ plot(history.cond)
 
 ```julia
 plot(history[:accepted], title="$(mean(history.accepted))")
+```
+
+# Draw green
+
+```julia
+cfgs = Flux.MLUtils.batch(history[:x][2500:end])
+y_values = []
+@showprogress for t in 0:hp.pp.L
+    y = GomalizingFlow.mfGc(cfgs, t)
+    push!(y_values, y)
+end
+p = plot(0:hp.pp.L, y_values, label="HMC")
+```
+
+```julia
+using CUDA, Flux, ParameterSchedulers # require to call restore function
+
+_, history = GomalizingFlow.restore(r);
+lattice_shape = hp.pp.lattice_shape
+#cfgs = cat(history[:x][4000:7000]..., dims=length(lattice_shape)+1)
+cfgs = Flux.MLUtils.batch(history[:x][2000:7000])
+y_values = []
+@showprogress for t in 0:hp.pp.L
+    y = GomalizingFlow.mfGc(cfgs, t)
+    push!(y_values, y)
+end
+plot!(p, 0:hp.pp.L, y_values, label="AffineCouplingLayer")
 ```

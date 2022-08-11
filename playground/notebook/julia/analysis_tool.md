@@ -44,8 +44,8 @@ end
 ```julia
 function restore(r)
     BSON.@load joinpath(r, "history.bson") history
-    BSON.@load joinpath(r, "trained_model_best_ess.bson") trained_model_best_ess
-    return Flux.testmode!(trained_model_best_ess), history
+    BSON.@load joinpath(r, "trained_model.bson") trained_model
+    return Flux.testmode!(trained_model), history
 end
 ```
 
@@ -122,7 +122,7 @@ end
 ```
 
 ```julia
-r = results[17] # modify here
+r = results[1] # modify here
 @show r
 ```
 
@@ -133,7 +133,7 @@ plt.show()
 
 ```julia
 _, history = restore(r);
-acceptance_rate =  mean(history[:accepted][4000:7000])
+acceptance_rate =  mean(history[:accepted][2000:7000])
 Printf.@printf "acceptance_rate= %.2f [percent]" 100acceptance_rate
 
 function drawgreen(r)
@@ -249,4 +249,8 @@ StatsBase.autocor(a) |> sum
 plot(StatsBase.autocor(a))
 plot(tomiya_autocorr(a), alpha=0.5)
 plt.ylim(0, 1)
+```
+
+```julia
+
 ```
