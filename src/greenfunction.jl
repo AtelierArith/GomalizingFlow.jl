@@ -2,7 +2,6 @@ using Base.Threads
 using ProgressMeter
 using Flux
 using IterTools
-import Plots: plot
 
 """
     green(cfgs::AbstractArray{T, N}, offsetX) where {T, N}
