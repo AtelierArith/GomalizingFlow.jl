@@ -210,25 +210,25 @@ end
 ```julia
 function runHMC(pp::PhysicalParams; ntrials, Nτ, Δτ)
     T = Float32
-    cfgs = rand(T, pp.lattice_shape...)
+    x = rand(T, pp.lattice_shape...)
     action = GomalizingFlow.ScalarPhi4Action{T}(pp.m², pp.λ)
-    function S(cfgs::AbstractArray)
-        out = sum(action(unsqueeze(cfgs, dims=ndims(cfgs)+1)))
+    function S(x::AbstractArray)
+        out = sum(action(unsqueeze(x, dims=ndims(x)+1)))
         return out
     end
-    ∂S(cfgs::AbstractArray) = ∂kinetic(cfgs) + ∂potential(action, cfgs)
+    ∂S(x::AbstractArray) = ∂kinetic(x) + ∂potential(action, x)
     
-    T = eltype(cfgs) # e.g. Float64
-    history = (cfgs=typeof(cfgs)[], cond=T[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
+    T = eltype(x) # e.g. Float64
+    history = (x=typeof(x)[], cond=T[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
     
     @showprogress for _ in 1:ntrials
-        accepted, cfgs, ΔH = hmc_update(S, ∂S, cfgs, Nτ, Δτ)
-        cond = mean(cfgs)
+        accepted, x, ΔH = hmc_update(S, ∂S, x, Nτ, Δτ)
+        cond = mean(x)
         push!(history.accepted, accepted)
         push!(history.cond, cond)
         push!(history.ΔH, ΔH)
-        push!(history.cfgs, cfgs)
-        push!(history.Green, calcgreen(cfgs, pp))
+        push!(history.x, x)
+        push!(history.Green, calcgreen(x, pp))
     end
     return history
 end
@@ -256,4 +256,18 @@ plot(history.cond)
 
 ```julia
 plot(history[:accepted], title="$(mean(history.accepted))")
+```
+
+```julia
+# Draw green
+```
+
+```julia
+cfgs = Flux.MLUtils.batch(history[:x][2500:end])
+y_values = []
+@showprogress for t in 0:hp.pp.L
+    y = GomalizingFlow.mfGc(cfgs, t)
+    push!(y_values, y)
+end
+plot(0:hp.pp.L, y_values)
 ```
