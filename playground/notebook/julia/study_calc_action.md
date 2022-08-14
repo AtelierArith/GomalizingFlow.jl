@@ -104,7 +104,3 @@ ScalarPhi4Action(1, 1)(cfgs)
 phi4_action = ScalarPhi4Action(m², λ)
 @assert phi4_action(cfgs) ≈ [1598.679, 1545.5698]
 ```
-
-```julia
-
-```
