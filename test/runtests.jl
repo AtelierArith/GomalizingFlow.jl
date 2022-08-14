@@ -2,6 +2,7 @@ using Test
 using Random
 using TOML
 
+using BenchmarkTools
 using BSON
 using Flux
 using Parameters
@@ -153,6 +154,9 @@ end
 include("potential.jl")
 
 include("pyinterface.jl")
+
+# Action
+include("actions.jl")
 
 @testset "circular default" begin
     # used for 2D Lattice
