@@ -128,6 +128,7 @@ end
 ```
 
 ```julia
+@show pp
 Φ = My.HMC(pp, init=rand);
 ```
 
@@ -216,8 +217,9 @@ function runHMC(pp::PhysicalParams; ntrials, Nτ, Δτ)
         out = sum(action(unsqueeze(x, dims=ndims(x)+1)))
         return out
     end
-    ∂S(x::AbstractArray) = ∂kinetic(x) + ∂potential(action, x)
-    
+    ∂S1(x::AbstractArray) = ∂kinetic(x) + ∂potential(action, x)
+    ∂S2(x::AbstractArray) = Zygote.gradient(S, x)[begin]
+    ∂S = ∂S1
     T = eltype(x) # e.g. Float64
     history = (x=typeof(x)[], cond=T[], ΔH=T[], accepted=Bool[], Green=Vector{T}[])
     
@@ -254,38 +256,41 @@ r = results[2] # 3D
 ```
 
 ```julia
+using Random
+Random.seed!(1)
+
 hp = GomalizingFlow.load_hyperparams(joinpath(r, "config.toml"))
 pp = hp.pp
 @show pp
-Nτ = 20
+Nτ = 10
 Δτ = 0.01
-ntrials = 10 ^ 4
+ntrials = 10 ^ 4 * 2
 Random.seed!(54321)
-history = runHMC(pp; ntrials, Nτ, Δτ);
+history_hmc = runHMC(pp; ntrials, Nτ, Δτ);
 ```
 
 ```julia
-mean(exp.(-history.ΔH)) ≈ 1f0
+mean(exp.(-history_hmc.ΔH)) ≈ 1f0
 ```
 
 ```julia
-plot(history.cond)
+plot(history_hmc.cond)
 ```
 
 ```julia
-plot(history[:accepted], title="$(mean(history.accepted))")
+plot(history_hmc[:accepted], title="$(mean(history_hmc.accepted))")
 ```
 
 # Draw green
 
 ```julia
-cfgs = Flux.MLUtils.batch(history[:x][2500:end])
+cfgs = Flux.MLUtils.batch(history_hmc[:x][1000:end])
 y_values = []
 @showprogress for t in 0:hp.pp.L
     y = GomalizingFlow.mfGc(cfgs, t)
     push!(y_values, y)
 end
-p = plot(0:hp.pp.L, y_values, label="HMC")
+p = plot(0:hp.pp.L, y_values, label="HMC", lw=3)
 ```
 
 ```julia
@@ -294,11 +299,11 @@ using CUDA, Flux, ParameterSchedulers # require to call restore function
 _, history = GomalizingFlow.restore(r);
 lattice_shape = hp.pp.lattice_shape
 #cfgs = cat(history[:x][4000:7000]..., dims=length(lattice_shape)+1)
-cfgs = Flux.MLUtils.batch(history[:x][2000:7000])
+cfgs = Flux.MLUtils.batch(history[:x][2000:end])
 y_values = []
 @showprogress for t in 0:hp.pp.L
     y = GomalizingFlow.mfGc(cfgs, t)
     push!(y_values, y)
 end
-plot!(p, 0:hp.pp.L, y_values, label="AffineCouplingLayer")
+plot!(p, 0:hp.pp.L, y_values, label="AffineCouplingLayer", lw=3, alpha=0.5)
 ```

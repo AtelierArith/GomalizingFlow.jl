@@ -154,6 +154,9 @@ include("potential.jl")
 
 include("pyinterface.jl")
 
+# Action
+include("actions.jl")
+
 @testset "circular default" begin
     # used for 2D Lattice
     x = rand(4, 4, 4, 4)
