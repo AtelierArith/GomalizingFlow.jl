@@ -10,14 +10,22 @@ function calc_action(
     cfgs::AbstractArray{T,N},
 ) where {T<:AbstractFloat,N}
     cfgs² = cfgs .^ 2
-    potential = @. action.m² * cfgs² + action.λ * cfgs²^2
+    action_density = @. action.m² * cfgs² + action.λ * cfgs²^2
     sz = ndims(cfgs)
     Nd = sz - 1 # exclude last axis
     B = size(cfgs, sz) # batch size
-    k1 = Nd * 2cfgs²
-    k2 = sum(cfgs .* circshift(cfgs, -Flux.onehot(μ, 1:sz)) for μ in 1:Nd)
-    k3 = sum(cfgs .* circshift(cfgs, Flux.onehot(μ, 1:sz)) for μ in 1:Nd)
-    action_density = @. potential + k1 - k2 - k3
+
+    dest = similar(cfgs)
+    action_density += @. Nd * 2cfgs²
+    for μ in 1:Nd
+        circshift!(dest, cfgs, -Flux.onehot(μ, 1:sz))
+        action_density .-= cfgs .* dest
+    end
+    for μ in 1:Nd
+        circshift!(dest, cfgs, Flux.onehot(μ, 1:sz))
+        action_density .-= cfgs .* dest
+    end
+
     reshape(
         sum(action_density, dims=1:Nd),
         B,
@@ -70,9 +78,11 @@ function ChainRulesCore.rrule(
         sz = ndims(x)
         B = size(x, sz)
         Nd = sz - 1
-        ∂a∂x = ∂potential(a, x) .+ ∂kinetic(a, x)
-        # do multiplication for each batch
-        x̄ = ∂a∂x .* reshape(ȳ, ones(Int, Nd)..., B)
+        x̄ = @thunk begin
+            ∂a∂x = ∂potential(a, x) .+ ∂kinetic(a, x)
+            # do multiplication for each batch
+            ∂a∂x .* reshape(ȳ, ones(Int, Nd)..., B)
+        end
         return NoTangent(), x̄
     end
     return y, pullback
