@@ -171,7 +171,7 @@ function hamiltonian(S::Function, cfgs, p)
     Σ_p² = dot(p, p)
     H = 0.5Σ_p² + S(cfgs)
     return H
-end∂
+end
 ```
 
 ```julia
