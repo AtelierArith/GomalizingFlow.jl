@@ -2,7 +2,6 @@ using Test
 using Random
 using TOML
 
-using BenchmarkTools
 using BSON
 using Flux
 using Parameters

@@ -1,10 +1,12 @@
+using BenchmarkTools
+using Flux
+using Flux.Zygote
 mutable struct ReferenceScalarPhi4Action{T<:AbstractFloat}
     m²::T
     λ::T
 end
 
-function calc_action(
-    action::ReferenceScalarPhi4Action{T},
+function (action::ReferenceScalarPhi4Action{T})(
     cfgs::AbstractArray{T,N},
 ) where {T<:AbstractFloat,N}
     cfgs² = cfgs .^ 2
@@ -27,7 +29,7 @@ end
     L = 16
     Nd = 3
     B = 64
-    cfgs = Flux.batch(fill(1, Nd)..., B)
+    cfgs = rand(T, fill(1, Nd)..., B)
     ref_action = ReferenceScalarPhi4Action{T}(T(0.3), T(2))
     action = GomalizingFlow.ScalarPhi4Action{T}(T(0.3), T(2))
 
@@ -37,15 +39,15 @@ end
     @test J_zygote |> size == J |> size
     @test J_zygote ≈ J
 
-    ref_jt = @benchmark Zygote.jacobian(ref_action, $cfgs)
-    jt = @benchmark Zygote.jacobian(action, $cfgs)
+    ref_jt = @benchmark Zygote.jacobian($ref_action, $cfgs)
+    jt = @benchmark Zygote.jacobian($action, $cfgs)
     @test mean(jt.times) < mean(ref_jt.times)
 
-    ∇_zygote, = Zygote.gradient(sum ∘ action, cfgs)
-    ∇, = Zygote.gradient(sum ∘ differentiable_action, cfgs)
+    ∇_zygote, = Zygote.gradient(sum ∘ ref_action, cfgs)
+    ∇, = Zygote.gradient(sum ∘ action, cfgs)
     @test ∇_zygote ≈ ∇
 
-    ref_gt = @benchmark Zygote.gradient(sum ∘ action, cfgs)
-    gt = @benchmark Zygote.gradient(sum ∘ differentiable_action, cfgs)
+    ref_gt = @benchmark Zygote.gradient(sum ∘ $ref_action, $cfgs)
+    gt = @benchmark Zygote.gradient(sum ∘ $action, $cfgs)
     @test mean(gt.times) < mean(ref_gt.times)
 end
