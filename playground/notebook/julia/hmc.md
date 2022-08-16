@@ -71,6 +71,9 @@ end
 ```
 
 ```julia
+"""
+Shared by Tomiya-san
+"""
 function calc_kinetic(Φ::My.HMC{T, N},pp::PhysicalParams) where {T, N}
     Lx, Ly, Lz = pp.lattice_shape
     ϕ = Φ.cfgs
