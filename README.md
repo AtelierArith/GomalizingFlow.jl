@@ -1,4 +1,13 @@
-# GomalizingFlow.jl
+# GomalizingFlow.jl: A Julia package for Flow-based sampling algorithm
+
+# Abstract
+
+GomalizingFlow.jl is a package to generate configurations using the flow based sampling algorithm in Julia programming language.
+This software serves two main purposes: to acceralate research works of lattice QCD with machine learning with easy prototyping, and to provide an independent implimentation to an existing code in Python/PyTorch.
+GomalizingFlow.jl implements,
+the flow based sampling algorithm, namely, RealNVP and Metropolis-Hastings test for two dimension and three dimensional scalar field, which can be switched by a parameter file.
+HMC for that theory also implemented for comparison.
+This code works not only on CPU but also on NVIDIA GPU
 
 # Usage (TL; DR)
 
@@ -11,7 +20,7 @@ $ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
 
 # Usage (detailed description)
 
-If you're familiar with how to use Julia especially machine learning or GPU programming, you can setup environment by yourself via:
+If you're familiar with how to use Julia especially machine learning or GPU programming, you can setup an environment by yourself via:
 
 ```julia
 julia> using Pkg; Pkg.instantiate()
@@ -22,7 +31,7 @@ julia> GomalizingFlow.train(hp)
 
 Otherwise, we recommend to create one using Docker container.
 
-## Setup environment (using Docker)
+## Step1: Setup environment (using Docker)
 
 [Install Docker, more precisely NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker), [Docker Compose](https://docs.docker.com/compose/install/compose-plugin/#installing-compose-on-linux-systems) and GNU Make.
 
@@ -65,7 +74,7 @@ $ cat /etc/docker/daemon.json
 }
 ```
 
-## Build a Docker image
+## Step2: Build a Docker image
 
 Just do
 
@@ -73,7 +82,7 @@ Just do
 $ make
 ```
 
-## Start training (using Docker)
+## Step3: Start training (using Docker)
 
 ### Syntax
 
@@ -82,6 +91,7 @@ In general, you can train a model via:
 ```console
 $ docker-compose run --rm julia julia begin_training.jl <path/to/config.toml>
 ```
+
 For example:
 
 ```julia
@@ -147,6 +157,63 @@ $ docker-compose run --rm julia julia watch.jl cfgs/example2d.toml
            ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀epoch⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ```
 
+## Step4: Analyse trained model
+
+After training in Step3, you can load a trained model you specify and calculate zero-momentum
+two point functions.
+
+```julia
+using CUDA, Flux, ParameterSchedulers # require to call restore function
+using GomalizingFlow, Plots, ProgressMeter
+backend = unicodeplots() # select backend
+# You can also call `gr()`
+# backend = gr()
+
+r = "result/example2d"
+# r = "result/example3d"
+
+_, history = GomalizingFlow.restore(r);
+
+hp = GomalizingFlow.load_hyperparams(joinpath(r, "config.toml"))
+
+lattice_shape = hp.pp.lattice_shape
+cfgs = Flux.MLUtils.batch(history[:x][2000:end]);
+T = eltype(cfgs)
+
+y_values = T[]
+@showprogress for t in 0:hp.pp.L
+    y = GomalizingFlow.mfGc(cfgs, t)
+    push!(y_values, y)
+end
+plot(0:hp.pp.L, y_values, label="AffineCouplingLayer")
+```
+
+The result should be:
+
+```
+julia> plot(0:hp.pp.L, y_values, label="AffineCouplingLayer")
+               ┌────────────────────────────────────────┐
+     0.0366151 │⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⠀│ AffineCouplingLayer
+               │⠀⡿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠇⠀│
+               │⠀⡇⢇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡸⠀⠀│
+               │⠀⡇⠘⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠃⠀⠀│
+               │⠀⡇⠀⢣⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡜⠀⠀⠀│
+               │⠀⡇⠀⠈⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢰⠁⠀⠀⠀│
+               │⠀⡇⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀│
+               │⠀⡇⠀⠀⠀⢇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡸⠀⠀⠀⠀⠀│
+               │⠀⡇⠀⠀⠀⠘⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠇⠀⠀⠀⠀⠀│
+               │⠀⡇⠀⠀⠀⠀⠈⢆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡠⠃⠀⠀⠀⠀⠀⠀│
+               │⠀⡇⠀⠀⠀⠀⠀⠈⢢⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡰⠁⠀⠀⠀⠀⠀⠀⠀│
+               │⠀⡇⠀⠀⠀⠀⠀⠀⠀⠱⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡜⠀⠀⠀⠀⠀⠀⠀⠀⠀│
+               │⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠑⠢⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠤⠊⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
+               │⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠑⠤⡀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡠⠒⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
+   0.000588591 │⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠑⠒⠢⠤⠒⠒⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│
+               └────────────────────────────────────────┘
+               ⠀-0.24⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀8.24⠀
+```
+
+See `playground/notebook/julia/analysis_tool.md` or `playground/notebook/julia/hmc.md` to get more examples.
+
 # Directory structure
 
 Below is our directory structure
@@ -161,12 +228,12 @@ $ tree -d
 │   │   └── python
 │   └── pluto
 ├── src # contains training script etc...
-└── test # `make test` runs the package's test/runtests.jl file 
+└── test # `make test` runs the package's test/runtests.jl file
     ├── assets
     └── pymod
 ```
 
-# Playground
+## Playground
 
 There are lots of notebooks in `playground/notebook/julia` regarding our program. The manuscript here is a draft. Readers can learn about the trial and error process that led to the release of the software. You can run Jupyter Lab server locally as usual via:
 
