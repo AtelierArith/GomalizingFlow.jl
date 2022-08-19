@@ -257,3 +257,19 @@ gomalizingflowjl-lab |      or http://127.0.0.1:8888/lab?token=xxxxxxxxxx # Clic
 ```
 
 We track Jupyter Notebooks as `.md` with the power of [jupytext](https://github.com/mwouts/jupytext) rather than `.ipynb`.
+
+# Citation
+
+Bibtex item can be obtained from [iNSPIRE-HEP](https://inspirehep.net/literature/2138819):
+
+```
+@article{Tomiya:2022meu,
+    author = "Tomiya, Akio and Terasaki, Satoshi",
+    title = "{GomalizingFlow.jl: A Julia package for Flow-based sampling algorithm for lattice field theory}",
+    eprint = "2208.08903",
+    archivePrefix = "arXiv",
+    primaryClass = "hep-lat",
+    month = "8",
+    year = "2022"
+}
+```
