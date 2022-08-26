@@ -13,6 +13,8 @@ In this notebook we provide an alternative method which substitutes four dimensi
 # Load Julia modules
 
 ```julia
+using Random
+
 using Flux
 ```
 
