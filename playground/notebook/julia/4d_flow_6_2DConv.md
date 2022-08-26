@@ -87,13 +87,15 @@ Implements 4D transformation that alters four dimensional convolutions
 ->
 (x, y, inC, z, t, B) # permutedims
 -> 
-(x, y, inC, (z, t, B)) # reshape to treat (z, t, B) as a batch axis.
--> 
-(x, y, outC, (z, t, B)) # apply 2D convolution
+(x, y, inC, (z, t, B)) # treat (z, t, B) as a batch axis.
 ->
-(x, y, outC, z, t, B) # reshape
+(x, y, inC, (z * t * B)) # reshape
 -> 
-(x, y, z, t, outC, B) # permutedims
+(x, y, outC, (z * t * B)) # apply 2D convolution
+->
+(x, y, outC, z, t, B) # reshape 4D -> 6D
+-> 
+(x, y, z, t, outC, B) # permutedims to restore the array data
 """
 function (conv4dapprox::Approx4DConv4C2)(x::AbstractArray{T,4 + 1 + 1}) where {T}
     Nd = 4
