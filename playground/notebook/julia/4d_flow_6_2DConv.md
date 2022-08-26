@@ -14,6 +14,7 @@ In this notebook we provide an alternative method which substitutes four dimensi
 
 ```julia
 using Random
+using Statistics
 
 using Flux
 ```
