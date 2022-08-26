@@ -78,17 +78,19 @@ end
     (conv4dapprox::Approx4DConv4C2)(x::AbstractArray{T,4 + 1 + 1})
 Implements 4D transformation that alters four dimensional convolutions
 
-(x, y, z, t, inC, B) # select 2 axes , say, "x" and "y" from ["x", "y", "z", "t"] in this example
+(x, y, z, t, inC, B) # select 2 axes from 4 axes [x, y, z, t] in this example, say, "x" and "y" in this example
 ->
 (x, y, inC, z, t, B) # permutedims
 -> 
-(x, y, inC, (z, t, B)) # reshape to treat (z, t, B) as a batch axis.
+(x, y, inC, (z, t, B)) # treat (z, t, B) as a batch axis.
 -> 
-(x, y, outC, (z, t, B)) # apply 2D convolution
+(x, y, inC, (z * t * B)) # reshape
+-> 
+(x, y, outC, (z * t * B)) # apply 2D convolution
 ->
 (x, y, outC, z, t, B) # reshape
 -> 
-(x, y, z, t, outC, B) # permutedims
+(x, y, z, t, outC, B) # permutedims to restore the array data structure
 """
 function (conv4dapprox::Approx4DConv4C2)(x::AbstractArray{T,4 + 1 + 1}) where {T}
     Nd = 4
