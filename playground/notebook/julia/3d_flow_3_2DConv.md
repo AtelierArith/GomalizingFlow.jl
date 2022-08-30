@@ -1,4 +1,4 @@
-# Flow sampling algorithm for 4 dimensional scalar field
+# Flow sampling algorithm for 3 dimensional scalar field using 2D convolutions
 
 # Introduction
 
@@ -9,7 +9,7 @@ parameter file. One may wonder how to implement for four dimensional scalar fiel
 
 In our notebooks , namely, `4d_flow_4_3DConv` and `4d_flow_6_2DConv`, we provides alternative methods which substitutes four dimensional convolution.
 
-This notebooks we provide an alternative method which substitutes three dimensional convolution using serveral 2D-convolutions.
+To check the above ideas works in 3D theory, this notebooks we provide an alternative method which substitutes three dimensional convolution using serveral 2D-convolutions.
 
 
 # Load Julia modules
