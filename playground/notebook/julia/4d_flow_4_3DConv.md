@@ -25,7 +25,7 @@ using GomalizingFlow: HyperParams, AffineCoupling
 using GomalizingFlow: mycircular, pairwise, make_checker_mask
 ```
 
-We provide one way to achieve a four-dimensional nonlinear transformation with **six** two-dimensional convolutions. where the number six comes from a combination of 4 axes taken 3 at a time without repetition:
+We provide one way to achieve a four-dimensional nonlinear transformation with **four** three-dimensional convolutions. where the number four comes from a combination of 4 axes taken 3 at a time without repetition:
 
 $$
 {}_4\mathrm{C}_3 \underset{\mathrm{def}}{=} \binom{4}{3} = \frac{4!}{3!(4-3)!} = 4
@@ -91,7 +91,7 @@ Implements 4D transformation that alters four dimensional convolutions
 -> 
 (x, y, z, outC, (t * B)) # apply 3D convolution
 ->
-(x, y, z, outC, t, B) # reshape 4D -> 6D
+(x, y, z, outC, t, B) # reshape 5D -> 6D
 -> 
 (x, y, z, t, outC, B) # permutedims to restore the array data
 """
