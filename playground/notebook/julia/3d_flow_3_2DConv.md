@@ -79,7 +79,7 @@ Flux.@functor Approx3DConv3C2
 
 ```julia
 """
-    (conv3dapprox::Approx3DConv3C2)(x::AbstractArray{T,4 + 1 + 1})
+    (conv3dapprox::Approx3DConv3C2)(x::AbstractArray{T,3 + 1 + 1})
 Implements 3D transformation that alters three dimensional convolutions
 
 (x, y, t, inC, B) # select 3 axes , say, "x", "y" from ["x", "y", "t"] in this example
