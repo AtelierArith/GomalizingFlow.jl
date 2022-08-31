@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
 
 ENV JULIA_PATH /usr/local/julia
 ENV PATH $JULIA_PATH/bin:$PATH
@@ -109,7 +109,8 @@ RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/shortcuts-extension 
 
 RUN wget https://raw.githubusercontent.com/mwouts/jupytext/main/binder/labconfig/default_setting_overrides.json -P  ~/.jupyter/labconfig/
 
-RUN conda install -y seaborn matplotlib pytorch=1.9 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
+RUN conda install -y seaborn matplotlib -c conda-forge && \
+    conda install pytorch=1.12 torchvision torchaudio cudatoolkit=11.3 -c pytorch && \
     conda clean -afy # clean up
 
 # Install extras
