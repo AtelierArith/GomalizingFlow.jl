@@ -152,7 +152,7 @@ end
 # PotentialDistributions.jl
 include("potential.jl")
 
-if get(ENV, "CI", false)
+if get(ENV, "CI", "false") == "true"
     include("pyinterface.jl")
 end
 
