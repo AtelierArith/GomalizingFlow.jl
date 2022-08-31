@@ -49,6 +49,9 @@ lam = 5.113 # λ
 #
 [model]
 seed = 2021
+# We recommend to set 
+# n_layers=4 if L=8
+# n_layers=16 if L=4
 n_layers = 16
 hidden_sizes = [8, 8]
 kernel_size = 3
