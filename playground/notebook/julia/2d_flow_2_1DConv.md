@@ -43,7 +43,7 @@ end
 
 ```julia
 """
-Differentiable padarray for 2D
+Differentiable padarray for 1D
 """
 function GomalizingFlow.mycircular(Y::AbstractArray{<:Real,1 + 2}, d1::Int=1)
     Yl = Y[begin:begin+(d1-1), :, :]
