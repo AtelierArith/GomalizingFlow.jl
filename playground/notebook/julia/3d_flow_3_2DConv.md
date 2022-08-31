@@ -42,14 +42,14 @@ end
 ```
 
 ```julia
-struct Approx4DConv3C2{C}
+struct Approx3DConv3C2{C}
     c1::C
     c2::C
     c3::C
 end
 
 # Constructor
-function Approx4DConv3C2(
+function Approx3DConv3C2(
         ksize::NTuple{2,Int}, 
         fs::Pair{Int,Int}, 
         activation::Function,
@@ -71,16 +71,16 @@ function Approx4DConv3C2(
         )
     end
     C = typeof(convs[begin])
-    Approx4DConv3C2{C}(convs...)
+    Approx3DConv3C2{C}(convs...)
 end # function
 
-Flux.@functor Approx4DConv3C2
+Flux.@functor Approx3DConv3C2
 ```
 
 ```julia
 """
-    (conv3dapprox::Approx4DConv3C2)(x::AbstractArray{T,4 + 1 + 1})
-Implements 4D transformation that alters four dimensional convolutions
+    (conv3dapprox::Approx3DConv3C2)(x::AbstractArray{T,4 + 1 + 1})
+Implements 3D transformation that alters three dimensional convolutions
 
 (x, y, t, inC, B) # select 3 axes , say, "x", "y" from ["x", "y", "t"] in this example
 ->
@@ -96,7 +96,7 @@ Implements 4D transformation that alters four dimensional convolutions
 -> 
 (x, y, t, outC, B) # permutedims to restore the array data
 """
-function (conv3dapprox::Approx4DConv3C2)(x::AbstractArray{T,3 + 1 + 1}) where {T}
+function (conv3dapprox::Approx3DConv3C2)(x::AbstractArray{T,3 + 1 + 1}) where {T}
     Nd = 3
     combinations = [[1, 2], [1, 3], [2, 3]]
     convs = (
@@ -163,12 +163,12 @@ function GomalizingFlow.create_model(hp::HyperParams)
         channels = [inC, hidden_sizes..., outC]
         net = []
         for (c, c_next) ∈ pairwise(channels)
-            push!(net, Approx4DConv3C2((kernel_size, kernel_size), c=>c_next, leakyrelu))
+            push!(net, Approx3DConv3C2((kernel_size, kernel_size), c=>c_next, leakyrelu))
         end
         if use_final_tanh
             c = channels[end-1]
             c_next = channels[end]
-            net[end] = Approx4DConv3C2((kernel_size, kernel_size), c=>c_next, tanh)
+            net[end] = Approx3DConv3C2((kernel_size, kernel_size), c=>c_next, tanh)
         end
         mask = make_checker_mask(lattice_shape, parity)
         coupling = AffineCoupling(Chain(net...), mask)
