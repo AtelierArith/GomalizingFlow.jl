@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
 
 ENV JULIA_PATH /usr/local/julia
 ENV PATH $JULIA_PATH/bin:$PATH
@@ -28,10 +28,10 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Julia
-RUN wget https://julialang-s3.julialang.org/bin/linux/x64/1.7/julia-1.7.3-linux-x86_64.tar.gz && \
+RUN wget https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.0-linux-x86_64.tar.gz && \
     mkdir "$JULIA_PATH" && \
-    tar zxvf julia-1.7.3-linux-x86_64.tar.gz -C "$JULIA_PATH" --strip-components 1 && \
-    rm julia-1.7.3-linux-x86_64.tar.gz # clean up
+    tar zxvf julia-1.8.0-linux-x86_64.tar.gz -C "$JULIA_PATH" --strip-components 1 && \
+    rm julia-1.8.0-linux-x86_64.tar.gz # clean up
 
 # Create user named jovyan which is compatible with Binder
 ARG NB_USER=jovyan
@@ -109,7 +109,8 @@ RUN mkdir -p ${HOME}/.jupyter/lab/user-settings/@jupyterlab/shortcuts-extension 
 
 RUN wget https://raw.githubusercontent.com/mwouts/jupytext/main/binder/labconfig/default_setting_overrides.json -P  ~/.jupyter/labconfig/
 
-RUN conda install -y seaborn matplotlib pytorch=1.9 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia && \
+RUN conda install -y seaborn matplotlib -c conda-forge && \
+    conda install pytorch=1.12 torchvision torchaudio cudatoolkit=11.3 -c pytorch && \
     conda clean -afy # clean up
 
 # Install extras
