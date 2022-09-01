@@ -32,7 +32,7 @@ end
 Normalized autocorrelation function
 
 $$
-\rho(t) = \bar{\Gamma}(t)/\bar{\Gamma}(0)
+\bar{\rho}(t) = \bar{\Gamma}(t)/\bar{\Gamma}(0)
 $$
 
 ```julia
