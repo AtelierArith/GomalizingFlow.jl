@@ -136,7 +136,7 @@ function (conv3dapprox::Approx3DConv3C2)(x::AbstractArray{T,3 + 1 + 1}) where {T
         y = permutedims(outreshaped, sortperm(dims))
         y
     end
-    conv3dapprox.activation(mean(ys))
+    conv3dapprox.activation.(mean(ys))
 end
 ```
 
