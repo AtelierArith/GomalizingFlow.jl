@@ -46,10 +46,11 @@ end
 ```
 
 ```julia
-struct Approx3DConv3C2{C}
+struct Approx3DConv3C2{C, F}
     c1::C
     c2::C
     c3::C
+    activation::F
 end
 
 # Constructor
@@ -69,14 +70,14 @@ function Approx3DConv3C2(
             Base.Fix2(mycircular, ksize .÷ 2), 
             Conv(
                 ksize, 
-                inC => outC,
-                activation;
+                inC => outC;
+                # activation; do not activate here
                 init
             ),
         )
     end
     C = typeof(convs[begin])
-    Approx3DConv3C2{C}(convs...)
+    Approx3DConv3C2{C, typeof(activation)}(convs..., activation)
 end # function
 
 Flux.@functor Approx3DConv3C2
@@ -135,8 +136,7 @@ function (conv3dapprox::Approx3DConv3C2)(x::AbstractArray{T,3 + 1 + 1}) where {T
         y = permutedims(outreshaped, sortperm(dims))
         y
     end
-    #sum(ys) <-- does not suitable for our purpose cuz we get huge loss values for initial training.
-    mean(ys)
+    conv3dapprox.activation(mean(ys))
 end
 ```
 
