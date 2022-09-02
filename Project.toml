@@ -40,12 +40,12 @@ UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
 
 [compat]
 BSON = "0.3.5"
-Flux = "0.13.4"
+Flux = "0.13.5"
 
 [extras]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 
 [targets]
 test = ["Test", "ImageFiltering", "BenchmarkTools"]
