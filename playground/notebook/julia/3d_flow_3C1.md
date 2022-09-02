@@ -36,6 +36,10 @@ $$
 We name the transformation `Approx3DConv3C1`
 
 ```julia
+function torchlike_uniform(rng::AbstractRNG)
+    Flux.kaiming_uniform(rng; gain=inv(sqrt(3)))
+end
+
 function torchlike_uniform(sz::Integer...; kwargs...)
     Flux.kaiming_uniform(sz...; gain=inv(sqrt(3)), kwargs...)
 end
@@ -67,7 +71,8 @@ end
 function Approx3DConv3C1(
         ksize::NTuple{1,Int}, 
         fs::Pair{Int,Int}, 
-        activation::Function,
+        activation::Function;
+        init=torchlike_uniform
     )
     combinations = [[1], [2], [3]]
 
@@ -80,8 +85,8 @@ function Approx3DConv3C1(
             Conv(
                 ksize, 
                 inC => outC,
-                activation,
-                init=torchlike_uniform
+                activation;
+                init
             ),
         )
     end
@@ -177,12 +182,12 @@ function GomalizingFlow.create_model(hp::HyperParams)
         channels = [inC, hidden_sizes..., outC]
         net = []
         for (c, c_next) ∈ pairwise(channels)
-            push!(net, Approx3DConv3C1((kernel_size, ), c=>c_next, leakyrelu))
+            push!(net, Approx3DConv3C1((kernel_size, ), c=>c_next, leakyrelu, init=torchlike_uniform(rng)))
         end
         if use_final_tanh
             c = channels[end-1]
             c_next = channels[end]
-                net[end] = Approx3DConv3C1((kernel_size, ), c=>c_next, tanh)
+            net[end] = Approx3DConv3C1((kernel_size, ), c=>c_next, tanh; init=torchlike_uniform(rng))
         end
         mask = make_checker_mask(lattice_shape, parity)
         coupling = AffineCoupling(Chain(net...), mask)
