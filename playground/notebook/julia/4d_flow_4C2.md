@@ -1,4 +1,4 @@
-# Flow sampling algorithm for 3 dimensional scalar field using 2D convolutions
+# Flow sampling algorithm for 4 dimensional scalar field
 
 # Introduction
 
@@ -7,9 +7,7 @@ sampling algorithm, namely, RealNVP and Metropolis-Hastings test for two
 dimension and three dimensional scalar field, which can be switched by a
 parameter file. One may wonder how to implement for four dimensional scalar field. If Flux.jl supports $N$-dimensional convolutions, where $N > 3$, things are very simple. Unfortunately it doesn't in 2022. See the related issue [here](https://github.com/FluxML/Flux.jl/issues/451). This means that for those who would like to implement for the four dimensional theory, one should take a different approach.
 
-In our notebooks , namely, `4d_flow_4_3DConv` and `4d_flow_6_2DConv`, we provides alternative methods which substitutes four dimensional convolution.
-
-To check the above ideas works in 3D theory, this notebooks we provide an alternative method which substitutes three dimensional convolution using serveral 2D-convolutions.
+In this notebook we provide an alternative method which substitutes four dimensional convolution. we realize 4 dimensional non linear transformation with 6-2D-convolutions.
 
 
 # Load Julia modules
@@ -27,13 +25,13 @@ using GomalizingFlow: HyperParams, AffineCoupling
 using GomalizingFlow: mycircular, pairwise, make_checker_mask
 ```
 
-We provide one way to achieve a three-dimensional nonlinear transformation with **three** two-dimensional convolutions. where the number three comes from a combination of 3 axes taken 2 at a time without repetition:
+We provide one way to achieve a four-dimensional nonlinear transformation with **six** two-dimensional convolutions. where the number six comes from a combination of 4 axes taken 2 at a time without repetition:
 
 $$
-{}_3\mathrm{C}_2 \underset{\mathrm{def}}{=} \binom{3}{2} = \frac{3!}{2!(3-2)!} = 3
+{}_4\mathrm{C}_2 \underset{\mathrm{def}}{=} \binom{4}{2} = \frac{4!}{2!(4-2)!} = 6
 $$
 
-We name the transformation `Approx3DConv3C2`
+We name the transformation `Approx4DConv4C2`
 
 ```julia
 function torchlike_uniform(sz::Integer...; kwargs...)
@@ -42,19 +40,22 @@ end
 ```
 
 ```julia
-struct Approx3DConv3C2{C}
+struct Approx4DConv4C2{C}
     c1::C
     c2::C
     c3::C
+    c4::C
+    c5::C
+    c6::C
 end
 
 # Constructor
-function Approx3DConv3C2(
+function Approx4DConv4C2(
         ksize::NTuple{2,Int}, 
         fs::Pair{Int,Int}, 
         activation::Function,
     )
-    combinations = [[1, 2], [1, 3], [2, 3]]
+    combinations = [[1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4],]
 
     inC = fs.first
     outC = fs.second
@@ -71,38 +72,41 @@ function Approx3DConv3C2(
         )
     end
     C = typeof(convs[begin])
-    Approx3DConv3C2{C}(convs...)
+    Approx4DConv4C2{C}(convs...)
 end # function
 
-Flux.@functor Approx3DConv3C2
+Flux.@functor Approx4DConv4C2
 ```
 
 ```julia
 """
-    (conv3dapprox::Approx3DConv3C2)(x::AbstractArray{T,3 + 1 + 1})
-Implements 3D transformation that alters three dimensional convolutions
+    (conv4dapprox::Approx4DConv4C2)(x::AbstractArray{T,4 + 1 + 1})
+Implements 4D transformation that alters four dimensional convolutions
 
-(x, y, t, inC, B) # select 3 axes , say, "x", "y" from ["x", "y", "t"] in this example
+(x, y, z, t, inC, B) # select 2 axes , say, "x" and "y" from ["x", "y", "z", "t"] in this example
 ->
-(x, y, inC, t, B) # permutedims
+(x, y, inC, z, t, B) # permutedims
 -> 
-(x, y, inC, (t, B)) # treat (t, B) as a batch axis.
+(x, y, inC, (z, t, B)) # treat (z, t, B) as a batch axis.
 ->
-(x, y, inC, (t * B)) # reshape
+(x, y, inC, (z * t * B)) # reshape
 -> 
-(x, y, outC, (t * B)) # apply 2D convolution
+(x, y, outC, (z * t * B)) # apply 2D convolution
 ->
-(x, y, outC, t, B) # reshape 4D -> 5D
+(x, y, outC, z, t, B) # reshape 4D -> 6D
 -> 
-(x, y, t, outC, B) # permutedims to restore the array data
+(x, y, z, t, outC, B) # permutedims to restore the array data
 """
-function (conv3dapprox::Approx3DConv3C2)(x::AbstractArray{T,3 + 1 + 1}) where {T}
-    Nd = 3
-    combinations = [[1, 2], [1, 3], [2, 3]]
+function (conv4dapprox::Approx4DConv4C2)(x::AbstractArray{T,4 + 1 + 1}) where {T}
+    Nd = 4
+    combinations = ([1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4])
     convs = (
-        conv3dapprox.c1,
-        conv3dapprox.c2,
-        conv3dapprox.c3,
+        conv4dapprox.c1,
+        conv4dapprox.c2,
+        conv4dapprox.c3,
+        conv4dapprox.c4,
+        conv4dapprox.c5,
+        conv4dapprox.c6,
     )
     ys = map(zip(convs, combinations)) do (conv, cs)
         tospational = filter(1:Nd) do n
@@ -126,6 +130,7 @@ function (conv3dapprox::Approx3DConv3C2)(x::AbstractArray{T,3 + 1 + 1}) where {T
             size(out, 3),
             size(xperm, 4),
             size(xperm, 5),
+            size(xperm, 6),
         )
         y = permutedims(outreshaped, sortperm(dims))
         y
@@ -163,12 +168,12 @@ function GomalizingFlow.create_model(hp::HyperParams)
         channels = [inC, hidden_sizes..., outC]
         net = []
         for (c, c_next) ∈ pairwise(channels)
-            push!(net, Approx3DConv3C2((kernel_size, kernel_size), c=>c_next, leakyrelu))
+            push!(net, Approx4DConv4C2((kernel_size, kernel_size), c=>c_next, leakyrelu))
         end
         if use_final_tanh
             c = channels[end-1]
             c_next = channels[end]
-            net[end] = Approx3DConv3C2((kernel_size, kernel_size), c=>c_next, tanh)
+            net[end] = Approx4DConv4C2((kernel_size, kernel_size), c=>c_next, tanh)
         end
         mask = make_checker_mask(lattice_shape, parity)
         coupling = AffineCoupling(Chain(net...), mask)
@@ -180,9 +185,10 @@ end
 ```
 
 ```julia
-configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example3d.toml")
-hp = GomalizingFlow.load_hyperparams(configpath, device_id=1)
-@assert length(hp.pp.lattice_shape) == 3
+configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example4d_critical_L4.toml")
+foldername = "example4d_critical_L4_4C2"
+hp = GomalizingFlow.load_hyperparams(configpath, foldername)
+@assert length(hp.pp.lattice_shape) == 4
 ```
 
 ```julia

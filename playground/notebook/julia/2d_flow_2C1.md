@@ -1,4 +1,4 @@
-# Flow sampling algorithm for 3 dimensional scalar field using 1D convolutions
+# Flow sampling algorithm for 2 dimensional scalar field using 1D convolutions
 
 # Introduction
 
@@ -9,7 +9,7 @@ parameter file. One may wonder how to implement for four dimensional scalar fiel
 
 In our notebooks , namely, `4d_flow_4_3DConv` and `4d_flow_6_2DConv`, we provides alternative methods which substitutes four dimensional convolution.
 
-To check the above ideas works in 3D theory, this notebooks we provide an alternative method which substitutes three dimensional convolution using serveral 1D-convolutions.
+To check the above ideas works in 2D theory, this notebooks we provide an alternative method which substitutes three dimensional convolution using serveral 1D-convolutions.
 
 
 # Load Julia modules
@@ -30,10 +30,10 @@ using GomalizingFlow: mycircular, pairwise, make_checker_mask
 We provide one way to achieve a three-dimensional nonlinear transformation with **three** two-dimensional convolutions. where the number three comes from a combination of 3 axes taken 2 at a time without repetition:
 
 $$
-{}_3\mathrm{C}_1 \underset{\mathrm{def}}{=} \binom{3}{1} = \frac{3!}{1!(3-1)!} = 3
+{}_2\mathrm{C}_1 \underset{\mathrm{def}}{=} \binom{2}{1} = \frac{2!}{1!(2-1)!} = 2
 $$
 
-We name the transformation `Approx3DConv3C1`
+We name the transformation `Approx3DConv3C2`
 
 ```julia
 function torchlike_uniform(sz::Integer...; kwargs...)
@@ -57,26 +57,25 @@ end
 ```
 
 ```julia
-struct Approx3DConv3C1{C}
+struct Approx2DConv2C1{C}
     c1::C
     c2::C
-    c3::C
 end
 
 # Constructor
-function Approx3DConv3C1(
+function Approx2DConv2C1(
         ksize::NTuple{1,Int}, 
         fs::Pair{Int,Int}, 
         activation::Function,
     )
-    combinations = [[1], [2], [3]]
+    combinations = [[1], [2]]
 
     inC = fs.first
     outC = fs.second
 
     convs = map(combinations) do _
         Chain(
-            Base.Fix2(mycircular, ksize .÷ 2), 
+            Base.Fix2(mycircular, ksize .÷ 2), # TODO impl mycircular for 1D Conv
             Conv(
                 ksize, 
                 inC => outC,
@@ -86,38 +85,37 @@ function Approx3DConv3C1(
         )
     end
     C = typeof(convs[begin])
-    Approx3DConv3C1{C}(convs...)
+    Approx2DConv2C1{C}(convs...)
 end # function
 
-Flux.@functor Approx3DConv3C1
+Flux.@functor Approx2DConv2C1
 ```
 
 ```julia
 """
-    (conv3dapprox::Approx3DConv3C1)(x::AbstractArray{T,3 + 1 + 1})
-Implements 3D transformation that alters three dimensional convolutions
+    (conv2dapprox::Approx2DConv2C1)(x::AbstractArray{T,2 + 1 + 1})
+Implements 2D transformation that alters 2 dimensional convolutions
 
-(x, y, t, inC, B) # select 3 axis , say, "x" from ["x", "y", "t"] in this example
+(x, t, inC, B) # select 1 axis, say, "x" from ["x", "t"] in this example
 ->
-(x, inC, y, t, B) # permutedims
+(x, inC, t, B) # permutedims
 -> 
-(x, y, inC, (y, t, B)) # treat (t, B) as a batch axis.
+(x, inC, (t, B)) # treat (t, B) as a batch axis.
 ->
-(x, inC, (y * t * B)) # reshape
+(x, inC, (t * B)) # reshape
 -> 
-(x, outC, (y * t * B)) # apply 2D convolution
+(x, outC, (t * B)) # apply 2D convolution
 ->
-(x, outC, y, t, B) # reshape 4D -> 5D
+(x, outC, t, B) # reshape 4D -> 5D
 -> 
-(x, y, t, outC, B) # permutedims to restore the array data
+(x, t, outC, B) # permutedims to restore the array data
 """
-function (conv3dapprox::Approx3DConv3C1)(x::AbstractArray{T,3 + 1 + 1}) where {T}
-    Nd = 3
-    combinations = [[1], [2], [3]]
+function (conv2dapprox::Approx2DConv2C1)(x::AbstractArray{T,2 + 1 + 1}) where {T}
+    Nd = 2
+    combinations = [[1], [2]]
     convs = (
-        conv3dapprox.c1,
-        conv3dapprox.c2,
-        conv3dapprox.c3,
+        conv2dapprox.c1,
+        conv2dapprox.c2,
     )
     ys = map(zip(convs, combinations)) do (conv, cs)
         tospational = filter(1:Nd) do n
@@ -140,7 +138,6 @@ function (conv3dapprox::Approx3DConv3C1)(x::AbstractArray{T,3 + 1 + 1}) where {T
             size(out, 2),
             size(xperm, 3),
             size(xperm, 4),
-            size(xperm, 5),
         )
         y = permutedims(outreshaped, sortperm(dims))
         y
@@ -177,12 +174,12 @@ function GomalizingFlow.create_model(hp::HyperParams)
         channels = [inC, hidden_sizes..., outC]
         net = []
         for (c, c_next) ∈ pairwise(channels)
-            push!(net, Approx3DConv3C1((kernel_size, ), c=>c_next, leakyrelu))
+            push!(net, Approx2DConv2C1((kernel_size,), c=>c_next, leakyrelu))
         end
         if use_final_tanh
             c = channels[end-1]
             c_next = channels[end]
-                net[end] = Approx3DConv3C1((kernel_size, ), c=>c_next, tanh)
+            net[end] = Approx2DConv2C1((kernel_size,), c=>c_next, tanh)
         end
         mask = make_checker_mask(lattice_shape, parity)
         coupling = AffineCoupling(Chain(net...), mask)
@@ -194,9 +191,10 @@ end
 ```
 
 ```julia
-configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example3d.toml")
-hp = GomalizingFlow.load_hyperparams(configpath, device_id=1)
-@assert length(hp.pp.lattice_shape) == 3
+configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example2d_critical_L4.toml")
+foldername = "example2d_critical_L4_2C1"
+hp = GomalizingFlow.load_hyperparams(configpath, foldername, device_id=1)
+@assert length(hp.pp.lattice_shape) == 2
 ```
 
 ```julia

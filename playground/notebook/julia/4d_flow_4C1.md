@@ -7,7 +7,7 @@ sampling algorithm, namely, RealNVP and Metropolis-Hastings test for two
 dimension and three dimensional scalar field, which can be switched by a
 parameter file. One may wonder how to implement for four dimensional scalar field. If Flux.jl supports $N$-dimensional convolutions, where $N > 3$, things are very simple. Unfortunately it doesn't in 2022. See the related issue [here](https://github.com/FluxML/Flux.jl/issues/451). This means that for those who would like to implement for the four dimensional theory, one should take a different approach.
 
-In this notebook we provide an alternative method which substitutes four dimensional convolution. we realize 4 dimensional non linear transformation with 6-2D-convolutions.
+In this notebook we provide an alternative method which substitutes four dimensional convolution. we realize 4 dimensional non linear transformation with 4-1D-convolutions.
 
 
 # Load Julia modules
@@ -25,10 +25,10 @@ using GomalizingFlow: HyperParams, AffineCoupling
 using GomalizingFlow: mycircular, pairwise, make_checker_mask
 ```
 
-We provide one way to achieve a four-dimensional nonlinear transformation with **six** two-dimensional convolutions. where the number six comes from a combination of 4 axes taken 2 at a time without repetition:
+We provide one way to achieve a four-dimensional nonlinear transformation with **four** two-dimensional convolutions. where the number four comes from a combination of 4 axes taken 1 at a time without repetition:
 
 $$
-{}_4\mathrm{C}_2 \underset{\mathrm{def}}{=} \binom{4}{2} = \frac{4!}{2!(4-2)!} = 6
+{}_4\mathrm{C}_1 \underset{\mathrm{def}}{=} \binom{4}{1} = \frac{4!}{1!(4-1)!} = 4
 $$
 
 We name the transformation `Approx4DConv4C2`
@@ -40,22 +40,35 @@ end
 ```
 
 ```julia
-struct Approx4DConv4C2{C}
+"""
+Differentiable padarray for 1DConv
+"""
+function GomalizingFlow.mycircular(Y::AbstractArray{<:Real,1 + 2}, d1::Int=1)
+    Yl = Y[begin:begin+(d1-1), :, :]
+    Yr = Y[end-(d1-1):end, :, :]
+    cat(Yr, Y, Yl, dims=1)
+end
+
+function GomalizingFlow.mycircular(Y::AbstractArray{<:Real,1 + 2}, ds::NTuple{1,Int})
+    mycircular(Y, ds[1])
+end
+```
+
+```julia
+struct Approx4DConv4C1{C}
     c1::C
     c2::C
     c3::C
     c4::C
-    c5::C
-    c6::C
 end
 
 # Constructor
-function Approx4DConv4C2(
-        ksize::NTuple{2,Int}, 
+function Approx4DConv4C1(
+        ksize::NTuple{1,Int}, 
         fs::Pair{Int,Int}, 
         activation::Function,
     )
-    combinations = [[1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4],]
+    combinations = [[1],[2],[3],[4]]
 
     inC = fs.first
     outC = fs.second
@@ -72,41 +85,39 @@ function Approx4DConv4C2(
         )
     end
     C = typeof(convs[begin])
-    Approx4DConv4C2{C}(convs...)
+    Approx4DConv4C1{C}(convs...)
 end # function
 
-Flux.@functor Approx4DConv4C2
+Flux.@functor Approx4DConv4C1
 ```
 
 ```julia
 """
-    (conv4dapprox::Approx4DConv4C2)(x::AbstractArray{T,4 + 1 + 1})
+    (conv4dapprox::Approx4DConv4C1)(x::AbstractArray{T,4 + 1 + 1})
 Implements 4D transformation that alters four dimensional convolutions
 
-(x, y, z, t, inC, B) # select 2 axes , say, "x" and "y" from ["x", "y", "z", "t"] in this example
+(x, y, z, t, inC, B) # select 1 axes , say, "x" from ["x", "y", "z", "t"] in this example
 ->
-(x, y, inC, z, t, B) # permutedims
+(x, inC, y, z, t, B) # permutedims
 -> 
-(x, y, inC, (z, t, B)) # treat (z, t, B) as a batch axis.
+(x, inC, (y, z, t, B)) # treat (y, z, t, B) as a batch axis.
 ->
-(x, y, inC, (z * t * B)) # reshape
+(x, inC, (y * z * t * B)) # reshape
 -> 
-(x, y, outC, (z * t * B)) # apply 2D convolution
+(x, outC, (y * z * t * B)) # apply 1D convolution
 ->
-(x, y, outC, z, t, B) # reshape 4D -> 6D
+(x, outC, y, z, t, B) # reshape 3D -> 6D
 -> 
-(x, y, z, t, outC, B) # permutedims to restore the array data
+(x, z, t, outC, B) # permutedims to restore the array data
 """
-function (conv4dapprox::Approx4DConv4C2)(x::AbstractArray{T,4 + 1 + 1}) where {T}
+function (conv4dapprox::Approx4DConv4C1)(x::AbstractArray{T,4 + 1 + 1}) where {T}
     Nd = 4
-    combinations = ([1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4])
+    combinations = ([1],[2],[3],[4])
     convs = (
         conv4dapprox.c1,
         conv4dapprox.c2,
         conv4dapprox.c3,
         conv4dapprox.c4,
-        conv4dapprox.c5,
-        conv4dapprox.c6,
     )
     ys = map(zip(convs, combinations)) do (conv, cs)
         tospational = filter(1:Nd) do n
@@ -121,13 +132,13 @@ function (conv4dapprox::Approx4DConv4C2)(x::AbstractArray{T,4 + 1 + 1}) where {T
         batchdim = Nd + 2
         dims = [tospational..., dimchannel, tobatch..., batchdim]
         xperm = permutedims(x, dims)
-        xin = reshape(xperm, size(xperm, 1), size(xperm, 2), size(xperm, 3), Colon())
+        xin = reshape(xperm, size(xperm, 1), size(xperm, 2), Colon())
         out = conv(xin)
         outreshaped = reshape(
             out,
             size(out, 1),
             size(out, 2),
-            size(out, 3),
+            size(xperm, 3),
             size(xperm, 4),
             size(xperm, 5),
             size(xperm, 6),
@@ -135,7 +146,6 @@ function (conv4dapprox::Approx4DConv4C2)(x::AbstractArray{T,4 + 1 + 1}) where {T
         y = permutedims(outreshaped, sortperm(dims))
         y
     end
-    #sum(ys) <-- does not suitable for our purpose cuz we get huge loss values for initial training.
     mean(ys)
 end
 ```
@@ -168,12 +178,12 @@ function GomalizingFlow.create_model(hp::HyperParams)
         channels = [inC, hidden_sizes..., outC]
         net = []
         for (c, c_next) ∈ pairwise(channels)
-            push!(net, Approx4DConv4C2((kernel_size, kernel_size), c=>c_next, leakyrelu))
+            push!(net, Approx4DConv4C1((kernel_size,), c=>c_next, leakyrelu))
         end
         if use_final_tanh
             c = channels[end-1]
             c_next = channels[end]
-            net[end] = Approx4DConv4C2((kernel_size, kernel_size), c=>c_next, tanh)
+            net[end] = Approx4DConv4C1((kernel_size,), c=>c_next, tanh)
         end
         mask = make_checker_mask(lattice_shape, parity)
         coupling = AffineCoupling(Chain(net...), mask)
@@ -185,8 +195,12 @@ end
 ```
 
 ```julia
-configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example4d.toml")
-hp = GomalizingFlow.load_hyperparams(configpath)
+configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example4d_critical_L4.toml")
+foldername = "example4d_critical_L4_4C1"
+hp = GomalizingFlow.load_hyperparams(configpath, foldername)
 @assert length(hp.pp.lattice_shape) == 4
+```
+
+```julia
 GomalizingFlow.train(hp)
 ```
