@@ -187,7 +187,8 @@ end
 ```julia
 configpath = joinpath(pkgdir(GomalizingFlow), "cfgs", "example4d_critical_L4.toml")
 foldername = "example4d_critical_L4_4C2"
-hp = GomalizingFlow.load_hyperparams(configpath, foldername)
+device_id = parse(Int, get(ENV, "device_id", "0"))
+hp = GomalizingFlow.load_hyperparams(configpath, foldername; device_id)
 @assert length(hp.pp.lattice_shape) == 4
 ```
 
