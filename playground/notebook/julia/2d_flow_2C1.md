@@ -106,7 +106,7 @@ Implements 2D transformation that alters 2 dimensional convolutions
 -> 
 (x, outC, (t * B)) # apply 2D convolution
 ->
-(x, outC, t, B) # reshape 4D -> 5D
+(x, outC, t, B) # reshape 3D -> 4D
 -> 
 (x, t, outC, B) # permutedims to restore the array data
 """
