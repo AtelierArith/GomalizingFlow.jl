@@ -6,7 +6,10 @@ using Statistics
 using PyPlot
 ```
 
+# Construct weight
+
 ```julia
+#=
 W = [
     0 1 0
     1 -2 1
@@ -15,6 +18,7 @@ W = [
 
 W = Flux.unsqueeze(W, dims=3)
 W = Flux.unsqueeze(W, dims=4)
+=#
 ```
 
 ```julia
@@ -28,31 +32,39 @@ W = Flux.unsqueeze(W, dims=3)
 W = Flux.unsqueeze(W, dims=4)
 ```
 
+# Setup standard 2D Convolution
+
 ```julia
-c2d = Conv(W, false, pad=SamePad())
+stdconv = Conv(W, false, pad=SamePad())
 ```
 
 ```julia
-c2d.weight
+stdconv.weight
 ```
 
+# Input data
+
 ```julia
-x = rand(Float32, 5,5,1,1);
+# x = rand(Float32, 5,5,1,1);
 ```
 
 ```julia
 x = reshape(Float32[
-    0 0 1 0 0
-    0 0 1 0 0
-    1 1 1 1 1
-    0 0 1 0 0
-    0 0 1 0 0
-], 5, 5, 1, 1)
+  0 0 0 1 0 0 0
+  0 0 0 1 0 0 0
+  0 0 0 1 0 0 0
+  1 1 1 1 1 1 1
+  0 0 0 1 0 0 0 
+  0 0 0 1 0 0 0
+  0 0 0 1 0 0 0
+], 7, 7, 1, 1)
 ```
 
 ```julia
 plt.imshow(dropdims(x, dims=(3,4)))
 ```
+
+# Construct 2C1-Conv
 
 ```julia
 W1 = W[2:2, :, :, :]
@@ -81,53 +93,49 @@ c2.weight
 ```
 
 ```julia
-y2d = c2d(x)
+y_stdconv = stdconv(x)
 ```
 
 ```julia
-plt.imshow(dropdims(y2d, dims=(3,4)))
+plt.imshow(dropdims(y_stdconv, dims=(3,4)))
 ```
 
 ```julia
-y = mean([c1(x), c2(x)])
+y_conbiconv = mean([c1(x), c2(x)])
 ```
 
 ```julia
-Δ = y2d .- y
+plt.imshow(dropdims(y_conbiconv, dims=(3,4)))
+```
+
+```julia
+Δ = y_stdconv .- y_conbiconv
 display(Δ)
 plt.imshow(dropdims(Δ, dims=(3,4)))
 ```
 
 ```julia
-plt.imshow(dropdims(y, dims=(3,4)))
-```
+fig, axes = plt.subplots(1,4, figsize=(16,4))
 
-```julia
-k = 3
-W_D2 = k * k
-W_2C1 = 2 * k
-```
+for ax in axes
+    ax.set_xticks([])
+    ax.set_yticks([])
+end
 
-```julia
-W_2C1/W_D2 |> inv
-```
+ax0, ax1, ax2, ax3 = axes
 
-```julia
-k = 3
-W_D3 = k * k * k
-W_3C1 = 3 * k
-```
+ax0.set_title("(a) Input")
+ax0.imshow(dropdims(x, dims=(3,4)))
 
-```julia
-k = 3
-W_D4 = k * k * k * k
-W_4C1 = 4 * k
-```
+ax1.set_title("(b) 2D conv")
+ax1.imshow(dropdims(y_stdconv, dims=(3,4)))
 
-```julia
-W_3C1/W_D3 |> inv
-```
+ax2.set_title("(c) 2C1 conv")
+ax2.imshow(dropdims(y_conbiconv, dims=(3,4)))
 
-```julia
-W_4C1/W_D4 |> inv
+Δ = y_stdconv .- y_conbiconv
+ax3.set_title("(d) Δ")
+ax3.imshow(dropdims(Δ, dims=(3,4)))
+
+fig.savefig("diff_conv_output.pdf")
 ```
