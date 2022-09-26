@@ -6,7 +6,7 @@ all: build
 
 build:
 	-rm -rf .venv Manifest.toml
-	docker build -t ${IMAGENAME} .
+	docker build -t ${IMAGENAME} . --build-arg NB_UID=`id -u`
 	docker-compose build
 	docker-compose run --rm julia julia --project=/work -e 'using Pkg; Pkg.instantiate()'
 
