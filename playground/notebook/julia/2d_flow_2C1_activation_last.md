@@ -97,7 +97,7 @@ Flux.@functor Approx2DConv2C1
     (conv2dapprox::Approx2DConv2C1)(x::AbstractArray{T,2 + 1 + 1})
 Implements 2D transformation that alters 2 dimensional convolutions
 
-(x, t, inC, B) # select 1 axis, say, "x" from ["x", "t"] in this example
+(x, t, inC, B) # select one axis, say, "x" from ["x", "t"] in this example
 ->
 (x, inC, t, B) # permutedims
 -> 
@@ -105,7 +105,7 @@ Implements 2D transformation that alters 2 dimensional convolutions
 ->
 (x, inC, (t * B)) # reshape
 -> 
-(x, outC, (t * B)) # apply 2D convolution
+(x, outC, (t * B)) # apply 1D convolution
 ->
 (x, outC, t, B) # reshape 3D -> 4D
 -> 

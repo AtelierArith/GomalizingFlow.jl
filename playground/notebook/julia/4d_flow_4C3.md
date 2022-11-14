@@ -85,7 +85,7 @@ Implements 4D transformation that alters four dimensional convolutions
 ->
 (x, y, z, inC, t, B) # permutedims
 -> 
-(x, y, z, inC, (t, B)) # treat (z, t, B) as a batch axis.
+(x, y, z, inC, (t, B)) # treat (t, B) as a batch axis.
 ->
 (x, y, z, inC, (t * B)) # reshape
 -> 

@@ -102,7 +102,7 @@ Flux.@functor Approx3DConv3C1
     (conv3dapprox::Approx3DConv3C1)(x::AbstractArray{T,3 + 1 + 1})
 Implements 3D transformation that alters three dimensional convolutions
 
-(x, y, t, inC, B) # select 3 axis , say, "x" from ["x", "y", "t"] in this example
+(x, y, t, inC, B) # select one axis , say, "x" from ["x", "y", "t"] in this example
 ->
 (x, inC, y, t, B) # permutedims
 -> 
@@ -110,9 +110,9 @@ Implements 3D transformation that alters three dimensional convolutions
 ->
 (x, inC, (y * t * B)) # reshape
 -> 
-(x, outC, (y * t * B)) # apply 2D convolution
+(x, outC, (y * t * B)) # apply 1D convolution
 ->
-(x, outC, y, t, B) # reshape 4D -> 5D
+(x, outC, y, t, B) # reshape 3D -> 5D
 -> 
 (x, y, t, outC, B) # permutedims to restore the array data
 """
