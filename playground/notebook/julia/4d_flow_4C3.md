@@ -49,8 +49,8 @@ end
 
 # Constructor
 function Approx4DConv4C3(
-        ksize::NTuple{3,Int}, 
-        fs::Pair{Int,Int}, 
+        ksize::NTuple{3,Int},
+        fs::Pair{Int,Int},
         activation::Function,
     )
     combinations = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
@@ -60,9 +60,9 @@ function Approx4DConv4C3(
 
     convs = map(combinations) do _
         Chain(
-            Base.Fix2(mycircular, ksize .÷ 2), 
+            Base.Fix2(mycircular, ksize .÷ 2),
             Conv(
-                ksize, 
+                ksize,
                 inC => outC,
                 activation,
                 init=torchlike_uniform
@@ -79,20 +79,20 @@ Flux.@functor Approx4DConv4C3
 ```julia
 """
     (conv4dapprox::Approx4DConv4C3)(x::AbstractArray{T,4 + 1 + 1})
-Implements 4D transformation that alters four dimensional convolutions
+Implements 4D transformation that alters four-dimensional convolution
 
 (x, y, z, t, inC, B) # select 3 axes , say, "x", "y" and "z" from ["x", "y", "z", "t"] in this example
 ->
 (x, y, z, inC, t, B) # permutedims
--> 
+->
 (x, y, z, inC, (t, B)) # treat (t, B) as a batch axis.
 ->
 (x, y, z, inC, (t * B)) # reshape
--> 
+->
 (x, y, z, outC, (t * B)) # apply 3D convolution
 ->
 (x, y, z, outC, t, B) # reshape 5D -> 6D
--> 
+->
 (x, y, z, t, outC, B) # permutedims to restore the array data
 """
 function (conv4dapprox::Approx4DConv4C3)(x::AbstractArray{T,4 + 1 + 1}) where {T}

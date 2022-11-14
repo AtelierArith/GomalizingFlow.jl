@@ -64,8 +64,8 @@ end
 
 # Constructor
 function Approx2DConv2C1(
-        ksize::NTuple{1,Int}, 
-        fs::Pair{Int,Int}, 
+        ksize::NTuple{1,Int},
+        fs::Pair{Int,Int},
         activation::Function,
     )
     combinations = [[1], [2]]
@@ -77,7 +77,7 @@ function Approx2DConv2C1(
         Chain(
             Base.Fix2(mycircular, ksize .÷ 2), # TODO impl mycircular for 1D Conv
             Conv(
-                ksize, 
+                ksize,
                 inC => outC,
                 activation,
                 init=torchlike_uniform
@@ -94,20 +94,20 @@ Flux.@functor Approx2DConv2C1
 ```julia
 """
     (conv2dapprox::Approx2DConv2C1)(x::AbstractArray{T,2 + 1 + 1})
-Implements 2D transformation that alters 2 dimensional convolutions
+Implements 2D transformation that alters 2-dimensional convolution
 
 (x, t, inC, B) # select one axis, say, "x" from ["x", "t"] in this example
 ->
 (x, inC, t, B) # permutedims
--> 
+->
 (x, inC, (t, B)) # treat (t, B) as a batch axis.
 ->
 (x, inC, (t * B)) # reshape
--> 
+->
 (x, outC, (t * B)) # apply 1D convolution
 ->
 (x, outC, t, B) # reshape 3D -> 4D
--> 
+->
 (x, t, outC, B) # permutedims to restore the array data
 """
 function (conv2dapprox::Approx2DConv2C1)(x::AbstractArray{T,2 + 1 + 1}) where {T}

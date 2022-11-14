@@ -69,8 +69,8 @@ end
 
 # Constructor
 function Approx3DConv3C1(
-        ksize::NTuple{1,Int}, 
-        fs::Pair{Int,Int}, 
+        ksize::NTuple{1,Int},
+        fs::Pair{Int,Int},
         activation::Function;
         init=torchlike_uniform
     )
@@ -81,9 +81,9 @@ function Approx3DConv3C1(
 
     convs = map(combinations) do _
         Chain(
-            Base.Fix2(mycircular, ksize .÷ 2), 
+            Base.Fix2(mycircular, ksize .÷ 2),
             Conv(
-                ksize, 
+                ksize,
                 inC => outC,
                 activation;
                 init
@@ -100,20 +100,20 @@ Flux.@functor Approx3DConv3C1
 ```julia
 """
     (conv3dapprox::Approx3DConv3C1)(x::AbstractArray{T,3 + 1 + 1})
-Implements 3D transformation that alters three dimensional convolutions
+Implements 3D transformation that alters three-dimensional convolution
 
 (x, y, t, inC, B) # select one axis , say, "x" from ["x", "y", "t"] in this example
 ->
 (x, inC, y, t, B) # permutedims
--> 
+->
 (x, y, inC, (y, t, B)) # treat (t, B) as a batch axis.
 ->
 (x, inC, (y * t * B)) # reshape
--> 
+->
 (x, outC, (y * t * B)) # apply 1D convolution
 ->
 (x, outC, y, t, B) # reshape 3D -> 5D
--> 
+->
 (x, y, t, outC, B) # permutedims to restore the array data
 """
 function (conv3dapprox::Approx3DConv3C1)(x::AbstractArray{T,3 + 1 + 1}) where {T}
