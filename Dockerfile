@@ -127,11 +127,11 @@ RUN julia -e '\
     using Pkg; Pkg.instantiate(); \
     Pkg.precompile(); \
     # Download CUDA artifacts \
-    using CUDA; \
+    using CUDA, cuDNN; \
     if CUDA.functional() \
     @info "Download artifacts of CUDA/CUDNN"; \
     @assert CUDA.functional(true); \
-    @assert CUDA.has_cudnn(); \
+    @assert cuDNN.has_cudnn(); \
     end; \
     using InteractiveUtils; versioninfo() \
     '

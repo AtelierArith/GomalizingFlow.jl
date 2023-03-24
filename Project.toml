@@ -37,6 +37,7 @@ StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 ToStruct = "43ec2cc1-0e50-5406-a854-b7ff8fdb8dad"
 UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
+cuDNN = "02a925ec-e4fe-4b08-9a7e-0d78e3d38ccd"
 
 [compat]
 BSON = "0.3.5"
