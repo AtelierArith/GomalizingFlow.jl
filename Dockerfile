@@ -113,7 +113,7 @@ RUN conda install -y seaborn matplotlib -c conda-forge && \
     conda install pytorch=1.12 torchvision torchaudio cudatoolkit=11.3 -c pytorch && \
     conda clean -afy # clean up
 
-# Install extras
+# Install extra packages
 RUN julia -e 'using Pkg; Pkg.add(["ImageFiltering", "WebIO", "Interact"])'
 
 ENV JULIA_PROJECT=/work
@@ -129,9 +129,10 @@ RUN julia -e '\
     # Download CUDA artifacts \
     using CUDA, cuDNN; \
     if CUDA.functional() \
-    @info "Download artifacts of CUDA/CUDNN"; \
+    @info "Downloading artifacts regarding CUDA and CUDNN for Julia"; \
     @assert CUDA.functional(true); \
     @assert cuDNN.has_cudnn(); \
+    CUDA.versioninfo(); \
     end; \
     using InteractiveUtils; versioninfo() \
     '
