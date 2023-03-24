@@ -20,7 +20,7 @@ $ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml
 
 # Usage (detailed description)
 
-If you're familiar with how to use Julia especially machine learning or GPU programming, you can setup an environment by yourself via:
+If you're familiar with how to use Julia especially deep learning with GPU, you can setup an environment by yourself via:
 
 ```julia
 julia> using Pkg; Pkg.instantiate()
@@ -38,28 +38,37 @@ Otherwise, we recommend to create one using Docker container (see the following 
 Below shows author's development environment (Linux/Ubuntu 20.04).
 
 ```console
-$ make --version
-GNU Make 4.2.1
+$ cat /etc/lsb-release
+DISTRIB_ID=Ubuntu
+DISTRIB_RELEASE=22.04
+DISTRIB_CODENAME=jammy
+DISTRIB_DESCRIPTION="Ubuntu 22.04.2 LTS"
+$ make  make --version
+GNU Make 4.3
 Built for x86_64-pc-linux-gnu
+Copyright (C) 1988-2020 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
 $ docker --version
-Docker version 20.10.17, build 100c701
+Docker version 23.0.1, build a5ee5b1
 $ docker-compose --version
 docker-compose version 1.29.2, build 5becea4c
 $ nvidia-smi
-Thu Aug 11 02:17:05 2022
+Fri Mar 24 23:34:16 2023
 +-----------------------------------------------------------------------------+
-| NVIDIA-SMI 510.85.02    Driver Version: 510.85.02    CUDA Version: 11.6     |
+| NVIDIA-SMI 525.85.05    Driver Version: 525.85.05    CUDA Version: 12.0     |
 |-------------------------------+----------------------+----------------------+
 | GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
 |                               |                      |               MIG M. |
 |===============================+======================+======================|
 |   0  NVIDIA GeForce ...  Off  | 00000000:03:00.0 Off |                  N/A |
-|  0%   35C    P8     9W / 280W |      6MiB / 11264MiB |      0%      Default |
+|  0%   33C    P8     9W / 280W |      6MiB / 11264MiB |      0%      Default |
 |                               |                      |                  N/A |
 +-------------------------------+----------------------+----------------------+
 |   1  NVIDIA GeForce ...  Off  | 00000000:04:00.0 Off |                  N/A |
-|  0%   34C    P8    13W / 280W |     15MiB / 11264MiB |      0%      Default |
+|  0%   36C    P8    11W / 280W |    179MiB / 11264MiB |      0%      Default |
 |                               |                      |                  N/A |
 +-------------------------------+----------------------+----------------------+
 $ cat /etc/docker/daemon.json
@@ -67,14 +76,14 @@ $ cat /etc/docker/daemon.json
     "default-runtime": "nvidia",
     "runtimes": {
         "nvidia": {
-            "path": "nvidia-container-runtime",
-            "runtimeArgs": []
+            "args": [],
+            "path": "nvidia-container-runtime"
         }
     }
 }
 ```
 
-Docker Compose can install easily via `pip3 install docker-compose`.
+You can install Docker Compose easily via `pip3 install docker-compose`.
 
 ## Step2: Build a Docker image
 
@@ -98,7 +107,7 @@ $ docker-compose run --rm julia julia begin_training.jl <path/to/config.toml>
 
 For example:
 
-```julia
+```console
 $ docker-compose run --rm julia julia begin_training.jl cfgs/example2d.toml # You can run in a realistic time without using GPU accelerator.
 ```
 
@@ -115,7 +124,7 @@ You'll see a trained model (`trained_model.bson`), a training log (`evaluations.
 
 For those who are interested in training for 3D field theory. Just run:
 
-```julia
+```console
 $ docker-compose run --rm julia julia begin_training.jl cfgs/example3d.toml # For 3D field theory parameter, you may want to use GPU for training.
 ```
 
@@ -241,7 +250,7 @@ $ tree -d
 
 ## Playground
 
-There are lots of jupyter notebooks in `playground/notebook/julia` regarding our program. Readers can learn about the trial and error process that led to the release of the software. You can run Jupyter Lab server locally as usual via:
+There are lots of jupyter notebooks in `playground/notebook/julia` regarding our project. Readers can learn about the trial and error process that led to the release of the software. You can run Jupyter Lab server locally as usual via:
 
 ```console
 $ docker-compose up lab
@@ -273,3 +282,8 @@ Bibtex item can be obtained from [iNSPIRE-HEP](https://inspirehep.net/literature
     year = "2022"
 }
 ```
+
+# Applications
+
+- [Combinational-convolution for flow-based sampling algorithm](https://ml4physicalsciences.github.io/2022/files/NeurIPS_ML4PS_2022_31.pdf)
+  - See [GomalizingFlow.jl/playground/notebook/julia/4d_flow_4C3.md](https://github.com/AtelierArith/GomalizingFlow.jl/blob/combi-conv/playground/notebook/julia/4d_flow_4C3.md) in [combi-conv](https://github.com/AtelierArith/GomalizingFlow.jl/tree/combi-conv) tag.
