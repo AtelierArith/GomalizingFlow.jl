@@ -53,7 +53,7 @@ USER ${NB_USER}
 # Install basic packages on default environment
 RUN julia -e 'using Pkg; Pkg.add(["PyCall", "IJulia", "Pluto", "PlutoUI", "Revise", "BenchmarkTools"]); Pkg.precompile()'
 
-ENV PATH $PATH:${HOME}/.julia/conda/3/bin
+ENV PATH $PATH:${HOME}/.julia/conda/3/x86_64/bin
 
 # Install packages for Jupyter Notebook/JupyterLab
 RUN conda install -y -c conda-forge \
