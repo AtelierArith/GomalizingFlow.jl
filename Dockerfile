@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:12.0.0-base-ubuntu22.04
 
 ENV JULIA_PATH /usr/local/julia
 ENV PATH $JULIA_PATH/bin:$PATH
@@ -113,7 +113,7 @@ RUN conda install -y seaborn matplotlib -c conda-forge && \
     conda install pytorch=1.12 torchvision torchaudio cudatoolkit=11.3 -c pytorch && \
     conda clean -afy # clean up
 
-# Install extras
+# Install extra packages
 RUN julia -e 'using Pkg; Pkg.add(["ImageFiltering", "WebIO", "Interact"])'
 
 ENV JULIA_PROJECT=/work
@@ -127,11 +127,12 @@ RUN julia -e '\
     using Pkg; Pkg.instantiate(); \
     Pkg.precompile(); \
     # Download CUDA artifacts \
-    using CUDA; \
+    using CUDA, cuDNN; \
     if CUDA.functional() \
-    @info "Download artifacts of CUDA/CUDNN"; \
+    @info "Downloading artifacts regarding CUDA and CUDNN for Julia"; \
     @assert CUDA.functional(true); \
-    @assert CUDA.has_cudnn(); \
+    @assert cuDNN.has_cudnn(); \
+    CUDA.versioninfo(); \
     end; \
     using InteractiveUtils; versioninfo() \
     '
