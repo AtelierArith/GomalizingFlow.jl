@@ -283,7 +283,9 @@ Bibtex item can be obtained from [iNSPIRE-HEP](https://inspirehep.net/literature
 }
 ```
 
-# Applications
+# Appendix
 
-- [Combinational-convolution for flow-based sampling algorithm](https://ml4physicalsciences.github.io/2022/files/NeurIPS_ML4PS_2022_31.pdf)
-  - See [GomalizingFlow.jl/playground/notebook/julia/4d_flow_4C3.md](https://github.com/AtelierArith/GomalizingFlow.jl/blob/combi-conv/playground/notebook/julia/4d_flow_4C3.md) in [combi-conv](https://github.com/AtelierArith/GomalizingFlow.jl/tree/combi-conv) tag.
+- [Gomalizing...?](https://twitter.com/AkioTomiya/status/1560623282981707781?s=20)
+  - You need a sense of humor to understand it.
+- [Combinational-convolution for flow-based sampling algorithm](https://ml4physicalsciences.github.io/2022/files/NeurIPS_ML4PS_2022_31.pdf) See:
+  - Code is available: [GomalizingFlow.jl/playground/notebook/julia/4d_flow_4C3.md](https://github.com/AtelierArith/GomalizingFlow.jl/blob/combi-conv/playground/notebook/julia/4d_flow_4C3.md) in [combi-conv](https://github.com/AtelierArith/GomalizingFlow.jl/tree/combi-conv) tag.
