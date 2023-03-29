@@ -78,14 +78,18 @@ function train(hp)
 
     @info "dump hyperparams: $(joinpath(result_dir, "config.toml"))"
     GomalizingFlow.hp2toml(hp, joinpath(result_dir, "config.toml"))
-    best_epoch = 1
+    best_epoch_ess = 1
+    best_epoch_acceptance_rate = 1
     best_ess = T |> zero
+    best_acceptance_rate = T |> zero
     evaluations = DataFrame(
         :epoch => Int[],
         :loss => T[],
         :ess => T[],
         :best_ess => T[],
-        :best_epoch => Int[],
+        :best_acceptance_rate => T[],
+        :best_epoch_ess => Int[],
+        :best_epoch_acceptance_rate => Int[],
         :acceptance_rate => T[],
         :elapsed_time => Float64[],
     )
@@ -145,12 +149,12 @@ function train(hp)
             @info "progress logging:" epoch = epoch loss = loss ess = ess acceptance_rate =
                 acceptance_rate
         end # @timed
-        # save best checkpoint
+        # save best checkpoint regarding ess
         if ess >= best_ess
             @info "Found best ess"
             @show epoch
             best_ess = ess
-            best_epoch = epoch
+            best_epoch_ess = epoch
             # save model
             trained_model_best_ess = model |> cpu
             opt_best_ess = opt |> cpu
@@ -166,6 +170,29 @@ function train(hp)
                 history_best_ess.accepted[2000:end],
             )
         end
+
+        # save best checkpoint regarding acceptance_rate
+        if acceptance_rate >= best_acceptance_rate
+            @info "Found best acceptance_rate"
+            @show epoch
+            best_acceptance_rate = acceptance_rate
+            best_epoch_acceptance_rate = epoch
+            # save model
+            trained_model_best_acceptance_rate = model |> cpu
+            opt_best_acceptance_rate = opt |> cpu
+            BSON.@save joinpath(
+                result_dir,
+                "trained_model_best_acceptance_rate.bson",
+            ) trained_model_best_acceptance_rate opt_best_acceptance_rate scheduler
+            @info "make mcmc ensamble"
+            history_best_acceptance_rate = history_current_epoch
+            @info "save history_best_acceptance_rate to $(joinpath(result_dir, "history_best_acceptance_rate.bson"))"
+            BSON.@save joinpath(result_dir, "history_best_acceptance_rate.bson") history_best_acceptance_rate
+            Printf.@printf "acceptance_rate= %.2f [percent]\n" 100mean(
+                history_best_acceptance_rate.accepted[2000:end],
+            )
+        end
+
         elapsed_time = td.time
         @show elapsed_time
         push!(
@@ -175,8 +202,10 @@ function train(hp)
                     epoch,
                     loss,
                     ess,
-                    best_epoch,
+                    best_epoch_ess,
+                    best_epoch_acceptance_rate,
                     best_ess,
+                    best_acceptance_rate,
                     acceptance_rate,
                     elapsed_time,
                 )),
