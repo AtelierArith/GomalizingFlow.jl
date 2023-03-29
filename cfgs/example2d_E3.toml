@@ -38,10 +38,10 @@ pretrained = ""
 # lattice_shape = (L, L, L) if Nd = 3
 # action = ScalarPhi4Action(M2, lam)
 [physical]
-L = 14
-Nd = 3
+L = 10
+Nd = 2
 M2 = -4.0 # m²
-lam = 5.276 # λ
+lam = 5.550 # λ
 
 # setup ModelParams
 #
