@@ -12,7 +12,7 @@ function make_mcmc_ensamble(
     Nd = length(lattice_shape)
     history = (x=Array{Float32,Nd}[], logq=Float32[], logp=Float32[], accepted=Bool[])
     c = 0
-    for _ in 1:(nsamples÷batchsize+1)
+    @showprogress for _ in 1:(ceil(Int, nsamples / batchsize))
         z = rand(rng, prior, lattice_shape..., batchsize)
         logq_device = sum(logpdf.(prior, z), dims=(1:ndims(z)-1)) |> device
         z_device = z |> device
