@@ -11,6 +11,7 @@ using IterTools
 using Flux
 using CUDA
 using ParameterSchedulers
+using Parameters
 
 using GomalizingFlow
 ```
@@ -43,9 +44,9 @@ end
 
 ```julia
 function restore(r)
-    BSON.@load joinpath(r, "history.bson") history
-    BSON.@load joinpath(r, "trained_model.bson") trained_model
-    return Flux.testmode!(trained_model), history
+    BSON.@load joinpath(r, "history_best_acceptance_rate.bson") history_best_acceptance_rate
+    BSON.@load joinpath(r, "trained_model_best_acceptance_rate.bson") trained_model_best_acceptance_rate
+    return Flux.testmode!(trained_model_best_acceptance_rate), history_best_acceptance_rate
 end
 ```
 
@@ -122,7 +123,7 @@ end
 ```
 
 ```julia
-r = results[1] # modify here
+r = results[2] # modify here
 @show r
 ```
 
@@ -131,18 +132,36 @@ plot_action(r)
 plt.show()
 ```
 
+# Generate configurations
+
 ```julia
-_, history = restore(r);
-acceptance_rate =  mean(history[:accepted][2000:7000])
+hp = GomalizingFlow.load_hyperparams(joinpath(r, "config.toml"))
+prior = eval(Meta.parse(hp.tp.prior))
+T = prior |> rand |> eltype
+@unpack m², λ, lattice_shape = hp.pp
+action = GomalizingFlow.ScalarPhi4Action{T}(m², λ)
+batchsize = 64
+model, _ = restore(r)
+nsamples = 1000000
+history = GomalizingFlow.make_mcmc_ensamble(
+    model |> gpu,
+    prior,
+    action,
+    lattice_shape;
+    batchsize,
+    nsamples,
+    device=gpu,
+    seed=2009,
+);
+```
+
+```julia
+acceptance_rate =  mean(history[:accepted][5000:end])
 Printf.@printf "acceptance_rate= %.2f [percent]" 100acceptance_rate
 
-function drawgreen(r)
-    hp = GomalizingFlow.load_hyperparams(joinpath(r, "config.toml"))
-    _, history = restore(r);
-    lattice_shape = hp.pp.lattice_shape
-    #cfgs = cat(history[:x][4000:7000]..., dims=length(lattice_shape)+1)
-    cfgs = Flux.MLUtils.batch(history[:x][2000:7000])
-    y_values = []
+function drawgreen(history)
+    cfgs = Flux.MLUtils.batch(history[:x][5000:end])
+    y_values = eltype(cfgs)[]
     @showprogress for t in 0:hp.pp.L
         y = mfGc(cfgs, t, lattice_shape)
         push!(y_values, y)
@@ -151,86 +170,54 @@ function drawgreen(r)
     #plt.yscale("log")
 end
 
-drawgreen(r)
+drawgreen(history)
 ```
 
-```julia
-function approx_normalized_autocorr(observed::AbstractVector, τ::Int)
-    ō = mean(observed)
-    N = length(observed)
-    s = zero(eltype(observed))
-    for i in 1:(N-τ)
-        s += (observed[i]-ō)*(observed[i+τ]-ō)
-    end
-    s = s/(N-τ)/var(observed)
-    return s
-end
-
-ρ̂(observed, τ) = approx_normalized_autocorr(observed, τ)
-```
+$$
+\langle \prod_{i=1}^\tau \mathbb{1}_\mathrm{rej}(i) \rangle
+$$
 
 ```julia
-# Idea is taken from https://arxiv.org/pdf/hep-lat/0409106.pdf
-```
-
-```julia
-a = history[:accepted][2000:end]
-ρ̄(a, t) = goma_auto_corr(a, t)/goma_auto_corr(a, 0)
-
-function goma_auto_corr(a::AbstractVector, t::Int) # \bar{\Gamma}
-    t = abs(t)
-    ā = mean(a)
-    s = zero(eltype(a))
-    N = length(a)
-    for i in 1:(N-t)
-        s += (a[i] - ā) * (a[i+t] - ā)
-    end
-    return s / (N - t)
-end
-
-function δρ²(a, t)
-    Λ = 600 # ここは 100 だとダメだった.
-    s = 0.
-    for k in 1:(t + Λ)
-        s += (ρ̄(a, k + t) + ρ̄(a, k - t) - 2ρ̄(a, k) * ρ̄(a, t))^2
-    end
-    s /= length(a)
-end
-
-W = -1
-for t in 1:1000
-    if ρ̄(a, t) ≤ √(δρ²(a, t))
-        W = t
-        break
+function τⁱⁿᵗ_acc(history)
+    a = history[:accepted][5000:end];
+    τⁱⁿᵗ_acc = 0.5 + sum(1:100) do τ
+        p_τrej = mean(1:(length(a) - τ)) do i 
+            prod(.!(@view a[i:(i + τ - 1)]))
+        end
+        p_τrej
     end
 end
-@show W
-τᵢₙₜ = 0.5 + sum(t->ρ̄(a, t), 1:W)
+τⁱⁿᵗ_acc(history)
 ```
 
-```julia
-plot([ρ̄(a, t) for t in 1:100])
-```
+$$
+\tau^{\mathrm{int}}_{\mathcal{O}} = \frac{1}{2} + \lim_{\tau_{\mathrm{max}} \to \infty} \sum_{\tau=1}^{\tau_{\mathrm{max}}} 
+\widehat{\rho_{\mathcal{O}}(\tau)/\rho_{\mathcal{O}}(0)}
+$$
 
 ```julia
-τᵢₙₜ * sqrt((4W + 2)/length(a))
-```
-
-```julia
-using StatsBase
-```
-
-```julia
-function tomiya_autocorr(x)
-    result = crosscor(x, x) # , mode='full')
-    idx = div(length(result),2)
-    return result[(idx+1):end]
+function τⁱⁿᵗ(𝒪)
+	N = length(𝒪)
+	return 0.5 + sum(1:100) do τ
+		𝒪̄ = mean(𝒪)
+		n = mean(1:(N-τ)) do i
+			(𝒪[i] - 𝒪̄) * (𝒪[i + τ] - 𝒪̄)
+		end
+		d = mean(1:N) do i
+			(𝒪[i] - 𝒪̄) ^ 2
+		end
+		n/d
+	end
 end
-function calc_τ_ac(x)
-    ρ = tomiya_autocorr(x)
-    @show ρ
-    return sum(ρ)+1/2
-end
+```
+
+```julia
+a = history[:accepted][5000:end];
+τⁱⁿᵗ(a)
+```
+
+```julia
+using StatsBase: autocor
 ```
 
 ```julia
@@ -238,17 +225,47 @@ a = history[:accepted][2000:end];
 ```
 
 ```julia
-calc_τ_ac(a)
+0.5 + sum(autocor(a)[begin+1:end])
+```
+
+# Histograms of rejections
+
+```julia
+function collect_rejections(arr)
+	cnts = Int[]
+	cnt = 0
+	si = 1
+	ei = 1
+	iscounting = false
+	lastindex = axes(arr)[begin][end]
+	for (i, b) in enumerate(arr)
+		if !iscounting && !b
+			iscounting = true
+			si = ei = i
+		end
+		
+		if iscounting && !b 
+			ei = i
+		elseif iscounting && b
+			push!(cnts, ei - si + 1)
+			si = ei
+			iscounting = false
+		end
+		
+		if i == lastindex && iscounting
+			push!(cnts, lastindex - si + 1)
+		end
+	end
+	cnts
+end
 ```
 
 ```julia
-StatsBase.autocor(a) |> sum
-```
+rejcounts = filter(collect_rejections(a)) do c
+    c < 80
+end
 
-```julia
-plot(StatsBase.autocor(a))
-plot(tomiya_autocorr(a), alpha=0.5)
-plt.ylim(0, 1)
+hist(rejcounts, log=true);
 ```
 
 ```julia
