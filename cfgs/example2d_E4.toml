@@ -24,12 +24,13 @@ device_id = 0
 [training]
 seed = 12345
 batchsize = 64
-epochs = 500
+epochs = 5000
 iterations = 100
 base_lr = 0.001
 opt = "Adam"
 prior = "Normal{Float32}(0.f0, 1.f0)"
-lr_scheduler = "Step(0.001f0, 0.1f0, [200])"
+lr_scheduler = "Step(0.001f0, 0.5f0, [1500, 1500, 1500])"
+# lr_scheduler = ""
 pretrained = ""
 
 # setup PhysicalParams
