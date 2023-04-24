@@ -138,7 +138,7 @@ plt.show()
 hp = GomalizingFlow.load_hyperparams(joinpath(r, "config.toml"))
 prior = eval(Meta.parse(hp.tp.prior))
 T = prior |> rand |> eltype
-@unpack m², λ, lattice_shape = hp.pp
+@unpack m², λ, Nd, lattice_shape = hp.pp
 action = GomalizingFlow.ScalarPhi4Action{T}(m², λ)
 batchsize = 64
 model, _ = restore(r)
@@ -212,8 +212,34 @@ end
 ```
 
 ```julia
+# two-point susceptibility
+function χ²(cfgs)
+    lattice_shape = (cfgs |> size)[begin:end-1]
+    acc = Atomic{Float32}(0)
+    @threads for s in IterTools.product((1:l for l in lattice_shape)...) |> collect
+        Threads.atomic_add!(acc, green(cfgs, s, lattice_shape))
+    end
+    return acc.value
+end
+```
+
+```julia
 a = history[:accepted][5000:end];
 τⁱⁿᵗ(a)
+```
+
+```julia
+cfgs = Flux.MLUtils.batch(history[:x][5000:end])
+Nd = hp.pp.Nd
+ising_energy_density = mean(1:Nd) do μ
+    offsetX = zeros(Int, Nd)
+    offsetX[μ] = 1
+    green(cfgs, offsetX, lattice_shape)
+end
+```
+
+```julia
+χ²(cfgs)
 ```
 
 ```julia
@@ -221,10 +247,7 @@ using StatsBase: autocor
 ```
 
 ```julia
-a = history[:accepted][2000:end];
-```
-
-```julia
+a = history[:accepted][5000:end];
 0.5 + sum(autocor(a)[begin+1:end])
 ```
 
