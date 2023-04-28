@@ -1,4 +1,10 @@
-FROM nvidia/cuda:12.0.0-base-ubuntu22.04
+# Usage: 
+# docker build goma build-arg CUDA_VERSION=12.0.0
+# 12.0.0 <- default configuration
+# 11.7.0 <- you can also choose this
+ARG CUDA_VERSION="12.0.0"
+
+FROM nvidia/cuda:${CUDA_VERSION}-base-ubuntu22.04
 
 ENV JULIA_PATH /usr/local/julia
 ENV PATH $JULIA_PATH/bin:$PATH
@@ -128,6 +134,11 @@ RUN julia -e '\
     Pkg.precompile(); \
     # Download CUDA artifacts \
     using CUDA, cuDNN; \
+    using CUDA; CUDA.set_runtime_version!(v"${CUDA_VERSION}"); \
+    '
+
+RUN julia -e '\
+    using CUDA; \
     if CUDA.functional() \
     @info "Downloading artifacts regarding CUDA and CUDNN for Julia"; \
     @assert CUDA.functional(true); \
