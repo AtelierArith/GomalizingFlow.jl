@@ -1,6 +1,8 @@
 .PHONY: all build clean
 
-IMAGENAME=gomalizingflowjl
+DOCKER_IMAGE=gomalizingflowjl
+# You can also set 11.7.0
+CUDA_VERSION?=12.0.0
 
 all: build
 
@@ -10,15 +12,16 @@ all: build
 # See: https://stackoverflow.com/questions/59691207/docker-build-with-nvidia-runtime
 build:
 	-rm -rf .venv Manifest.toml
-	DOCKER_BUILDKIT=0 docker build -t ${IMAGENAME} . --build-arg NB_UID=`id -u`
-	docker-compose build
-	docker-compose run --rm julia julia --project=/work -e 'using Pkg; Pkg.instantiate()'
+	#DOCKER_BUILDKIT=0 docker build -t ${IMAGENAME} . --build-arg NB_UID=`id -u`
+	docker build -t ${DOCKER_IMAGE} . --build-arg NB_UID=`id -u` --build-arg CUDA_VERSION=${CUDA_VERSION}
+	docker compose build
+	docker compose run --rm julia julia --project=/work -e 'using Pkg; Pkg.instantiate()'
 
 test: build
-	docker-compose run --rm julia julia --project=/work -e 'using Pkg; Pkg.test()'
+	docker compose run --rm julia julia --project=/work -e 'using Pkg; Pkg.test()'
 
 clean:
 	rm -f Manifest.toml
 	rm -f playground/notebook/julia/*.ipynb
 	rm -f playground/notebook/python/*.ipynb
-	docker-compose down
+	docker compose down

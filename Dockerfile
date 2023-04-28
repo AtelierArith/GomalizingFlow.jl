@@ -1,4 +1,10 @@
-FROM nvidia/cuda:12.0.0-base-ubuntu22.04
+# Usage: 
+# docker build goma build-arg CUDA_VERSION=12.0.0
+# 12.0.0 <- default configuration
+# 11.7.0 <- you can also choose this
+ARG CUDA_VERSION="12.0.0"
+
+FROM nvidia/cuda:${CUDA_VERSION}-base-ubuntu22.04
 
 ENV JULIA_PATH /usr/local/julia
 ENV PATH $JULIA_PATH/bin:$PATH
@@ -50,7 +56,7 @@ RUN mkdir -p /work/
 RUN chown -R ${NB_UID} /work/
 USER ${NB_USER}
 
-# Install basic packages on default environment
+# Install basic packages for default environment
 RUN julia -e 'using Pkg; Pkg.add(["PyCall", "IJulia", "Pluto", "PlutoUI", "Revise", "BenchmarkTools"]); Pkg.precompile()'
 
 ENV PATH $PATH:${HOME}/.julia/conda/3/x86_64/bin
@@ -128,6 +134,12 @@ RUN julia -e '\
     Pkg.precompile(); \
     # Download CUDA artifacts \
     using CUDA, cuDNN; \
+    env_cuda_version = ENV["CUDA_VERSION"]; \
+    using CUDA; CUDA.set_runtime_version!(VersionNumber(env_cuda_version)); \
+    '
+
+RUN julia -e '\
+    using CUDA; \
     if CUDA.functional() \
     @info "Downloading artifacts regarding CUDA and CUDNN for Julia"; \
     @assert CUDA.functional(true); \
