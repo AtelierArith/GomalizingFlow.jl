@@ -1,6 +1,8 @@
 .PHONY: all build clean
 
 IMAGENAME=gomalizingflowjl
+# You can also set 11.7.0
+CUDA_VERSION?=12.0.0
 
 all: build
 
@@ -13,6 +15,7 @@ build:
 	DOCKER_BUILDKIT=0 docker build -t ${IMAGENAME} . --build-arg NB_UID=`id -u`
 	docker-compose build
 	docker-compose run --rm julia julia --project=/work -e 'using Pkg; Pkg.instantiate()'
+	docker build -t ${DOCKER_IMAGE} . --build-arg NB_UID=`id -u` --build-arg CUDA_VERSION=${CUDA_VERSION}
 
 test: build
 	docker-compose run --rm julia julia --project=/work -e 'using Pkg; Pkg.test()'
