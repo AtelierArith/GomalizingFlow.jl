@@ -134,7 +134,8 @@ RUN julia -e '\
     Pkg.precompile(); \
     # Download CUDA artifacts \
     using CUDA, cuDNN; \
-    using CUDA; CUDA.set_runtime_version!(v"${CUDA_VERSION}"); \
+    env_cuda_version = ENV["CUDA_VERSION"]; \
+    using CUDA; CUDA.set_runtime_version!(VersionNumber(env_cuda_version)); \
     '
 
 RUN julia -e '\
