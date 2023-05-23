@@ -94,8 +94,8 @@ RUN jupyter labextension install jupyterlab-topbar-extension && \
     jupyter nbextension enable --py widgetsnbextension && \
     jupyter labextension install @jupyter-widgets/jupyterlab-manager --no-build && \
     jupyter labextension install @z-m-k/jupyterlab_sublime --no-build && \
-    jupyter labextension install @ryantam626/jupyterlab_code_formatter --no-build && \
-    jupyter serverextension enable --py jupyterlab_code_formatter && \
+    #jupyter labextension install @ryantam626/jupyterlab_code_formatter --no-build && \
+    #jupyter serverextension enable --py jupyterlab_code_formatter && \
     jupyter labextension install @hokyjack/jupyterlab-monokai-plus --no-build && \
     jupyter labextension install @jupyterlab/server-proxy --no-build && \
     jupyter lab build -y && \
