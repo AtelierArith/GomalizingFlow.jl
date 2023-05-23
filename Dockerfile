@@ -29,7 +29,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 # Install NodeJS
 RUN apt-get update && \
-    curl -sL https://deb.nodesource.com/setup_16.x | bash - && \
+    curl -sL https://deb.nodesource.com/setup_18.x | bash - && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
