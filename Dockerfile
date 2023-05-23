@@ -67,7 +67,7 @@ RUN conda install -y -c conda-forge \
 # Install packages for Jupyter Notebook/JupyterLab
 RUN conda install -y -c conda-forge \
     jupyter \
-    jupyterlab \
+    jupyterlab=3.6.3 \
     jupytext \
     ipywidgets \
     jupyter_contrib_nbextensions \
