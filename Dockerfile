@@ -61,6 +61,8 @@ RUN julia -e 'using Pkg; Pkg.add(["PyCall", "IJulia", "Pluto", "PlutoUI", "Revis
 
 ENV PATH $PATH:${HOME}/.julia/conda/3/x86_64/bin
 
+# see also 
+# https://discourse.julialang.org/t/conda-not-installing-matplotlib-for-pyplot/96813
 RUN conda install -y -c conda-forge \
     conda=23.1.0
 
