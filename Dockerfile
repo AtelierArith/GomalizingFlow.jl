@@ -29,7 +29,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 # Install NodeJS
 RUN apt-get update && \
-    curl -sL https://deb.nodesource.com/setup_16.x | bash - && \
+    curl -sL https://deb.nodesource.com/setup_18.x | bash - && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -61,10 +61,15 @@ RUN julia -e 'using Pkg; Pkg.add(["PyCall", "IJulia", "Pluto", "PlutoUI", "Revis
 
 ENV PATH $PATH:${HOME}/.julia/conda/3/x86_64/bin
 
+# see also 
+# https://discourse.julialang.org/t/conda-not-installing-matplotlib-for-pyplot/96813
+RUN conda install -y -c conda-forge \
+    conda=23.1.0
+
 # Install packages for Jupyter Notebook/JupyterLab
 RUN conda install -y -c conda-forge \
     jupyter \
-    jupyterlab \
+    jupyterlab=3.6.3 \
     jupytext \
     ipywidgets \
     jupyter_contrib_nbextensions \
@@ -89,8 +94,8 @@ RUN jupyter labextension install jupyterlab-topbar-extension && \
     jupyter nbextension enable --py widgetsnbextension && \
     jupyter labextension install @jupyter-widgets/jupyterlab-manager --no-build && \
     jupyter labextension install @z-m-k/jupyterlab_sublime --no-build && \
-    jupyter labextension install @ryantam626/jupyterlab_code_formatter --no-build && \
-    jupyter serverextension enable --py jupyterlab_code_formatter && \
+    #jupyter labextension install @ryantam626/jupyterlab_code_formatter --no-build && \
+    #jupyter serverextension enable --py jupyterlab_code_formatter && \
     jupyter labextension install @hokyjack/jupyterlab-monokai-plus --no-build && \
     jupyter labextension install @jupyterlab/server-proxy --no-build && \
     jupyter lab build -y && \
