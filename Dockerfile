@@ -61,6 +61,9 @@ RUN julia -e 'using Pkg; Pkg.add(["PyCall", "IJulia", "Pluto", "PlutoUI", "Revis
 
 ENV PATH $PATH:${HOME}/.julia/conda/3/x86_64/bin
 
+RUN conda install -y -c conda-forge \
+    conda=23.1.0
+
 # Install packages for Jupyter Notebook/JupyterLab
 RUN conda install -y -c conda-forge \
     jupyter \
