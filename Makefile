@@ -15,10 +15,11 @@ build:
 	#DOCKER_BUILDKIT=0 docker build -t ${IMAGENAME} . --build-arg NB_UID=`id -u`
 	docker build -t ${DOCKER_IMAGE} . --build-arg NB_UID=`id -u` --build-arg CUDA_VERSION=${CUDA_VERSION}
 	docker compose build
-	docker compose run --rm julia julia --project=/work -e 'using Pkg; Pkg.instantiate()'
+	docker compose run --rm shell julia --project=/work -e 'using Pkg; Pkg.instantiate()'
+	docker compose run --rm shell rye sync
 
 test: build
-	docker compose run --rm julia julia --project=/work -e 'using Pkg; Pkg.test()'
+	docker compose run --rm shell julia --project=/work -e 'using Pkg; Pkg.test()'
 
 clean:
 	rm -f Manifest.toml
