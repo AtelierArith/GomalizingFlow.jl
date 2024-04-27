@@ -1,4 +1,3 @@
-version: '3'
 services:
   lab:
     image: gomalizingflowjl
@@ -28,6 +27,14 @@ services:
       - ./:/work
     working_dir: /work
     command: julia --project=/work
+
+  shell:
+      image: gomalizingflowjl
+      container_name: gomalizingflowjl-shell
+      volumes:
+        - ./:/work
+      working_dir: /work
+      command: bash
 
   julia-gpu:
     image: gomalizingflowjl
