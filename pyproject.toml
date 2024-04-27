@@ -1,0 +1,17 @@
+[project]
+name = "work"
+version = "0.1.0"
+description = "Add your description here"
+dependencies = [
+    "torch>=2.3.0",
+    "numpy>=1.26.4",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[tool.rye]
+managed = true
+virtual = true
+dev-dependencies = [
+    "ipython>=8.24.0",
+]
