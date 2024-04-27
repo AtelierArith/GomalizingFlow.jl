@@ -54,7 +54,8 @@ ENV PATH=$PATH:$HOME/.rye/shims
 RUN curl -sSf https://rye-up.com/get | RYE_VERSION="0.32.0" RYE_INSTALL_OPTION="--yes" bash
 RUN $HOME/.rye/shims/rye config --set-bool behavior.use-uv=true
 
-RUN $HOME/.rye/shims/rye tools install jupyterlab \
+RUN $HOME/.rye/shims/rye tools install jupyter \
+    && $HOME/.rye/shims/rye tools install jupyterlab \
     && $HOME/.rye/shims/rye tools install jupytext \
     && $HOME/.rye/shims/rye tools install ruff
 
