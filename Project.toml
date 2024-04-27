@@ -1,6 +1,6 @@
+authors = ["Satoshi Terasaki <s.terasaki@atelier-arith.jp>", "Akio Tomiya <akio@yukawa.kyoto-u.ac.jp>"]
 name = "GomalizingFlow"
 uuid = "0f19fbf8-c737-4363-84ba-df62a70f9c3f"
-authors = ["Satoshi Terasaki <s.terasaki@atelier-arith.jp>", "Akio Tomiya <akio@yukawa.kyoto-u.ac.jp>"]
 version = "1.2.0"
 
 [deps]
