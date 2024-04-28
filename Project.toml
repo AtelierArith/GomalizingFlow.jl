@@ -1,7 +1,7 @@
 authors = ["Satoshi Terasaki <s.terasaki@atelier-arith.jp>", "Akio Tomiya <akio@yukawa.kyoto-u.ac.jp>"]
 name = "GomalizingFlow"
 uuid = "0f19fbf8-c737-4363-84ba-df62a70f9c3f"
-version = "1.2.0"
+version = "1.3.0"
 
 [deps]
 ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
