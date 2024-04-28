@@ -358,4 +358,4 @@ Bibtex item can be obtained from [iNSPIRE-HEP](https://inspirehep.net/literature
 - [Combinational-convolution for flow-based sampling algorithm](https://ml4physicalsciences.github.io/2022/files/NeurIPS_ML4PS_2022_31.pdf) See:
   - Code is available: [GomalizingFlow.jl/playground/notebook/julia/4d_flow_4C3.md](https://github.com/AtelierArith/GomalizingFlow.jl/blob/combi-conv/playground/notebook/julia/4d_flow_4C3.md) in [combi-conv](https://github.com/AtelierArith/GomalizingFlow.jl/tree/combi-conv) tag.
 
-- As of April 2024, we have confirmed that GomalizingFlow.jl is compatible with Julia 1.10.2, Flux 0.14.15, and CUDA v5.3.3. Please note that the CUDA version used was "11.7.0" i.e. `CUDA_VERSION="11.7.0" make`.
+- As of April 2024, we have confirmed that "GomalizingFlow.jl v1.3.0" is compatible with Julia 1.10.2, Flux 0.14.15, and CUDA v5.3.3. Please note that the CUDA version used was "11.7.0" i.e. `CUDA_VERSION="11.7.0" make`.
