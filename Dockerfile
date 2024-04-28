@@ -2,7 +2,7 @@
 # docker build goma build-arg CUDA_VERSION=12.0.0
 # 12.0.0 <- default configuration
 # 11.7.0 <- you can also choose this
-ARG CUDA_VERSION="11.7.0"
+ARG CUDA_VERSION="12.0.0"
 
 FROM nvidia/cuda:${CUDA_VERSION}-base-ubuntu22.04
 
