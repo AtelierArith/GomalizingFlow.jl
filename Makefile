@@ -20,6 +20,7 @@ test: build
 
 clean:
 	-rm -rf .venv Manifest.toml
+	-rm -f requirements.lock requirements-dev.lock
 	rm -f playground/notebook/julia/*.ipynb
 	rm -f playground/notebook/python/*.ipynb
 	docker compose down
