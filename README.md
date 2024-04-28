@@ -15,7 +15,7 @@ This code works not only on CPU but also on NVIDIA GPU.
 $ git clone https://github.com/AtelierArith/GomalizingFlow.jl && cd GomalizingFlow.jl
 $ # Install Docker and GNU Make command:
 $ make
-$ docker compose run --rm julia julia begin_training.jl cfgs/example2d.toml
+$ docker compose run --rm shell julia begin_training.jl cfgs/example2d.toml
 ```
 
 # Usage (detailed description)
@@ -106,13 +106,13 @@ CUDA_VERSION=11.7.0 make
 In general, you can train a model via:
 
 ```console
-$ docker compose run --rm julia julia begin_training.jl <path/to/config.toml>
+$ docker compose run --rm shell julia begin_training.jl <path/to/config.toml>
 ```
 
 For example:
 
 ```console
-$ docker compose run --rm julia julia begin_training.jl cfgs/example2d.toml # You can run in a realistic time without using GPU accelerator.
+$ docker compose run --rm shell julia begin_training.jl cfgs/example2d.toml # You can run in a realistic time without using GPU accelerator.
 ```
 
 It will generate some artifacts in `results/example2d/`:
@@ -131,13 +131,19 @@ You'll see a trained model (`trained_model.bson`), a training log (`evaluations.
 For those who are interested in training for 3D field theory. Just run:
 
 ```console
-$ docker compose run --rm julia julia begin_training.jl cfgs/example3d.toml
+$ docker compose run --rm shell julia begin_training.jl cfgs/example3d.toml
+```
+
+You may need run `julia -e 'using Pkg; Pkg.instantiate()'` before running `begin_training.jl`
+
+```
+$ docker compose run --rm shell bash -c "julia -e 'using Pkg; Pkg.instantiate()' && julia begin_training.jl cfgs/example3d.toml"
 ```
 
 For 3D field theory parameter, you may want to use GPU for training. Make sure `nvidia-smi` command can be found from the container of `gomalizingflowjl`
 
 ```console
-$ docker compose run --rm julia bash -c "nvidia-smi"
+$ docker compose run --rm shell bash -c "nvidia-smi"
 ```
 
 Some environments will produce the result below:
@@ -146,7 +152,7 @@ Some environments will produce the result below:
 bash: line 1: nvidia-smi: command not found
 ```
 
-In this case, try `docker compose run --rm julia-gpu bash -c "nvidia-smi"` instead.
+In this case, try `docker compose run --rm shell-gpu bash -c "nvidia-smi"` instead.
 Note that `julia-gpu` refers the service name which can be found at `docker-compose.yml`.
 
 ```yml
@@ -167,19 +173,19 @@ During training, you can watch the value of ess for each epoch.
 - Run training script as usual:
 
 ```console
-$ docker compose run --rm julia julia begin_training.jl </path/to/config.toml>
+$ docker compose run --rm shell julia begin_training.jl </path/to/config.toml>
 ```
 
 - Open another terminal, and run the following:
 
 ```console
-$ docker compose run --rm julia julia watch.jl </path/to/config.toml>
+$ docker compose run --rm shell julia watch.jl </path/to/config.toml>
 ```
 
 It will display a plot in your terminal something like:
 
 ```console
-$ docker compose run --rm julia julia watch.jl cfgs/example2d.toml
+$ docker compose run --rm shell julia watch.jl cfgs/example2d.toml
 Creating gomalizingflowjl_julia_run ... done
 [ Info: serving ~/work/atelier_arith/GomalizingFlow.jl/result/example2d
 [ Info: evaluations.csv is updated
@@ -208,7 +214,7 @@ Creating gomalizingflowjl_julia_run ... done
 We also support showing `acceptance_rate` by adding `--item acceptance_rate`:
 
 ```console
-$ docker compose run --rm julia julia watch.jl cfgs/example2d_E1.toml --item acceptance_rate
+$ docker compose run --rm shell julia watch.jl cfgs/example2d_E1.toml --item acceptance_rate
 Creating gomalizingflowjl_julia_run ... done
 [ Info: serving /work/result/example2d_E1
 [ Info: evaluations.csv is updated
@@ -351,3 +357,5 @@ Bibtex item can be obtained from [iNSPIRE-HEP](https://inspirehep.net/literature
   - You need a sense of humor to understand it.
 - [Combinational-convolution for flow-based sampling algorithm](https://ml4physicalsciences.github.io/2022/files/NeurIPS_ML4PS_2022_31.pdf) See:
   - Code is available: [GomalizingFlow.jl/playground/notebook/julia/4d_flow_4C3.md](https://github.com/AtelierArith/GomalizingFlow.jl/blob/combi-conv/playground/notebook/julia/4d_flow_4C3.md) in [combi-conv](https://github.com/AtelierArith/GomalizingFlow.jl/tree/combi-conv) tag.
+
+- As of April 2024, we have confirmed that GomalizingFlow.jl is compatible with Julia 1.10.2, Flux 0.14.15, and CUDA v5.3.3. Please note that the CUDA version used was "11.7.0" i.e. `CUDA_VERSION="11.7.0" make`.
