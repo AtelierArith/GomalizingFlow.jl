@@ -3,7 +3,7 @@
 DOCKER_IMAGE=gomalizingflowjl
 # You can also set 11.7.0. For example
 # Run "$ CUDA_VERSION=11.7.0 make" in your terminal
-CUDA_VERSION?=12.0.0
+CUDA_VERSION?=12.2.0
 
 all: build
 

@@ -2,7 +2,7 @@
 # docker build goma build-arg CUDA_VERSION=12.0.0
 # 12.0.0 <- default configuration
 # 11.7.0 <- you can also choose this
-ARG CUDA_VERSION="12.0.0"
+ARG CUDA_VERSION="12.2.0"
 
 FROM nvidia/cuda:${CUDA_VERSION}-base-ubuntu22.04
 
@@ -28,10 +28,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Julia
-RUN wget https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.2-linux-x86_64.tar.gz && \
+RUN wget https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.4-linux-x86_64.tar.gz && \
     mkdir "$JULIA_PATH" && \
-    tar zxvf julia-1.10.2-linux-x86_64.tar.gz -C "$JULIA_PATH" --strip-components 1 && \
-    rm julia-1.10.2-linux-x86_64.tar.gz # clean up
+    tar zxvf julia-1.10.4-linux-x86_64.tar.gz -C "$JULIA_PATH" --strip-components 1 && \
+    rm julia-1.10.4-linux-x86_64.tar.gz # clean up
 
 # Create user named jovyan which is compatible with Binder
 ARG NB_USER=jovyan
@@ -51,7 +51,7 @@ RUN chown -R ${NB_UID} /work/
 USER ${NB_USER}
 
 ENV PATH=$PATH:$HOME/.rye/shims
-RUN curl -sSf https://rye-up.com/get | RYE_VERSION="0.32.0" RYE_INSTALL_OPTION="--yes" bash
+RUN curl -sSf https://rye.astral.sh/get | RYE_VERSION="0.32.0" RYE_INSTALL_OPTION="--yes" bash
 RUN $HOME/.rye/shims/rye config --set-bool behavior.use-uv=true
 
 RUN $HOME/.rye/shims/rye tools install jupyter \
