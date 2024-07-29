@@ -51,7 +51,7 @@ RUN chown -R ${NB_UID} /work/
 USER ${NB_USER}
 
 ENV PATH=$PATH:$HOME/.rye/shims
-RUN curl -sSf https://rye-up.com/get | RYE_VERSION="0.32.0" RYE_INSTALL_OPTION="--yes" bash
+RUN curl -sSf https://rye.astral.sh/get | RYE_VERSION="0.32.0" RYE_INSTALL_OPTION="--yes" bash
 RUN $HOME/.rye/shims/rye config --set-bool behavior.use-uv=true
 
 RUN $HOME/.rye/shims/rye tools install jupyter \
