@@ -28,10 +28,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Julia
-RUN wget https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.2-linux-x86_64.tar.gz && \
+RUN wget https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.4-linux-x86_64.tar.gz && \
     mkdir "$JULIA_PATH" && \
-    tar zxvf julia-1.10.2-linux-x86_64.tar.gz -C "$JULIA_PATH" --strip-components 1 && \
-    rm julia-1.10.2-linux-x86_64.tar.gz # clean up
+    tar zxvf julia-1.10.4-linux-x86_64.tar.gz -C "$JULIA_PATH" --strip-components 1 && \
+    rm julia-1.10.4-linux-x86_64.tar.gz # clean up
 
 # Create user named jovyan which is compatible with Binder
 ARG NB_USER=jovyan
