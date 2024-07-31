@@ -350,6 +350,7 @@ Bibtex item can be obtained from [iNSPIRE-HEP](https://inspirehep.net/literature
     year = "2022"
 }
 ```
+See [our paper on arXiv](https://arxiv.org/abs/2208.08903)
 
 # Appendix
 
