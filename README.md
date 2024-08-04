@@ -335,6 +335,59 @@ gomalizingflowjl-lab |      or http://127.0.0.1:8888/lab?token=xxxxxxxxxx # Clic
 
 We track Jupyter Notebooks as `.md` with the power of [jupytext](https://github.com/mwouts/jupytext) rather than `.ipynb`.
 
+## Pkg.status()
+
+```
+$  docker compose run --rm shell
+jovyan@bc1fb5f58423:/work$ julia
+               _
+   _       _ _(_)_     |  Documentation: https://docs.julialang.org
+  (_)     | (_) (_)    |
+   _ _   _| |_  __ _   |  Type "?" for help, "]?" for Pkg help.
+  | | | | | | |/ _` |  |
+  | | |_| | | | (_| |  |  Version 1.10.4 (2024-06-04)
+ _/ |\__'_|_|_|\__'_|  |  Official https://julialang.org/ release
+|__/                   |
+
+(GomalizingFlow) pkg> st
+Project GomalizingFlow v1.3.1
+Status `/work/Project.toml`
+  [c7e460c6] ArgParse v1.2.0
+  [fbb218c0] BSON v0.3.9
+  [336ed68f] CSV v0.10.14
+  [052768ef] CUDA v5.4.3
+  [d360d2e6] ChainRulesCore v1.24.0
+  [a93c6f00] DataFrames v1.6.1
+  [864edb3b] DataStructures v0.18.20
+  [31c24e10] Distributions v0.25.109
+  [da5c29d0] EllipsisNotation v1.8.0
+  [587475ba] Flux v0.14.17
+  [7073ff75] IJulia v1.25.0
+  [02fcd773] ImageTransformations v0.10.1
+  [c8e1da08] IterTools v1.10.0
+  [0f8b85d8] JSON3 v1.14.0
+  [b964fa9f] LaTeXStrings v1.3.1
+  [872c559c] NNlib v0.9.21
+  [c020b1a1] NaturalSort v1.0.0
+  [d7d3b36b] ParameterSchedulers v0.4.2
+  [d96e819e] Parameters v0.12.3
+  [91a5bcdd] Plots v1.40.5
+  [92933f4c] ProgressMeter v1.10.2
+  [438e738f] PyCall v1.96.4
+  [d330b81b] PyPlot v2.11.5
+  [1fd47b50] QuadGK v2.10.1
+  [2913bbd2] StatsBase v0.34.3
+  [f3b207a7] StatsPlots v0.15.7
+  [43ec2cc1] ToStruct v0.2.3
+  [b8865327] UnicodePlots v3.6.4
+  [02a925ec] cuDNN v1.3.2
+  [7b1f6079] FileWatching
+  [de0858da] Printf
+  [9a3f8284] Random
+  [10745b16] Statistics v1.10.0
+  [fa267f1f] TOML v1.0.3
+  ```
+
 # Citation
 
 Bibtex item can be obtained from [iNSPIRE-HEP](https://inspirehep.net/literature/2138819):
