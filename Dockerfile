@@ -89,6 +89,7 @@ RUN julia -e '\
 RUN julia -e '\
     using CUDA; \
     if CUDA.functional() \
+    using cuDNN; \
     @info "Downloading artifacts regarding CUDA and CUDNN for Julia"; \
     @assert CUDA.functional(true); \
     @assert cuDNN.has_cudnn(); \
