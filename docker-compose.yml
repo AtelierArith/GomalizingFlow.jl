@@ -36,10 +36,10 @@ services:
       working_dir: /work
       command: bash
 
-  julia-gpu:
+  shell-gpu:
     image: gomalizingflowjl
     runtime: nvidia
-    container_name: gomalizingflowjl-julia-gpu
+    container_name: gomalizingflowjl-shell-gpu
     volumes:
       - ./:/work
     working_dir: /work

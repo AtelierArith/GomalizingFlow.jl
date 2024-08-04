@@ -153,13 +153,13 @@ bash: line 1: nvidia-smi: command not found
 ```
 
 In this case, try `docker compose run --rm shell-gpu bash -c "nvidia-smi"` instead.
-Note that `julia-gpu` refers the service name which can be found at `docker-compose.yml`.
+Note that `shell-gpu` refers the service name which can be found at `docker-compose.yml`.
 
 ```yml
-  julia-gpu:
+  shell-gpu:
     image: gomalizingflowjl
     runtime: nvidia
-    container_name: gomalizingflowjl-julia-gpu
+    container_name: gomalizingflowjl-shell-gpu
     volumes:
       - ./:/work
     working_dir: /work
